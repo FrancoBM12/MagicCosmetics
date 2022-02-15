@@ -1,0 +1,12 @@
+license: ''
+balloons-rotation: 25
+balloons-updown: 2
+npc-rotation: 3
+MySQL:
+  enabled: false
+  host: "127.0.0.1"
+  port: 3306
+  user: "root"
+  password: "password"
+  table: "player_cosmetics"
+  database: "cosmetics"

@@ -1,0 +1,66 @@
+tokens:
+  token1:
+    item:
+      display: '&bCanjea el primer Sombrero'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&cPrimer Sombrero'
+        - ''
+      unbreakable: true
+      glow: true
+      hide-attributes: true
+      modeldata: 10030
+    cosmetic: hat1
+  token2:
+    item:
+      display: '&bCanjea la Primera mochila'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&cPrimera Mochila'
+        - ''
+      unbreakable: true
+      glow: true
+      hide-attributes: true
+      modeldata: 10030
+    cosmetic: bag1
+  token3:
+    item:
+      display: '&bCanjea el Primer baston'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&cPrimer Baston'
+        - ''
+      unbreakable: true
+      glow: true
+      hide-attributes: true
+      modeldata: 10030
+    cosmetic: wstick1
+  token4:
+    item:
+      display: '&bCanjea el Primer globo'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&cPrimer Globo'
+        - ''
+      unbreakable: true
+      glow: true
+      hide-attributes: true
+      modeldata: 10030
+    cosmetic: balloon1
+  token5:
+    item:
+      display: '&bCanjea el Segundo globo'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&cSegundo Globo'
+        - ''
+      unbreakable: true
+      glow: true
+      hide-attributes: true
+      modeldata: 10030
+    cosmetic: balloon2

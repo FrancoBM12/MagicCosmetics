@@ -1,0 +1,74 @@
+cosmetics:
+  hat1:
+    item:
+      display: '&bSombrero N°1'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&cPrimer Sombrero'
+        - ''
+      unbreakable: true
+      glow: true
+      hide-attributes: true
+      modeldata: 10030
+    colored: false
+    type: HAT
+  bag1:
+    item:
+      display: '&cMochila N°1'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+      unbreakable: true
+      glow: true
+      hide-attributes: true
+      modeldata: 10088
+      modeldata-for-me: 20097
+    colored: false
+    type: BAG
+    space: 1
+  wstick1:
+    item:
+      display: '&aBaston N°1'
+      material: LEATHER_HORSE_ARMOR
+      item-adder: test
+      lore:
+        - ''
+      unbreakable: true
+      glow: true
+      hide-attributes: true
+      modeldata: 10031
+    colored: false
+    type: WALKING_STICK
+  balloon1:
+    item:
+      display: '&aGlobo N°1'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+      unbreakable: true
+      glow: true
+      hide-attributes: true
+      modeldata: 10145
+    colored: true
+    space: 1
+    type: BALLOON
+    rotation:
+      enabled: false
+      type: RIGHT
+  balloon2:
+    item:
+      display: '&aGlobo N°2'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+      unbreakable: true
+      glow: true
+      hide-attributes: true
+      modeldata: 10031
+    colored: true
+    space: 1
+    type: BALLOON
+    rotation:
+      enabled: true
+      type: RIGHT

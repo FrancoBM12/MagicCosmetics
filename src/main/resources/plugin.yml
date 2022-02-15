@@ -1,0 +1,8 @@
+name: CustomCosmetics
+version: '${project.version}'
+main: com.francobm.customcosmetics.CustomCosmetics
+api-version: 1.17
+softdepend: [Multiverse-Core]
+authors: [FrancoBM]
+description: simple plugin
+website: FrancoBM#2980
