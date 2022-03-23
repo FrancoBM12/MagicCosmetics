@@ -1,0 +1,48 @@
+package com.francobm.magicosmetics.nms.Version;
+
+import com.francobm.magicosmetics.cache.Sound;
+import com.francobm.magicosmetics.models.PacketReader;
+import com.francobm.magicosmetics.nms.NPC.ItemSlot;
+import com.francobm.magicosmetics.nms.NPC.NPC;
+import com.francobm.magicosmetics.nms.bag.PlayerBag;
+import com.francobm.magicosmetics.nms.balloon.PlayerBalloon;
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
+public abstract class Version {
+    private static Version version;
+
+    public static Version getVersion(){
+        return version;
+    }
+
+    public static void setVersion(Version version2){
+        version = version2;
+    }
+
+    public abstract void setSpectator(Player player);
+
+    public abstract void createNPC(Player player);
+
+    public abstract void createNPC(Player player, Location location);
+
+    public abstract NPC getNPC(Player player);
+
+    public abstract void removeNPC(Player player);
+
+    public abstract NPC getNPC();
+
+    public abstract void equip(Player player, ItemSlot itemSlot, ItemStack itemStack, boolean all);
+
+    public abstract void sendSound(Player player, Sound sound);
+
+    public abstract PacketReader getPacketReader(Player player);
+
+    public abstract PlayerBag createPlayerBag(Player player);
+
+    public abstract PlayerBalloon createPlayerBalloon(Player player, double space);
+
+    public abstract void updateTitle(Player player, String title);
+}

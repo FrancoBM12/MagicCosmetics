@@ -1,0 +1,41 @@
+sounds:
+  on_enter_zone:
+    type: BLOCK_GLASS_HIT
+    yaw: 1.0
+    pitch: 0.5
+  on_exit_zone:
+    type: ENTITY_BLAZE_DEATH
+    yaw: 1.0
+    pitch: 0.5
+  on_enter_zone_error:
+    type: BLOCK_GLASS_HIT
+    yaw: 1.0
+    pitch: 0.5
+  on_click_cosmetic:
+    type: ENTITY_CHICKEN_DEATH
+    yaw: 1.0
+    pitch: 0.5
+  on_click_item_colored:
+    type: ENTITY_BLAZE_DEATH
+    yaw: 1.0
+    pitch: 0.5
+  on_click_cosmetic_preview:
+    type: ENTITY_BLAZE_DEATH
+    yaw: 1.0
+    pitch: 0.5
+  on_click_token:
+    type: ENTITY_CHICKEN_DEATH
+    yaw: 1.0
+    pitch: 0.5
+  on_click_token_result:
+    type: BLOCK_GLASS_HIT
+    yaw: 1.0
+    pitch: 0.5
+  on_click_next_page:
+    type: BLOCK_GLASS_HIT
+    yaw: 1.0
+    pitch: 0.5
+  on_click_back_page:
+    type: BLOCK_GLASS_HIT
+    yaw: 1.0
+    pitch: 0.5

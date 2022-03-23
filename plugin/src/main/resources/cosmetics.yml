@@ -1,0 +1,102 @@
+cosmetics:
+  hat1:
+    item:
+      display: '&bMexican Hat'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&6Its very Mexican!'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10005
+    colored: true
+    type: HAT
+    overlaps: false
+  hat2:
+    item:
+      display: '&bHat Dog'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&aA spicy hot dog, who doesnt like it?'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10008
+    colored: false
+    type: HAT
+    overlaps: false
+  bag1:
+    item:
+      display: '&bCreeper backpack'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&aSupport the creepers!'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10003
+    colored: true
+    type: BAG
+  bag2:
+    item:
+      display: '&bBanner backpack'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&a&k@¿¿??@'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10004
+    colored: true
+    type: BAG
+  wstick1:
+    item:
+      display: '&bMagic wand'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&3This is a magic wand'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10001
+    colored: true
+    type: WALKING_STICK
+  balloon1:
+    item:
+      display: '&bHot air balloon'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&aThis balloon will fly through the skies!'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10000
+    colored: true
+    type: BALLOON
+    space: 1
+    rotation:
+      enabled: false
+      type: RIGHT
+  balloon2:
+    item:
+      display: '&bHot air balloon'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&aThis balloon will fly through the skies and rotate!'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10000
+    colored: true
+    type: BALLOON
+    space: 1
+    rotation:
+      enabled: true
+      type: RIGHT

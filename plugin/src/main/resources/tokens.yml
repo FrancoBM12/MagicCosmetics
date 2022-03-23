@@ -1,0 +1,74 @@
+tokens:
+  token1:
+    item:
+      display: '&6Mexican token'
+      amount: 1
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&9Redeem the Mexican hat!'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10006
+    cosmetic: hat1
+  token2:
+    item:
+      display: '&6Creeper token'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&9Redeem the Creeper backpack!'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10006
+    cosmetic: bag1
+  token3:
+    item:
+      display: '&6Banner token'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&9Redeem the Banner backpack!'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10006
+    cosmetic: bag2
+  token4:
+    item:
+      display: '&6Magic token'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&9Redeem the Magic wand!'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10006
+    cosmetic: wstick1
+  token5:
+    item:
+      display: '&6HotAir token'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&9Redeem the HotAir balloon!'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10006
+    cosmetic: balloon1
+  token6:
+    item:
+      display: '&6HotAir token'
+      material: LEATHER_HORSE_ARMOR
+      lore:
+        - ''
+        - '&9Redeem the HotAir & rotation balloon!'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10006
+    cosmetic: balloon2

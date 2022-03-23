@@ -1,0 +1,19 @@
+name: MagicCosmetics
+version: '${project.version}'
+main: com.francobm.magicosmetics.MagicCosmetics
+api-version: 1.16
+softdepend:
+  - Multiverse-Core
+  - ItemsAdder
+  - Oraxen
+  - ModelEngine
+  - TrMenu
+  - PlaceholderAPI
+authors: [FrancoBM]
+description: simple plugin
+website: FrancoBM#2980
+commands:
+  magicosmetics:
+    description: simple command.
+    usage: /<command>
+    aliases: [cosmetics, mcosmetics, magiccos]
