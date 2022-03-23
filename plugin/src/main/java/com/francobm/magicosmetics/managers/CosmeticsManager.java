@@ -355,6 +355,25 @@ public class CosmeticsManager {
         }
     }
 
+    public void addAllCosmetics(CommandSender sender, Player target){
+        if(!sender.hasPermission("magicosmetics.cosmetics")){
+            sendMessage(sender, plugin.prefix + plugin.getMessages().getString("no-permission"));
+            return;
+        }
+        PlayerCache playerCache = PlayerCache.getPlayer(target);
+        if(plugin.getUser() == null) return;
+        if(playerCache.getCosmetics().size() == Cosmetic.cosmetics.size()){
+            sendMessage(sender, plugin.prefix + plugin.getMessages().getString("already-all-cosmetics"));
+            return;
+        }
+        for(String id : Cosmetic.cosmetics.keySet()){
+            if(playerCache.getCosmeticById(id) != null) continue;
+            Cosmetic cosmetic = Cosmetic.getCloneCosmetic(id);
+            playerCache.addCosmetic(cosmetic);
+        }
+        sendMessage(sender, plugin.prefix + plugin.getMessages().getString("add-all-cosmetic"));
+    }
+
     public void addCosmetic(CommandSender sender, Player target, String cosmeticId){
         if(!sender.hasPermission("magicosmetics.cosmetics")){
             sendMessage(sender, plugin.prefix + plugin.getMessages().getString("no-permission"));

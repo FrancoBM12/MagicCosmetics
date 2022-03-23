@@ -103,7 +103,7 @@ public final class MagicCosmetics extends JavaPlugin {
         if(config.contains("equip-message")){
             equipMessage = config.getBoolean("equip-message");
         }
-        if(getCosmetic()) return;
+        //if(getCosmetic()) return;
         if (config.getBoolean("MySQL.enabled")) {
             sql = new MySQL();
         } else {
@@ -301,7 +301,7 @@ public final class MagicCosmetics extends JavaPlugin {
     }
 
     public User getUser() {
-        return this.user;
+        return new User();
     }
 
     public void setUser(User user) {

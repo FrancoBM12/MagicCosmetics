@@ -24,6 +24,18 @@ public class Command implements CommandExecutor, TabCompleter {
             if(args.length >= 1){
                 Player target;
                 switch (args[0].toLowerCase()){
+                    case "addall":
+                        if(args.length < 2){
+                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("commands.add-all-usage"));
+                            return true;
+                        }
+                        target = Bukkit.getPlayer(args[1]);
+                        if(target == null){
+                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
+                            return true;
+                        }
+                        plugin.getCosmeticsManager().addAllCosmetics(sender, target);
+                        return true;
                     case "add":
                         //cosmetics add <player> <id>
                         if(args.length < 3){
@@ -103,6 +115,18 @@ public class Command implements CommandExecutor, TabCompleter {
                         if(p == null) return true;
                         PlayerCache playerCache = PlayerCache.getPlayer(p);
                         playerCache.setZone(false);
+                        return true;
+                    case "addall":
+                        if(args.length < 2){
+                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("commands.add-all-usage"));
+                            return true;
+                        }
+                        target = Bukkit.getPlayer(args[1]);
+                        if(target == null){
+                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("offline-player"));
+                            return true;
+                        }
+                        plugin.getCosmeticsManager().addAllCosmetics(player, target);
                         return true;
                     case "add":
                         //cosmetics add <player> <id>
@@ -325,6 +349,7 @@ public class Command implements CommandExecutor, TabCompleter {
         if(sender.hasPermission("magicosmetics.cosmetics")) {
             arguments.add("add");
             arguments.add("remove");
+            arguments.add("addAll");
         }
         if(sender.hasPermission("magicosmetics.menus")) {
             arguments.add("open");
@@ -355,6 +380,7 @@ public class Command implements CommandExecutor, TabCompleter {
                 switch (args[0].toLowerCase()){
                     case "hide":
                     case "add":
+                    case "addall":
                     case "remove":
                         return  null;
                     case "open":

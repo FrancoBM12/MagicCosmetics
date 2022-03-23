@@ -7,13 +7,15 @@ not-have-cosmetic: '&cYou do not have this cosmetic unlocked!'
 not-cosmetics: '&cYou dont have any cosmetic available!'
 already-cosmetic: '&cThe player already has a cosmetic with that id!'
 add-cosmetic: '&aSuccessfully added the cosmetic to the player!'
+already-all-cosmetics: '&cThe player already has all the cosmetics unlocked!' #1.5.9
+add-all-cosmetic: '&aYou have successfully added all cosmetics to the player.' #1.5.9
 remove-cosmetic: '&aSuccessfully deleted player cosmetic!'
 use-cosmetic: '&aYou are now using the &e%name% &acosmetic!'
 not-exist-menu: '&cThe menu with the id &e%id% &cdoes not exist!'
 add-token: '&aSuccessfully added a token to the player!'
 not-exist-token: '&cThe token with id &e%id% &cdoes not exist!'
 insufficient-tokens: '&cYou dont have enough tokens to redeem this cosmetic!'
-already-token: '&cYou have already unlocked a cosmetic with this token!' #1.5.2
+already-token: '&cYou have already unlocked a cosmetic with this token!'
 bossbar:
   - '&6Punch to open Catalogue'
   - '&cSneak to leave the Wardrobe'
@@ -47,7 +49,7 @@ unequip: '&cUnEquipped'
 zone-exit-by-helmet: '&4Please remove your helmet before entering the wardrobe!'
 zone-exit-by-offhand: '&4Please remove your item from off-hand. before entering the wardrobe!'
 title-zone: ''
-edge: # 1.5.4
+edge:
   available: '&a'
   equip: '&6'
   unavailable: '&c'
@@ -61,6 +63,7 @@ types:
   balloon: '&bBalloon'
 commands:
   not-found: '&cThe command does not exist!'
+  add-all-usage: '&c/cosmetics addall <player>' #1.5.9
   add-usage: '&c/cosmetics add <player> <id>'
   remove-usage: '&c/cosmetics remove <player> <id>'
   use-usage: '&c/cosmetics use <id>'
