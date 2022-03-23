@@ -223,13 +223,13 @@ public class Balloon extends Cosmetic {
 
             if (!rotateLoop) {
                 rot += 0.01;
-                armorStand.setHeadPose(armorStand.getHeadPose().add(0, 0, rotate).subtract(0.006, 0, 0));
+                armorStand.setHeadPose(armorStand.getHeadPose().add(0, 0, rotate).subtract(0.008, 0, 0));
                 if (rot > 0.20) {
                     rotateLoop = true;
                 }
             } else {
                 rot -= 0.01;
-                armorStand.setHeadPose(armorStand.getHeadPose().add(0.006, 0, rotate));//.subtract(0.006, 0, 0));
+                armorStand.setHeadPose(armorStand.getHeadPose().add(0.008, 0, rotate));//.subtract(0.006, 0, 0));
                 if (rot < -0.20) {
                     rotateLoop = false;
                 }
