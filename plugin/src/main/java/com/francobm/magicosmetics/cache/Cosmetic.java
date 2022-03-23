@@ -38,7 +38,10 @@ public abstract class Cosmetic {
 
     public static List<Cosmetic> getCosmeticsByType(CosmeticType cosmeticType){
         List<Cosmetic> cosmetics2 = new ArrayList<>();
-        for(Cosmetic cosmetic : cosmetics.values()){
+        for(String id : cosmetics.keySet()){
+            if(id.isEmpty()) continue;
+            Cosmetic cosmetic = Cosmetic.getCloneCosmetic(id);
+            if(cosmetic == null) continue;
             if(cosmetic.getCosmeticType() != cosmeticType) continue;
             cosmetics2.add(cosmetic);
         }
@@ -254,6 +257,9 @@ public abstract class Cosmetic {
     }
 
     public ItemStack getItemStack() {
+        if(!isColored() && getColor() != null){
+            return getItemColor();
+        }
         return itemStack;
     }
 

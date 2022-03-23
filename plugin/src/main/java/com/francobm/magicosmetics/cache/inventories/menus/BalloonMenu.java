@@ -104,7 +104,7 @@ public class BalloonMenu extends PaginatedMenu {
                     a++;
                 }
                 title.append(getContentMenu().getSlots().isSlot(slot));
-                Items items = new Items(getPage()+index+"_balloon", Items.getItem("balloon-template").copyItem(playerCache, cosmetic, cosmetic.getItemColor()));
+                Items items = new Items(getPage()+index+"_balloon", Items.getItem("balloon-template").copyItem(playerCache, cosmetic, cosmetic.getItemStack()));
                 items.addVariable("%name%", cosmetic.getName()).addVariable("%available%", playerCache.getCosmeticById(cosmetic.getId()) != null ? MagicCosmetics.getInstance().getMessages().getString("available") : MagicCosmetics.getInstance().getMessages().getString("unavailable")).addVariable("%type%", cosmetic.getCosmeticType());
                 SlotMenu slotMenu;
                 items.addVariable("%equip%", playerCache.getEquip(cosmetic.getId()) != null ? MagicCosmetics.getInstance().getMessages().getString("equip") : MagicCosmetics.getInstance().getMessages().getString("unequip"));
