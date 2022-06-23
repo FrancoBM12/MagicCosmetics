@@ -1,21 +1,37 @@
 package com.francobm.magicosmetics.provider;
 
 import com.francobm.magicosmetics.MagicCosmetics;
-import com.francobm.magicosmetics.api.MagicAPI;
 import com.francobm.magicosmetics.cache.Cosmetic;
-import com.francobm.magicosmetics.cache.CosmeticType;
+import com.francobm.magicosmetics.api.CosmeticType;
 import com.francobm.magicosmetics.cache.PlayerCache;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import org.bukkit.Color;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+
 public class PlaceholderAPI extends PlaceholderExpansion {
     private final MagicCosmetics plugin = MagicCosmetics.getInstance();
+
+    public PlaceholderAPI(){
+        register();
+    }
+
+    public List<String> setPlaceholders(Player player, List<String> message){
+        return me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, message);
+    }
 
     public String setPlaceholders(Player player, String message){
         return me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, message);
     }
+
+    @Override
+    public boolean persist() {
+        return true;
+    }
+
     /**
      * This method should always return true unless we
      * have a dependency we need to make sure is on the server
@@ -100,7 +116,58 @@ public class PlaceholderAPI extends PlaceholderExpansion {
                 return null;
             }
             id = id.replace("%", "");
+            if(plugin.isPermissions()){
+                return String.valueOf(Cosmetic.getCosmetic(id).hasPermission(player.getPlayer()));
+            }
             return String.valueOf(playerCache.getCosmeticById(id) != null);
+        }
+
+        if(identifier.equals("equipped_count")){
+            return String.valueOf(playerCache.getEquippedCount());
+        }
+
+        if(identifier.startsWith("equipped_")){
+            String id = identifier.split("_")[1];
+            if(id == null || id.isEmpty()){
+                return null;
+            }
+            try{
+                CosmeticType cosmeticType = CosmeticType.valueOf(id.toUpperCase());
+                Cosmetic cosmetic = playerCache.getEquip(cosmeticType);
+                // equipped_TYPE_material/model/hex/r/g/b/id
+                if(identifier.split("_").length > 2) {
+                    if(cosmetic == null) return null;
+                    String subId = identifier.split("_")[2];
+                    if(subId == null || subId.isEmpty()){
+                        return null;
+                    }
+                    Color color = cosmetic.getColor();
+                    switch (subId.toLowerCase()) {
+                        case "id":
+                            return cosmetic.getId();
+                        case "material":
+                            return cosmetic.getItemStack().getType().name();
+                        case "modeldata":
+                            return String.valueOf(cosmetic.getItemStack().getItemMeta().getCustomModelData());
+                        case "hex":
+                            if(color == null) return null;
+                            return String.format("#%02X%02X%02X", color.getRed(), color.getGreen(), color.getBlue());
+                        case "r":
+                            if(color == null) return null;
+                            return String.valueOf(color.getRed());
+                        case "g":
+                            if(color == null) return null;
+                            return String.valueOf(color.getGreen());
+                        case "b":
+                            if(color == null) return null;
+                            return String.valueOf(color.getBlue());
+                    }
+                    return null;
+                }
+                return String.valueOf(cosmetic != null);
+            }catch (IllegalArgumentException ignored){
+            }
+            return String.valueOf(playerCache.getEquip(id) != null);
         }
 
         if(identifier.startsWith("using_")){
@@ -124,6 +191,9 @@ public class PlaceholderAPI extends PlaceholderExpansion {
             }
             id = id.replace("%", "");
             if(id.equalsIgnoreCase("all")){
+                if(plugin.isPermissions()){
+                    return String.valueOf(playerCache.getCosmeticsPerm().size());
+                }
                 return String.valueOf(playerCache.getCosmetics().size());
             }
             try{
@@ -149,10 +219,6 @@ public class PlaceholderAPI extends PlaceholderExpansion {
             }catch (IllegalArgumentException ignored){
             }
             return null;
-        }
-
-        if(identifier.equals("equipped_count")){
-            return String.valueOf(playerCache.getEquippedCount());
         }
 
         if(identifier.equals("in_zone")){
