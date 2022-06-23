@@ -34,52 +34,52 @@ public class Slots {
         this.num6 = false;
     }
 
-    public int getMax() {
-        return max;
-    }
-
-    public int getMin() {
-        return min;
-    }
-
-    public String getSlot(int slot){
-        if(slot >= 0 && slot < 9) {
-            return "";
-        }
-        if(slot >= 9 && slot < 18) {
-            return "";
-        }
-        if(slot >= 18 && slot < 27) {
-            return "쌥";
-        }
-        if(slot >= 27 && slot < 36) {
-            return "쌦";
-        }
-        if(slot >= 36 && slot < 45) {
-            return "쌧";
-        }
-        if(slot >= 45 && slot < 54) {
-            return "";
-        }
-        return "-1";
-    }
-
     public String isSlot(int slot){
         if(slot >= 0 && slot < 9) {
             if(!isNum1()) {
                 setNum1(true);
+                if(MagicCosmetics.getInstance().getMessages().contains("edge.row-1")){
+                    String space = MagicCosmetics.getInstance().getMessages().getString("edge.row-1");
+                    if(MagicCosmetics.getInstance().isItemsAdder()){
+                        space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
+                    }
+                    if(MagicCosmetics.getInstance().isOraxen()){
+                        space = MagicCosmetics.getInstance().getOraxen().replaceFontImages(space);
+                    }
+                    return space;
+                }
                 return "";
             }
         }
         if(slot >= 9 && slot < 18) {
             if(!isNum2()) {
                 setNum2(true);
+                if(MagicCosmetics.getInstance().getMessages().contains("edge.row-2")){
+                    String space = MagicCosmetics.getInstance().getMessages().getString("edge.row-2");
+                    if(MagicCosmetics.getInstance().isItemsAdder()){
+                        space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
+                    }
+                    if(MagicCosmetics.getInstance().isOraxen()){
+                        space = MagicCosmetics.getInstance().getOraxen().replaceFontImages(space);
+                    }
+                    return space;
+                }
                 return "";
             }
         }
         if(slot >= 18 && slot < 27) {
             if(!isNum3()) {
                 setNum3(true);
+                if(MagicCosmetics.getInstance().getMessages().contains("edge.row-3")){
+                    String space = MagicCosmetics.getInstance().getMessages().getString("edge.row-5");
+                    if(MagicCosmetics.getInstance().isItemsAdder()){
+                        space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
+                    }
+                    if(MagicCosmetics.getInstance().isOraxen()){
+                        space = MagicCosmetics.getInstance().getOraxen().replaceFontImages(space);
+                    }
+                    return space;
+                }
                 String space = MagicCosmetics.getInstance().getMessages().getString("edge.space-1");
                 if(MagicCosmetics.getInstance().isItemsAdder()){
                     space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
@@ -93,6 +93,16 @@ public class Slots {
         if(slot >= 27 && slot < 36) {
             if(!isNum4()) {
                 setNum4(true);
+                if(MagicCosmetics.getInstance().getMessages().contains("edge.row-4")){
+                    String space = MagicCosmetics.getInstance().getMessages().getString("edge.row-5");
+                    if(MagicCosmetics.getInstance().isItemsAdder()){
+                        space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
+                    }
+                    if(MagicCosmetics.getInstance().isOraxen()){
+                        space = MagicCosmetics.getInstance().getOraxen().replaceFontImages(space);
+                    }
+                    return space;
+                }
                 String space = MagicCosmetics.getInstance().getMessages().getString("edge.space-2");
                 if(MagicCosmetics.getInstance().isItemsAdder()){
                     space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
@@ -106,6 +116,16 @@ public class Slots {
         if(slot >= 36 && slot < 45) {
             if(!isNum5()) {
                 setNum5(true);
+                if(MagicCosmetics.getInstance().getMessages().contains("edge.row-5")){
+                    String space = MagicCosmetics.getInstance().getMessages().getString("edge.row-5");
+                    if(MagicCosmetics.getInstance().isItemsAdder()){
+                        space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
+                    }
+                    if(MagicCosmetics.getInstance().isOraxen()){
+                        space = MagicCosmetics.getInstance().getOraxen().replaceFontImages(space);
+                    }
+                    return space;
+                }
                 String space = MagicCosmetics.getInstance().getMessages().getString("edge.space-3");
                 if(MagicCosmetics.getInstance().isItemsAdder()){
                     space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
@@ -119,92 +139,20 @@ public class Slots {
         if(slot >= 45 && slot < 54) {
             if(!isNum6()) {
                 setNum6(true);
+                if(MagicCosmetics.getInstance().getMessages().contains("edge.row-6")){
+                    String space = MagicCosmetics.getInstance().getMessages().getString("edge.row-6");
+                    if(MagicCosmetics.getInstance().isItemsAdder()){
+                        space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
+                    }
+                    if(MagicCosmetics.getInstance().isOraxen()){
+                        space = MagicCosmetics.getInstance().getOraxen().replaceFontImages(space);
+                    }
+                    return space;
+                }
                 return "";
             }
         }
         return "";
-    }
-
-    public String isSecondaryColored(String primary, int slot){
-        if(primary.startsWith("\uF80B\uF80B\uF801")){
-            switch (slot){
-                case 37:
-                    return "\uF80A\uF809\uF807\uF804\uF801쌍";
-                case 38:
-                    return "\uF806\uF809\uF809\uF801쌍";
-                case 39:
-                    return "\uF806\uF808\uF807쌍";
-                case 40:
-                    return "\uF804\uF804\uF804쌍";
-                case 41:
-                    return "\uF804\uF804\uF804     \uF801\uF804쌍";
-                case 42:
-                    return "\uF804\uF804\uF804          \uF801\uF802\uF804쌍";
-                case 43:
-                    return "\uF804\uF804\uF804              \uF801\uF804쌍";
-            }
-        }
-        if(primary.startsWith("\uF80A\uF80A\uF80A\uF807\uF807\uF801")){
-            switch (slot){
-                case 37:
-                    return "\uF80A\uF809\uF807\uF804\uF809\uF804\uF804\uF804쌍";
-                case 38:
-                    return "\uF80A\uF809\uF807\uF804\uF801쌍";
-                case 39:
-                    return "\uF806\uF809\uF809\uF801쌍";
-                case 40:
-                    return "\uF806\uF808\uF807쌍";
-                case 41:
-                    return "\uF804\uF804\uF804쌍";
-                case 42:
-                    return "\uF804\uF804\uF804     \uF801\uF804쌍";
-                case 43:
-                    return "\uF804\uF804\uF804          \uF801\uF802\uF804쌍";
-            }
-        }
-        if(primary.startsWith("\uF80A\uF80A\uF807\uF807\uF807\uF807\uF801")){
-            switch (slot){
-                case 37:
-                    return "\uF80A\uF809\uF807\uF809\uF809\uF806쌍";
-                case 38:
-                    return "\uF80A\uF809\uF807\uF809\uF804\uF804\uF804\uF804쌍";
-                case 39:
-                    return "\uF80A\uF809\uF807\uF804\uF801쌍";
-                case 40:
-                    return "\uF806\uF809\uF809\uF801쌍";
-                case 41:
-                    return "\uF806\uF808\uF807쌍";
-                case 42:
-                    return "\uF804\uF804\uF804쌍";
-                case 43:
-                    return "\uF804\uF804\uF804     \uF801\uF804쌍";
-            }
-        }
-        return "null";
-    }
-
-    public String isPrimaryColored(int slot){
-        switch (slot){
-            case 3:
-                return "\uF80B\uF80B\uF801쌉";
-            case 4:
-                return "\uF80A\uF80A\uF80A\uF807\uF807\uF801쌉";
-            case 5:
-                return "\uF80A\uF80A\uF807\uF807\uF807\uF807\uF801쌉";
-            case 12:
-                return "\uF80B\uF80B\uF801쌊";
-            case 13:
-                return "\uF80A\uF80A\uF80A\uF807\uF807\uF801쌊";
-            case 14:
-                return "\uF80A\uF80A\uF807\uF807\uF807\uF807\uF801쌊";
-            case 21:
-                return "\uF80B\uF80B\uF801쌋";
-            case 22:
-                return "\uF80A\uF80A\uF80A\uF807\uF807\uF801쌋";
-            case 23:
-                return "\uF80A\uF80A\uF807\uF807\uF807\uF807\uF801쌋";
-        }
-        return "null";
     }
 
     public boolean isNum1() {

@@ -1,20 +1,17 @@
 package com.francobm.magicosmetics.cache.items;
 
-import com.francobm.magicosmetics.cache.inventories.SlotMenu;
 import com.francobm.magicosmetics.files.FileCreator;
 import com.francobm.magicosmetics.utils.XMaterial;
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.cache.Color;
 import com.francobm.magicosmetics.cache.Cosmetic;
-import com.francobm.magicosmetics.cache.CosmeticType;
+import com.francobm.magicosmetics.api.CosmeticType;
 import com.francobm.magicosmetics.cache.PlayerCache;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.LeatherArmorMeta;
-import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.inventory.meta.*;
 
 import java.util.*;
 
@@ -85,7 +82,8 @@ public class Items {
                             .replace("%hats_count%", String.valueOf(Cosmetic.getCosmeticCount(CosmeticType.HAT)))
                             .replace("%bags_count%", String.valueOf(Cosmetic.getCosmeticCount(CosmeticType.BAG)))
                             .replace("%wsticks_count%", String.valueOf(Cosmetic.getCosmeticCount(CosmeticType.WALKING_STICK)))
-                            .replace("%balloons_count%", String.valueOf(Cosmetic.getCosmeticCount(CosmeticType.BALLOON))));
+                            .replace("%balloons_count%", String.valueOf(Cosmetic.getCosmeticCount(CosmeticType.BALLOON)))
+                            .replace("%sprays_count%", String.valueOf(Cosmetic.getCosmeticCount(CosmeticType.SPRAY))));
                 }
             }
             if(menu.contains("items." + key + ".item.lore-available")){
@@ -234,6 +232,16 @@ public class Items {
                     }
                 }
                 break;
+            case SPRAY:
+                if(itemMeta.hasDisplayName()) {
+                    itemMeta.setDisplayName(itemMeta.getDisplayName().replace(variable, messages.getString("types.spray")));
+                }
+                if(itemMeta.getLore() != null) {
+                    for (String l : itemMeta.getLore()) {
+                        lore.add(l.replace(variable, messages.getString("types.spray")));
+                    }
+                }
+                break;
         }
         itemMeta.setLore(lore);
         itemStack.setItemMeta(itemMeta);
@@ -267,13 +275,9 @@ public class Items {
         if(itemMeta.hasDisplayName()) {
             itemMeta.setDisplayName(plugin.getPlaceholderAPI().setPlaceholders(player, itemMeta.getDisplayName()));
         }
-        List<String> lore = new ArrayList<>();
         if(itemMeta.getLore() != null) {
-            for (String l : itemMeta.getLore()) {
-                lore.add(plugin.getPlaceholderAPI().setPlaceholders(player, l));
-            }
+            itemMeta.setLore(plugin.getPlaceholderAPI().setPlaceholders(player, itemMeta.getLore()));
         }
-        itemMeta.setLore(lore);
         itemStack.setItemMeta(itemMeta);
         return this;
     }
@@ -327,21 +331,41 @@ public class Items {
         if(itemMeta == null) return itemStack;
         if(this.itemStack.getItemMeta() == null) return itemStack;
         itemMeta.setDisplayName(this.itemStack.getItemMeta().getDisplayName());
-        if(playerCache.getCosmeticById(cosmetic.getId()) == null) {
-            if(itemMeta.getLore() != null){
-                List<String> lore = itemMeta.getLore();
-                lore.addAll(loreUnavailable);
-                itemMeta.setLore(lore);
-            }else {
-                itemMeta.setLore(loreUnavailable);
+        if(MagicCosmetics.getInstance().isPermissions()){
+            if(!cosmetic.hasPermission(playerCache.getOfflinePlayer().getPlayer())){
+                if(itemMeta.getLore() != null){
+                    List<String> lore = itemMeta.getLore();
+                    lore.addAll(loreUnavailable);
+                    itemMeta.setLore(lore);
+                }else {
+                    itemMeta.setLore(loreUnavailable);
+                }
+            }else{
+                if(itemMeta.getLore() != null){
+                    List<String> lore = itemMeta.getLore();
+                    lore.addAll(loreAvailable);
+                    itemMeta.setLore(lore);
+                }else {
+                    itemMeta.setLore(loreAvailable);
+                }
             }
         }else{
-            if(itemMeta.getLore() != null){
-                List<String> lore = itemMeta.getLore();
-                lore.addAll(loreAvailable);
-                itemMeta.setLore(lore);
-            }else {
-                itemMeta.setLore(loreAvailable);
+            if(playerCache.getCosmeticById(cosmetic.getId()) == null) {
+                if(itemMeta.getLore() != null){
+                    List<String> lore = itemMeta.getLore();
+                    lore.addAll(loreUnavailable);
+                    itemMeta.setLore(lore);
+                }else {
+                    itemMeta.setLore(loreUnavailable);
+                }
+            }else{
+                if(itemMeta.getLore() != null){
+                    List<String> lore = itemMeta.getLore();
+                    lore.addAll(loreAvailable);
+                    itemMeta.setLore(lore);
+                }else {
+                    itemMeta.setLore(loreAvailable);
+                }
             }
         }
         if(this.itemStack.getItemMeta().hasItemFlag(ItemFlag.HIDE_ENCHANTS)){
@@ -353,11 +377,13 @@ public class Items {
         }
         itemMeta.addItemFlags(ItemFlag.HIDE_DYE);
         itemMeta.setUnbreakable(this.itemStack.getItemMeta().isUnbreakable());
-        if(itemStack.getType() == XMaterial.PLAYER_HEAD.parseMaterial()){
-            SkullMeta skullMeta = (SkullMeta) itemMeta;
-            skullMeta.setOwningPlayer(playerCache.getOfflinePlayer());
-            itemStack.setItemMeta(skullMeta);
-            return itemStack;
+        if(!cosmetic.isTexture()) {
+            if (itemStack.getType() == XMaterial.PLAYER_HEAD.parseMaterial()) {
+                SkullMeta skullMeta = (SkullMeta) itemMeta;
+                skullMeta.setOwningPlayer(playerCache.getOfflinePlayer());
+                itemStack.setItemMeta(skullMeta);
+                return itemStack;
+            }
         }
         itemStack.setItemMeta(itemMeta);
         return itemStack;
@@ -367,7 +393,7 @@ public class Items {
         if(this.itemStack == null) return null;
         ItemStack itemStack = this.itemStack.clone();
         itemStack.setAmount(this.itemStack.getAmount());
-        if(itemStack.getType() == XMaterial.LEATHER_HORSE_ARMOR.parseMaterial()){
+        if(itemStack.getItemMeta() instanceof LeatherArmorMeta){
             LeatherArmorMeta meta = (LeatherArmorMeta) itemStack.getItemMeta();
             if(meta == null) return itemStack;
             meta.setColor(color.getPrimaryColor());
@@ -399,8 +425,77 @@ public class Items {
                     meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
                 }
             }
-            meta.addItemFlags(ItemFlag.HIDE_DYE);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            meta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_ATTRIBUTES);
+            itemStack.setItemMeta(meta);
+        }
+        if(itemStack.getItemMeta() instanceof PotionMeta){
+            PotionMeta meta = (PotionMeta) itemStack.getItemMeta();
+            if(meta == null) return itemStack;
+            meta.setColor(color.getPrimaryColor());
+            if(this.itemStack.getItemMeta() != null) {
+                if(this.itemStack.getItemMeta().hasDisplayName()) {
+                    meta.setDisplayName(this.itemStack.getItemMeta().getDisplayName());
+                }
+                if(this.itemStack.getItemMeta().getLore() != null) {
+                    List<String> lore = this.itemStack.getItemMeta().getLore();
+                    if(color.getId().equalsIgnoreCase(compare.getId())){
+                        if(getLoreAvailable() != null || !getLoreAvailable().isEmpty()) {
+                            lore.addAll(getLoreAvailable());
+                        }
+                    }else {
+                        if (getLoreUnavailable() != null || !getLoreUnavailable().isEmpty()) {
+                            lore.addAll(getLoreUnavailable());
+                        }
+                    }
+                    meta.setLore(lore);
+                }else{
+                    if(color.getId().equalsIgnoreCase(compare.getId())){
+                        meta.setLore(getLoreAvailable());
+                    }else{
+                        meta.setLore(getLoreUnavailable());
+                    }
+                }
+                if(this.itemStack.getItemMeta().hasItemFlag(ItemFlag.HIDE_ENCHANTS)){
+                    meta.addEnchant(Enchantment.DURABILITY, 1, true);
+                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                }
+            }
+            meta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_POTION_EFFECTS);
+            itemStack.setItemMeta(meta);
+        }
+        if(itemStack.getItemMeta() instanceof MapMeta){
+            MapMeta meta = (MapMeta) itemStack.getItemMeta();
+            if(meta == null) return itemStack;
+            meta.setColor(color.getPrimaryColor());
+            if(this.itemStack.getItemMeta() != null) {
+                if(this.itemStack.getItemMeta().hasDisplayName()) {
+                    meta.setDisplayName(this.itemStack.getItemMeta().getDisplayName());
+                }
+                if(this.itemStack.getItemMeta().getLore() != null) {
+                    List<String> lore = this.itemStack.getItemMeta().getLore();
+                    if(color.getId().equalsIgnoreCase(compare.getId())){
+                        if(getLoreAvailable() != null || !getLoreAvailable().isEmpty()) {
+                            lore.addAll(getLoreAvailable());
+                        }
+                    }else {
+                        if (getLoreUnavailable() != null || !getLoreUnavailable().isEmpty()) {
+                            lore.addAll(getLoreUnavailable());
+                        }
+                    }
+                    meta.setLore(lore);
+                }else{
+                    if(color.getId().equalsIgnoreCase(compare.getId())){
+                        meta.setLore(getLoreAvailable());
+                    }else{
+                        meta.setLore(getLoreUnavailable());
+                    }
+                }
+                if(this.itemStack.getItemMeta().hasItemFlag(ItemFlag.HIDE_ENCHANTS)){
+                    meta.addEnchant(Enchantment.DURABILITY, 1, true);
+                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                }
+            }
+            meta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_POTION_EFFECTS);
             itemStack.setItemMeta(meta);
         }
         return itemStack;
@@ -410,7 +505,7 @@ public class Items {
         if(this.itemStack == null) return null;
         ItemStack itemStack = this.itemStack.clone();
         itemStack.setAmount(this.itemStack.getAmount());
-        if(itemStack.getType() == XMaterial.LEATHER_HORSE_ARMOR.parseMaterial()){
+        if(itemStack.getItemMeta() instanceof LeatherArmorMeta){
             LeatherArmorMeta meta = (LeatherArmorMeta) itemStack.getItemMeta();
             if(meta == null) return itemStack;
             meta.setColor(color);
@@ -442,8 +537,77 @@ public class Items {
                     meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
                 }
             }
-            meta.addItemFlags(ItemFlag.HIDE_DYE);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            meta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_ATTRIBUTES);
+            itemStack.setItemMeta(meta);
+        }
+        if(itemStack.getItemMeta() instanceof PotionMeta){
+            PotionMeta meta = (PotionMeta) itemStack.getItemMeta();
+            if(meta == null) return itemStack;
+            meta.setColor(color);
+            if(this.itemStack.getItemMeta() != null) {
+                if(this.itemStack.getItemMeta().hasDisplayName()) {
+                    meta.setDisplayName(this.itemStack.getItemMeta().getDisplayName());
+                }
+                if(this.itemStack.getItemMeta().getLore() != null) {
+                    List<String> lore = this.itemStack.getItemMeta().getLore();
+                    if(color.asRGB() == compare.asRGB()){
+                        if(getLoreAvailable() != null || !getLoreAvailable().isEmpty()) {
+                            lore.addAll(getLoreAvailable());
+                        }
+                    }else {
+                        if (getLoreUnavailable() != null || !getLoreUnavailable().isEmpty()) {
+                            lore.addAll(getLoreUnavailable());
+                        }
+                    }
+                    meta.setLore(lore);
+                }else{
+                    if(color.asRGB() == compare.asRGB()){
+                        meta.setLore(getLoreAvailable());
+                    }else{
+                        meta.setLore(getLoreUnavailable());
+                    }
+                }
+                if(this.itemStack.getItemMeta().hasItemFlag(ItemFlag.HIDE_ENCHANTS)){
+                    meta.addEnchant(Enchantment.DURABILITY, 1, true);
+                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                }
+            }
+            meta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_POTION_EFFECTS);
+            itemStack.setItemMeta(meta);
+        }
+        if(itemStack.getItemMeta() instanceof MapMeta){
+            MapMeta meta = (MapMeta) itemStack.getItemMeta();
+            if(meta == null) return itemStack;
+            meta.setColor(color);
+            if(this.itemStack.getItemMeta() != null) {
+                if(this.itemStack.getItemMeta().hasDisplayName()) {
+                    meta.setDisplayName(this.itemStack.getItemMeta().getDisplayName());
+                }
+                if(this.itemStack.getItemMeta().getLore() != null) {
+                    List<String> lore = this.itemStack.getItemMeta().getLore();
+                    if(color.asRGB() == compare.asRGB()){
+                        if(getLoreAvailable() != null || !getLoreAvailable().isEmpty()) {
+                            lore.addAll(getLoreAvailable());
+                        }
+                    }else {
+                        if (getLoreUnavailable() != null || !getLoreUnavailable().isEmpty()) {
+                            lore.addAll(getLoreUnavailable());
+                        }
+                    }
+                    meta.setLore(lore);
+                }else{
+                    if(color.asRGB() == compare.asRGB()){
+                        meta.setLore(getLoreAvailable());
+                    }else{
+                        meta.setLore(getLoreUnavailable());
+                    }
+                }
+                if(this.itemStack.getItemMeta().hasItemFlag(ItemFlag.HIDE_ENCHANTS)){
+                    meta.addEnchant(Enchantment.DURABILITY, 1, true);
+                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                }
+            }
+            meta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_POTION_EFFECTS);
             itemStack.setItemMeta(meta);
         }
         return itemStack;
@@ -452,12 +616,25 @@ public class Items {
     public Items coloredItem(org.bukkit.Color color){
         setDyeColor(color);
         if(this.itemStack == null) return this;
-        if(itemStack.getType().name().startsWith("LEATHER_")){
+        if(itemStack.getItemMeta() instanceof LeatherArmorMeta){
             LeatherArmorMeta meta = (LeatherArmorMeta) itemStack.getItemMeta();
             if(meta == null) return this;
             meta.setColor(color);
-            meta.addItemFlags(ItemFlag.HIDE_DYE);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            meta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_ATTRIBUTES);
+            itemStack.setItemMeta(meta);
+        }
+        if(itemStack.getItemMeta() instanceof PotionMeta){
+            PotionMeta meta = (PotionMeta) itemStack.getItemMeta();
+            if(meta == null) return this;
+            meta.setColor(color);
+            meta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_POTION_EFFECTS);
+            itemStack.setItemMeta(meta);
+        }
+        if(itemStack.getItemMeta() instanceof MapMeta){
+            MapMeta meta = (MapMeta) itemStack.getItemMeta();
+            if(meta == null) return this;
+            meta.setColor(color);
+            meta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_POTION_EFFECTS);
             itemStack.setItemMeta(meta);
         }
         return this;
@@ -470,8 +647,7 @@ public class Items {
         ItemMeta itemMeta = itemStack.getItemMeta();
         if(thisMeta == null || itemMeta == null) return false;
         if(thisMeta.getLore() == null || itemMeta.getLore() == null) return false;
-        boolean containsLore = containsLore(itemMeta.getLore(), thisMeta.getLore());
-        return itemStack.getType() == this.itemStack.getType() && containsLore;
+        return containsLore(itemMeta.getLore(), thisMeta.getLore());
     }
 
     public boolean containsLore(List<String> lore, List<String> containsLore){
@@ -485,9 +661,18 @@ public class Items {
 
     public org.bukkit.Color getColor(){
         if(itemStack.getItemMeta() == null) return null;
-        LeatherArmorMeta meta = (LeatherArmorMeta) itemStack.getItemMeta();
+        ItemMeta meta = itemStack.getItemMeta();
         if(meta == null) return null;
-        return meta.getColor();
+        if(itemStack.getItemMeta() instanceof LeatherArmorMeta){
+            return ((LeatherArmorMeta) meta).getColor();
+        }
+        if(itemStack.getItemMeta() instanceof PotionMeta){
+            return ((PotionMeta) meta).getColor();
+        }
+        if(itemStack.getItemMeta() instanceof MapMeta){
+            return ((MapMeta) meta).getColor();
+        }
+        return null;
     }
 
     public List<String> getLoreAvailable() {

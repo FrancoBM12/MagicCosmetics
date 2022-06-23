@@ -6,6 +6,7 @@ import com.francobm.magicosmetics.cache.*;
 import com.francobm.magicosmetics.cache.inventories.menus.ColoredMenu;
 import com.francobm.magicosmetics.cache.inventories.menus.FreeColoredMenu;
 import com.francobm.magicosmetics.cache.items.Items;
+import com.francobm.magicosmetics.utils.Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.InventoryHolder;
@@ -228,15 +229,15 @@ public class SlotMenu {
                     case COMMAND:
                     case CONSOLE_COMMAND:
                         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
-                        if(command.startsWith("cosmetics unset ")){
-                            closeMenu(player);
+                        if(command.startsWith("magiccos unset ")){
+                            refreshMenu(player);
                         }
                         //MagicCosmetics.getInstance().getLogger().info("Comando: " + command);
                         break;
                     case PLAYER_COMMAND:
                         player.performCommand(command);
-                        if(command.startsWith("cosmetics unset ")){
-                            closeMenu(player);
+                        if(command.startsWith("magiccos unset ")){
+                            refreshMenu(player);
                         }
                         //MagicCosmetics.getInstance().getLogger().info("Comando: " + command);
                         break;
@@ -248,18 +249,39 @@ public class SlotMenu {
     private void removeTokenAddCosmetic(Player player){
         PlayerCache playerCache = PlayerCache.getPlayer(player);
         if(playerCache.removeTokenInPlayer()){
-            MagicCosmetics.getInstance().getCosmeticsManager().addCosmetic(player, token.getCosmetic());
+            MagicCosmetics.getInstance().getCosmeticsManager().changeCosmetic(player, token.getCosmetic());
         }
         closeMenu(player);
     }
 
     private void previewItem(Player player){
+        MagicCosmetics plugin = MagicCosmetics.getInstance();
         PlayerCache playerCache = PlayerCache.getPlayer(player);
-        if(playerCache.getCosmeticById(cosmetic.getId()) != null) {
-            playerCache.removeCosmetic(cosmetic.getId());
-            playerCache.addCosmetic(cosmetic);
-            MagicCosmetics.getInstance().getCosmeticsManager().useCosmetic(player, cosmetic.getId());
+        if(plugin.isPermissions()){
+            if(!cosmetic.hasPermission(player)) {
+                if(playerCache.isZone()) {
+                    MagicCosmetics.getInstance().getCosmeticsManager().previewCosmetic(player, cosmetic);
+                }
+                closeMenu(player);
+                return;
+            }
+            if(playerCache.isZone()) {
+                MagicCosmetics.getInstance().getCosmeticsManager().previewCosmetic(player, cosmetic);
+            }
+            MagicCosmetics.getInstance().getCosmeticsManager().equipCosmetic(player, cosmetic, null);
+            closeMenu(player);
+            return;
         }
+        if(playerCache.getCosmeticById(cosmetic.getId()) == null){
+            if(playerCache.isZone()) {
+                MagicCosmetics.getInstance().getCosmeticsManager().previewCosmetic(player, cosmetic);
+            }
+            closeMenu(player);
+            return;
+        }
+        playerCache.removeCosmetic(cosmetic.getId());
+        playerCache.addCosmetic(cosmetic);
+        MagicCosmetics.getInstance().getCosmeticsManager().equipCosmetic(player, cosmetic.getId(), null, false);
         if(playerCache.isZone()) {
             MagicCosmetics.getInstance().getCosmeticsManager().previewCosmetic(player, cosmetic);
         }
@@ -279,7 +301,7 @@ public class SlotMenu {
         if(sound == null) {
             return;
         }
-        MagicCosmetics.getInstance().getVersion().sendSound(player, sound);
+        Utils.sendSound(player, sound);
     }
 
     private void refreshMenu(Player player){
@@ -358,5 +380,9 @@ public class SlotMenu {
 
     public void setItems(Items items) {
         this.items = items;
+    }
+
+    public Token getToken() {
+        return token;
     }
 }
