@@ -1,5 +1,7 @@
 package com.francobm.magicosmetics.cache;
 
+import com.francobm.magicosmetics.api.CosmeticType;
+import com.francobm.magicosmetics.api.SprayKeys;
 import com.francobm.magicosmetics.cache.balloons.Balloon;
 import com.francobm.magicosmetics.events.*;
 import com.francobm.magicosmetics.nms.NPC.ItemSlot;
@@ -25,16 +27,20 @@ public class PlayerCache {
     private Cosmetic bag;
     private Cosmetic wStick;
     private Cosmetic balloon;
+    private Cosmetic spray;
     private final Map<String, Cosmetic> cosmetics;
     private Cosmetic previewHat;
     private Cosmetic previewBag;
     private Cosmetic previewWStick;
     private Cosmetic previewBalloon;
+    private Cosmetic previewSpray;
     private boolean isZone;
     private boolean sneak;
     private boolean spectator;
     private Zone zone;
     private final Map<Integer, ItemStack> inventory;
+    private GameMode gameMode;
+    private float speedFly;
 
     public PlayerCache(UUID uuid){
         this.uuid = uuid;
@@ -66,12 +72,31 @@ public class PlayerCache {
     public static void reload(){
         for(Player player : Bukkit.getOnlinePlayers()){
             PlayerCache playerCache = getPlayer(player);
-            playerCache.clearCosmeticsInUse();
+            playerCache.updateCosmetics();
+        }
+    }
+
+    public void updateCosmetics(){
+        List<Cosmetic> cosmetics = cosmeticsInUse();
+        clearCosmeticsInUse(false);
+        for(Cosmetic cosmetic : cosmetics){
+            Cosmetic newCosmetic = Cosmetic.getCloneCosmetic(cosmetic.getId());
+            if(cosmetic.getColor() != null) newCosmetic.setColor(cosmetic.getColor());
+            addCosmetic(newCosmetic);
+            setCosmetic(newCosmetic);
         }
     }
 
     public int getCosmeticCount(CosmeticType cosmeticType){
         int i = 0;
+        if(MagicCosmetics.getInstance().isPermissions()){
+            for(Cosmetic cosmetic : Cosmetic.cosmetics.values()){
+                if(!cosmetic.hasPermission(getOfflinePlayer().getPlayer())) continue;
+                if(cosmetic.getCosmeticType() != cosmeticType) continue;
+                i++;
+            }
+            return i;
+        }
         for(Cosmetic cosmetic : cosmetics.values()){
             if(cosmetic.getCosmeticType() != cosmeticType) continue;
             i++;
@@ -85,6 +110,14 @@ public class PlayerCache {
 
     public void setPreviewBalloon(Cosmetic previewBalloon) {
         this.previewBalloon = previewBalloon;
+    }
+
+    public Cosmetic getPreviewSpray() {
+        return previewSpray;
+    }
+
+    public void setPreviewSpray(Cosmetic previewSpray) {
+        this.previewSpray = previewSpray;
     }
 
     public Cosmetic getPreviewHat() {
@@ -147,6 +180,14 @@ public class PlayerCache {
         this.balloon = balloon;
     }
 
+    public Cosmetic getSpray() {
+        return spray;
+    }
+
+    public void setSpray(Cosmetic spray) {
+        this.spray = spray;
+    }
+
     public void removeCosmetic(String cosmeticId){
         Cosmetic cosmetic = getCosmeticById(cosmeticId);
         if(cosmetic == null) return;
@@ -161,15 +202,6 @@ public class PlayerCache {
 
         switch (cosmetic.getCosmeticType()){
             case HAT:
-                if(getHat() == null){
-                    CosmeticEquipEvent event = new CosmeticEquipEvent(getOfflinePlayer().getPlayer(), cosmetic);
-                    MagicCosmetics.getInstance().getServer().getPluginManager().callEvent(event);
-                    if(event.isCancelled()) return;
-                }else{
-                    CosmeticChangeEquipEvent event = new CosmeticChangeEquipEvent(getOfflinePlayer().getPlayer(), getHat(), cosmetic);
-                    MagicCosmetics.getInstance().getServer().getPluginManager().callEvent(event);
-                    if(event.isCancelled()) return;
-                }
                 clearHat();
                 setHat(cosmetic);
                 break;
@@ -182,8 +214,12 @@ public class PlayerCache {
                 setWStick(cosmetic);
                 break;
             case BALLOON:
-                clearBalloon();
+                clearBalloon(false);
                 setBalloon(cosmetic);
+                break;
+            case SPRAY:
+                clearSpray();
+                setSpray(cosmetic);
                 break;
         }
     }
@@ -212,6 +248,11 @@ public class PlayerCache {
                 setPreviewBalloon(cosmetic);
                 activePreviewBalloon();
                 break;
+            case SPRAY:
+                clearPreviewSpray();
+                setPreviewSpray(cosmetic);
+                activePreviewSpray();
+                break;
         }
     }
 
@@ -224,6 +265,15 @@ public class PlayerCache {
     }
 
     public Map<String, Cosmetic> getCosmetics() {
+        return cosmetics;
+    }
+
+    public List<Cosmetic> getCosmeticsPerm() {
+        List<Cosmetic> cosmetics = new ArrayList<>();
+        for (Cosmetic cosmetic : Cosmetic.cosmetics.values()) {
+            if(!cosmetic.hasPermission(getOfflinePlayer().getPlayer())) continue;
+            cosmetics.add(cosmetic);
+        }
         return cosmetics;
     }
 
@@ -242,6 +292,18 @@ public class PlayerCache {
 
     public String saveCosmetics(){
         List<String> ids = new ArrayList<>();
+        if(MagicCosmetics.getInstance().isPermissions()){
+            for(Cosmetic cosmetic : cosmeticsInUse()){
+                if(ids.contains(cosmetic.getId())) continue;
+                if(cosmetic.getColor() != null){
+                    ids.add(cosmetic.getId()+"|"+cosmetic.getColor().asRGB());
+                    continue;
+                }
+                ids.add(cosmetic.getId());
+            }
+            if(ids.isEmpty()) return "";
+            return String.join(",", ids);
+        }
         for(Cosmetic cosmetic : cosmetics.values()){
             if(ids.contains(cosmetic.getId())) continue;
             if(cosmetic.getColor() != null){
@@ -261,14 +323,14 @@ public class PlayerCache {
         for(String cosmetic : cosmetics){
             String[] color = cosmetic.split("\\|");
             if(color.length > 1){
-                Cosmetic cosmetic1 = Cosmetic.getCosmetic(color[0]);
+                Cosmetic cosmetic1 = Cosmetic.getCloneCosmetic(color[0]);
                 if(cosmetic1 == null) continue;
                 if(this.cosmetics.containsKey(color[0])) continue;
                 cosmetic1.setColor(Color.fromRGB(Integer.parseInt(color[1])));
                 addCosmetic(cosmetic1);
                 continue;
             }
-            Cosmetic cosmetic1 = Cosmetic.getCosmetic(cosmetic);
+            Cosmetic cosmetic1 = Cosmetic.getCloneCosmetic(cosmetic);
             if(cosmetic1 == null) continue;
             if(this.cosmetics.containsKey(cosmetic)) continue;
             addCosmetic(cosmetic1);
@@ -281,19 +343,23 @@ public class PlayerCache {
         switch (cosmetic.getCosmeticType()){
             case HAT:
                 Hat hat = (Hat) cosmetic;
-                cosmetics.put(cosmetic.getId(), new Hat(hat.getId(), hat.getName(), hat.getItemStack().clone(), hat.getModelData(), hat.isColored(), hat.getCosmeticType(), hat.getColor(), hat.isOverlaps()));
+                cosmetics.put(cosmetic.getId(), new Hat(hat.getId(), hat.getName(), hat.getItemStack().clone(), hat.getModelData(), hat.isColored(), hat.getCosmeticType(), hat.getColor(), hat.isOverlaps(), hat.getPermission(), hat.isTexture(), hat.isHideMenu()));
                 return;
             case BAG:
                 Bag bag = (Bag) cosmetic;
-                cosmetics.put(cosmetic.getId(), new Bag(bag.getId(), bag.getName(), bag.getItemStack().clone(), bag.getModelData(), bag.getModelDataForMe(), bag.isColored(), bag.getSpace(), bag.getCosmeticType(), bag.getColor()));
+                cosmetics.put(cosmetic.getId(), new Bag(bag.getId(), bag.getName(), bag.getItemStack().clone(), bag.getModelData(), bag.getModelDataForMe(), bag.isColored(), bag.getSpace(), bag.getCosmeticType(), bag.getColor(), bag.getDistance(), bag.getPermission(), bag.isTexture(), bag.isHideMenu()));
                 return;
             case WALKING_STICK:
                 WStick wStick = (WStick) cosmetic;
-                cosmetics.put(cosmetic.getId(), new WStick(wStick.getId(), wStick.getName(), wStick.getItemStack().clone(), wStick.getModelData(), wStick.isColored(), wStick.getCosmeticType(), wStick.getColor()));
+                cosmetics.put(cosmetic.getId(), new WStick(wStick.getId(), wStick.getName(), wStick.getItemStack().clone(), wStick.getModelData(), wStick.isColored(), wStick.getCosmeticType(), wStick.getColor(), wStick.getPermission(), wStick.isTexture(), wStick.isOverlaps(), wStick.isHideMenu()));
                 break;
             case BALLOON:
                 Balloon balloon = (Balloon) cosmetic;
-                cosmetics.put(cosmetic.getId(), new Balloon(balloon.getId(), balloon.getName(), balloon.getItemStack().clone(), balloon.getModelData(), balloon.isColored(), balloon.getSpace(), balloon.getCosmeticType(), balloon.getColor(), balloon.isRotation(), balloon.getRotationType(), balloon.getBalloonEngine()));
+                cosmetics.put(cosmetic.getId(), new Balloon(balloon.getId(), balloon.getName(), balloon.getItemStack().clone(), balloon.getModelData(), balloon.isColored(), balloon.getSpace(), balloon.getCosmeticType(), balloon.getColor(), balloon.isRotation(), balloon.getRotationType(), balloon.getBalloonEngine(), balloon.getBalloonIA(), balloon.getDistance(), balloon.getPermission(), balloon.isTexture(), balloon.isBigHead(), balloon.isHideMenu(), balloon.isInvisibleLeash()));
+                break;
+            case SPRAY:
+                Spray spray = (Spray) cosmetic;
+                cosmetics.put(cosmetic.getId(), new Spray(spray.getId(), spray.getName(), spray.getItemStack().clone(), spray.getModelData(), spray.isColored(), spray.getCosmeticType(), spray.getColor(), spray.getPermission(), spray.isTexture(), spray.getImage(), spray.isItemImage(), spray.isHideMenu()));
                 break;
         }
     }
@@ -314,8 +380,13 @@ public class PlayerCache {
     }
 
     public void removeBalloon(){
-        clearBalloon();
+        clearBalloon(false);
         balloon = null;
+    }
+
+    public void removeSpray(){
+        clearSpray();
+        spray = null;
     }
 
     public void removePreviewHat(){
@@ -338,6 +409,11 @@ public class PlayerCache {
         previewBalloon = null;
     }
 
+    public void removePreviewSpray(){
+        clearPreviewSpray();
+        previewSpray = null;
+    }
+
     public Cosmetic getEquip(CosmeticType cosmeticType){
         switch (cosmeticType){
             case HAT:
@@ -352,6 +428,9 @@ public class PlayerCache {
             case BALLOON:
                 if(balloon == null) return null;
                 return balloon;
+            case SPRAY:
+                if(spray == null) return null;
+                return spray;
         }
         return null;
     }
@@ -375,6 +454,11 @@ public class PlayerCache {
         if(balloon != null){
             if(balloon.getId().equalsIgnoreCase(id)){
                 return balloon;
+            }
+        }
+        if(spray != null){
+            if(spray.getId().equalsIgnoreCase(id)){
+                return spray;
             }
         }
         return null;
@@ -404,6 +488,11 @@ public class PlayerCache {
                 removeBalloon();
             }
         }
+        if(spray != null){
+            if(spray.getId().equalsIgnoreCase(id)){
+                removeSpray();
+            }
+        }
     }
 
     public void removePreviewEquip(String id){
@@ -427,10 +516,18 @@ public class PlayerCache {
                 removePreviewBalloon();
             }
         }
+        if(previewSpray != null){
+            if(previewSpray.getId().equalsIgnoreCase(id)){
+                removePreviewSpray();
+            }
+        }
     }
 
     public void clearHat(){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(hat == null){
             return;
         }
@@ -439,6 +536,9 @@ public class PlayerCache {
 
     public void clearBag(){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(bag == null){
             return;
         }
@@ -447,22 +547,46 @@ public class PlayerCache {
 
     public void clearWStick(){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(wStick == null){
             return;
         }
         wStick.clear(player);
     }
 
-    public void clearBalloon(){
+    public void clearBalloon(boolean closed){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(balloon == null){
+            return;
+        }
+        if(closed){
+            ((Balloon)balloon).clearClosed();
             return;
         }
         balloon.clear(player);
     }
 
+    public void clearSpray(){
+        Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
+        if(spray == null){
+            return;
+        }
+        spray.clear(player);
+    }
+
     public void clearPreviewHat(){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(previewHat == null){
             return;
         }
@@ -473,6 +597,9 @@ public class PlayerCache {
 
     public void clearPreviewBag(){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(previewBag == null){
             return;
         }
@@ -483,6 +610,9 @@ public class PlayerCache {
 
     public void clearPreviewWStick(){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(previewWStick == null){
             return;
         }
@@ -493,6 +623,9 @@ public class PlayerCache {
 
     public void clearPreviewBalloon(){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(previewBalloon == null){
             return;
         }
@@ -501,12 +634,32 @@ public class PlayerCache {
         npc.removeBalloon(player);
     }
 
+    public void clearPreviewSpray(){
+        Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
+        if(previewSpray == null){
+            return;
+        }
+        previewSpray.clear(player);
+    }
+
     public void activeHat(){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(hat == null){
             return;
         }
         if(isZone) return;
+        if(MagicCosmetics.getInstance().isItemsAdder()){
+            if(MagicCosmetics.getInstance().getItemsAdder().hasEmote(player)){
+                hat.active(player);
+                return;
+            }
+        }
         if(player.isInvisible() || player.hasPotionEffect(PotionEffectType.INVISIBILITY)){
             clearHat();
             return;
@@ -516,11 +669,20 @@ public class PlayerCache {
 
     public void activeBag(){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(bag == null){
             return;
         }
         if(isZone) return;
-        if(player.isSwimming() || player.getPose() == Pose.SWIMMING || player.isGliding() || player.isInvisible() || player.hasPotionEffect(PotionEffectType.INVISIBILITY)){
+        if(MagicCosmetics.getInstance().isItemsAdder()){
+            if(MagicCosmetics.getInstance().getItemsAdder().hasEmote(player)){
+                bag.active(player);
+                return;
+            }
+        }
+        if(player.getPose() == Pose.SLEEPING || player.getPose() == Pose.SWIMMING || player.isGliding() || player.isInvisible() || player.hasPotionEffect(PotionEffectType.INVISIBILITY)){
             clearBag();
             return;
         }
@@ -529,10 +691,19 @@ public class PlayerCache {
 
     public void activeWStick(){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(wStick == null){
             return;
         }
         if(isZone) return;
+        if(MagicCosmetics.getInstance().isItemsAdder()){
+            if(MagicCosmetics.getInstance().getItemsAdder().hasEmote(player)){
+                wStick.active(player);
+                return;
+            }
+        }
         if(player.isInvisible() || player.hasPotionEffect(PotionEffectType.INVISIBILITY)){
             clearWStick();
             return;
@@ -542,19 +713,69 @@ public class PlayerCache {
 
     public void activeBalloon(){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(balloon == null){
             return;
         }
         if(isZone) return;
-        if(player.isInvisible() || player.hasPotionEffect(PotionEffectType.INVISIBILITY)){
-            clearBalloon();
+        if(MagicCosmetics.getInstance().isItemsAdder()){
+            if(MagicCosmetics.getInstance().getItemsAdder().hasEmote(player)){
+                balloon.active(player);
+                return;
+            }
+        }
+        if(player.isInvisible() || player.isGliding() || player.hasPotionEffect(PotionEffectType.INVISIBILITY)){
+            clearBalloon(false);
             return;
         }
         balloon.active(player);
     }
 
+    public void previewDraw(){
+        Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
+        if(previewSpray == null){
+            return;
+        }
+        Zone zone = getZone();
+        if(zone == null) return;
+        if(zone.getSprayFace() == null || zone.getSprayLoc() == null) return;
+        ((Spray)previewSpray).draw(player, zone.getSprayFace(), zone.getSprayLoc(), zone.getRotation());
+    }
+
+    public void draw(SprayKeys key){
+        Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
+        if(spray == null){
+            return;
+        }
+        if(isZone) return;
+        ((Spray)spray).draw(player, key);
+    }
+
+    public void activeSpray(){
+        Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
+        if(spray == null){
+            return;
+        }
+        if(isZone) return;
+        spray.active(player);
+    }
+
     public void activePreviewHat(){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(previewHat == null){
             return;
         }
@@ -565,6 +786,9 @@ public class PlayerCache {
 
     public void activePreviewBag(){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(previewBag == null){
             return;
         }
@@ -575,6 +799,9 @@ public class PlayerCache {
 
     public void activePreviewWStick(){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(previewWStick == null){
             return;
         }
@@ -585,6 +812,9 @@ public class PlayerCache {
 
     public void activePB(){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(previewBalloon == null){
             return;
         }
@@ -595,6 +825,9 @@ public class PlayerCache {
 
     public void activePreviewBalloon(){
         Player player = getOfflinePlayer().getPlayer();
+        if(player == null){
+            return;
+        }
         if(previewBalloon == null){
             return;
         }
@@ -608,8 +841,11 @@ public class PlayerCache {
         }else{
             location = zone.getBalloon();
         }
-        npc.balloonNPC(player, location, previewBalloon.getItemColor(player));
-        npc.balloonSetItem(player, previewBalloon.getItemColor(player));
+        npc.balloonNPC(player, location, previewBalloon.getItemColor(player), ((Balloon)previewBalloon).isBigHead());
+    }
+
+    public void activePreviewSpray(){
+        previewDraw();
     }
 
     public void activeCosmetics(){
@@ -618,13 +854,15 @@ public class PlayerCache {
         activeWStick();
         activeBalloon();
         activePB();
+        activeSpray();
     }
 
-    public void clearCosmeticsInUse(){
-        clearBalloon();
-        clearBag();
+    public void clearCosmeticsInUse(boolean close){
         clearHat();
+        clearBag();
         clearWStick();
+        clearBalloon(close);
+        clearSpray();
     }
 
     public void setZone(Zone zone) {
@@ -648,6 +886,7 @@ public class PlayerCache {
     }
 
     private boolean removeHelmet(){
+        if(!getOfflinePlayer().isOnline()) return false;
         Player player = getOfflinePlayer().getPlayer();
         MagicCosmetics plugin = MagicCosmetics.getInstance();
         ItemStack helmet = player.getInventory().getHelmet();
@@ -677,13 +916,14 @@ public class PlayerCache {
     }
 
     private boolean removeOffHand(){
+        if(!getOfflinePlayer().isOnline()) return false;
         Player player = getOfflinePlayer().getPlayer();
         MagicCosmetics plugin = MagicCosmetics.getInstance();
         ItemStack offHand = player.getInventory().getItemInOffHand();
         if(wStick == null) {
             if (offHand.getType() != XMaterial.AIR.parseMaterial()) {
                 if (player.getInventory().firstEmpty() == -1) {
-                    plugin.getVersion().sendSound(player, Sound.getSound("on_enter_zone_error"));
+                    Utils.sendSound(player, Sound.getSound("on_enter_zone_error"));
                     plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("zone-exit-by-offhand"));
                     return false;
                 }
@@ -705,7 +945,7 @@ public class PlayerCache {
         if(offHand.getType() != XMaterial.AIR.parseMaterial()) {
             if(!wStick.isCosmetic(offHand)){
                 if(player.getInventory().firstEmpty() == -1){
-                    plugin.getVersion().sendSound(player, Sound.getSound("on_enter_zone_error"));
+                    Utils.sendSound(player, Sound.getSound("on_enter_zone_error"));
                     plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + plugin.getMessages().getString("zone-exit-by-offhand"));
                     return false;
                 }
@@ -734,11 +974,9 @@ public class PlayerCache {
         Player player = getOfflinePlayer().getPlayer();
         if(!getOfflinePlayer().isOnline()) return;
         if(isZone) {
-            if(spectator) {
-                if (player.getSpectatorTarget() == null) {
-                    if(player.getGameMode() == GameMode.SPECTATOR) {
-                        player.setSpectatorTarget(zone.getSpec());
-                    }
+            if(spectator){
+                if(!player.getLocation().equals(zone.getEnter())) {
+                    player.teleport(zone.getEnter());
                 }
             }
             return;
@@ -750,15 +988,18 @@ public class PlayerCache {
             player.teleport(zone.getExit());
             return;
         }
-        plugin.getVersion().sendSound(player, Sound.getSound("on_enter_zone"));
+        gameMode = player.getGameMode();
+        Utils.sendSound(player, Sound.getSound("on_enter_zone"));
         plugin.getVersion().setSpectator(player);
-        Utils.hidePlayer(player);
-        String title = plugin.getMessages().getString("title-zone");
+        String title = plugin.getMessages().getString("title-zone.enter");
         if(player.getGameMode() != GameMode.SPECTATOR){
             exitZone();
             return;
         }
         if(plugin.isItemsAdder()){
+            if(plugin.getItemsAdder().hasEmote(player)){
+                plugin.getItemsAdder().stopEmote(player);
+            }
             title = plugin.getItemsAdder().replaceFontImages(title);
         }
         if(plugin.isOraxen()){
@@ -775,8 +1016,15 @@ public class PlayerCache {
                     sneak = false;
                     spectator = false;
                     player.teleport(zone.getExit());
+                    setSpeedFly(getSpeedFly() == 0 ? 0.1f : getSpeedFly());
+                    player.setFlySpeed(getSpeedFly());
+                    plugin.getVersion().setCamera(player, player);
                     setZone(null);
-                    player.setGameMode(GameMode.SURVIVAL);
+                    if(plugin.gameMode == null){
+                        player.setGameMode(gameMode);
+                    }else{
+                        player.setGameMode(plugin.gameMode);
+                    }
                     cancel();
                     return;
                 }
@@ -787,8 +1035,15 @@ public class PlayerCache {
                     sneak = false;
                     spectator = false;
                     player.teleport(zone.getExit());
+                    setSpeedFly(getSpeedFly() == 0 ? 0.1f : getSpeedFly());
+                    player.setFlySpeed(getSpeedFly());
+                    plugin.getVersion().setCamera(player, player);
                     setZone(null);
-                    player.setGameMode(GameMode.SURVIVAL);
+                    if(plugin.gameMode == null){
+                        player.setGameMode(gameMode);
+                    }else{
+                        player.setGameMode(plugin.gameMode);
+                    }
                     cancel();
                     return;
                 }
@@ -798,22 +1053,22 @@ public class PlayerCache {
                 }
                 saveItems();
                 if(player.getGameMode() == GameMode.SPECTATOR) {
-                    player.setSpectatorTarget(zone.getSpec());
+                    //player.setSpectatorTarget(zone.getSpec());
+                    player.teleport(zone.getEnter());
+                    setSpeedFly(player.getFlySpeed());
+                    player.setFlySpeed(0);
                     spectator = true;
                 }
                 plugin.getVersion().createNPC(player, zone.getNpc());
                 plugin.getVersion().getNPC(player).spawnPunch(player, zone.getEnter());
-                player.teleport(zone.getEnter());
                 setPreviewCosmetic(hat);
                 setPreviewCosmetic(bag);
                 setPreviewCosmetic(wStick);
                 setPreviewCosmetic(balloon);
+                setPreviewCosmetic(spray);
             }
         }.runTaskLater(plugin, 12);
-        clearHat();
-        clearBag();
-        clearWStick();
-        clearBalloon();
+        clearCosmeticsInUse(false);
         isZone = true;
     }
 
@@ -832,9 +1087,15 @@ public class PlayerCache {
             bossBar.removePlayer(player);
         }
         loadItems();
-        player.setGameMode(plugin.gameMode);
-        plugin.getVersion().removeNPC(player);
+        if(plugin.gameMode == null){
+            player.setGameMode(gameMode);
+        }else{
+            player.setGameMode(plugin.gameMode);
+        }
+        setSpeedFly(getSpeedFly() == 0 ? 0.1f : getSpeedFly());
+        player.setFlySpeed(getSpeedFly());
         player.teleport(zone.getExit());
+        plugin.getVersion().removeNPC(player);
         setZone(null);
     }
 
@@ -848,7 +1109,7 @@ public class PlayerCache {
         ZoneExitEvent event = new ZoneExitEvent(player, zone, Reason.NORMAL);
         plugin.getServer().getPluginManager().callEvent(event);
         if(event.isCancelled()) return;
-        String title = plugin.getMessages().getString("title-zone");
+        String title = plugin.getMessages().getString("title-zone.exit");
         if(plugin.isItemsAdder()){
             title = plugin.getItemsAdder().replaceFontImages(title);
         }
@@ -865,33 +1126,76 @@ public class PlayerCache {
                     bossBar.removePlayer(player);
                 }
                 loadItems();
-                player.setGameMode(plugin.gameMode);
-                plugin.getVersion().sendSound(player, Sound.getSound("on_exit_zone"));
+                if(plugin.gameMode == null){
+                    player.setGameMode(gameMode);
+                }else{
+                    player.setGameMode(plugin.gameMode);
+                }
+                Utils.sendSound(player, Sound.getSound("on_exit_zone"));
                 plugin.getVersion().removeNPC(player);
                 int count = 0;
-                if(previewHat != null){
-                    if(getCosmeticById(previewHat.getId()) == null){
-                        count++;
+                if(plugin.isPermissions()){
+                    if(previewHat != null){
+                        if(!previewHat.hasPermission(player)){
+                            count++;
+                        }
+                        setPreviewHat(null);
                     }
-                    setPreviewHat(null);
-                }
-                if(previewBag != null){
-                    if(getCosmeticById(previewBag.getId()) == null){
-                        count++;
+                    if(previewBag != null){
+                        if(!previewBag.hasPermission(player)){
+                            count++;
+                        }
+                        setPreviewBag(null);
                     }
-                    setPreviewBag(null);
-                }
-                if(previewWStick != null){
-                    if(getCosmeticById(previewWStick.getId()) == null){
-                        count++;
+                    if(previewWStick != null){
+                        if(!previewWStick.hasPermission(player)){
+                            count++;
+                        }
+                        setPreviewWStick(null);
                     }
-                    setPreviewWStick(null);
-                }
-                if(previewBalloon != null){
-                    if(getCosmeticById(previewBalloon.getId()) == null){
-                        count++;
+                    if(previewBalloon != null){
+                        if(!previewBalloon.hasPermission(player)){
+                            count++;
+                        }
+                        setPreviewBalloon(null);
                     }
-                    setPreviewBalloon(null);
+                    if(previewSpray != null){
+                        if(!previewSpray.hasPermission(player)){
+                            count++;
+                        }
+                        setPreviewSpray(null);
+                    }
+                }else{
+                    if(previewHat != null){
+                        if(getCosmeticById(previewHat.getId()) == null){
+                            count++;
+                        }
+                        setPreviewHat(null);
+                    }
+                    if(previewBag != null){
+                        if(getCosmeticById(previewBag.getId()) == null){
+                            count++;
+                        }
+                        setPreviewBag(null);
+                    }
+                    if(previewWStick != null){
+                        if(getCosmeticById(previewWStick.getId()) == null){
+                            count++;
+                        }
+                        setPreviewWStick(null);
+                    }
+                    if(previewBalloon != null){
+                        if(getCosmeticById(previewBalloon.getId()) == null){
+                            count++;
+                        }
+                        setPreviewBalloon(null);
+                    }
+                    if(previewSpray != null){
+                        if(getCosmeticById(previewSpray.getId()) == null){
+                            count++;
+                        }
+                        setPreviewSpray(null);
+                    }
                 }
                 if(count != 0){
                     if(count == 4){
@@ -899,6 +1203,9 @@ public class PlayerCache {
                         isZone = false;
                         sneak = false;
                         spectator = false;
+                        setSpeedFly(getSpeedFly() == 0 ? 0.1f : getSpeedFly());
+                        player.setFlySpeed(getSpeedFly());
+                        plugin.getVersion().setCamera(player, player);
                         player.teleport(zone.getExit());
                         setZone(null);
                         return;
@@ -908,6 +1215,9 @@ public class PlayerCache {
                 isZone = false;
                 sneak = false;
                 spectator = false;
+                setSpeedFly(getSpeedFly() == 0 ? 0.1f : getSpeedFly());
+                player.setFlySpeed(getSpeedFly());
+                plugin.getVersion().setCamera(player, player);
                 player.teleport(zone.getExit());
                 setZone(null);
             }
@@ -956,7 +1266,7 @@ public class PlayerCache {
                     plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
                     return false;
                 }
-                if(mainHand.getAmount() > token.getItemStack().getAmount() && token.getItemStack().getAmount() > 1){
+                if(mainHand.getAmount() > token.getItemStack().getAmount()){
                     ItemStack newItem = token.getItemStack().clone();
                     newItem.setAmount(mainHand.getAmount() - token.getItemStack().getAmount());
                     player.getInventory().setItemInMainHand(newItem);
@@ -989,6 +1299,7 @@ public class PlayerCache {
         }
         for(int i = 0; i < 8; i++){
             ItemStack itemStack = player.getInventory().getItem(i);
+            if(itemStack == null) continue;
             Token token = Token.getTokenByItem(itemStack);
             if(token == null) continue;
             if(itemStack.getAmount() < token.getItemStack().getAmount()){
@@ -1006,6 +1317,7 @@ public class PlayerCache {
     }
 
     public void saveItems(){
+        if(!MagicCosmetics.getInstance().isZoneHideItems()) return;
         Player player = getOfflinePlayer().getPlayer();
         for(int i = 0; i < player.getInventory().getSize(); i++){
             ItemStack itemStack = player.getInventory().getItem(i);
@@ -1033,6 +1345,7 @@ public class PlayerCache {
     }
 
     public void loadItems(){
+        if(!MagicCosmetics.getInstance().isZoneHideItems()) return;
         Player player = getOfflinePlayer().getPlayer();
         for(Map.Entry<Integer, ItemStack> inv : inventory.entrySet()){
             player.getInventory().setItem(inv.getKey(), inv.getValue());
@@ -1062,6 +1375,41 @@ public class PlayerCache {
         if(balloon != null){
             count++;
         }
+        if(spray != null){
+            count++;
+        }
         return count;
+    }
+
+    public List<Cosmetic> cosmeticsInUse(){
+        List<Cosmetic> cosmetics = new ArrayList<>();
+        if(hat != null){
+            cosmetics.add(hat);
+        }
+        if(bag != null){
+            cosmetics.add(bag);
+        }
+        if(wStick != null){
+            cosmetics.add(wStick);
+        }
+        if(balloon != null){
+            cosmetics.add(balloon);
+        }
+        if(spray != null){
+            cosmetics.add(spray);
+        }
+        return cosmetics;
+    }
+
+    public float getSpeedFly() {
+        return speedFly;
+    }
+
+    public void setSpeedFly(float speedFly) {
+        this.speedFly = speedFly;
+    }
+
+    public boolean isSpectator() {
+        return spectator;
     }
 }
