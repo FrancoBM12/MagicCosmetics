@@ -3,11 +3,11 @@ package com.francobm.magicosmetics.nms.bag;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class PlayerBag {
-    public static Map<UUID, PlayerBag> playerBags = new HashMap<>();
+    public static Map<UUID, PlayerBag> playerBags = new ConcurrentHashMap<>();
     protected UUID uuid;
     protected List<UUID> players;
 
@@ -15,15 +15,7 @@ public abstract class PlayerBag {
     public static void updatePlayerBag(Player player){
         for(PlayerBag playerBag : playerBags.values()){
             playerBag.remove(player);
-            playerBag.spawnBag(player);
-        }
-    }
-
-    public static void updatePlayerBagWithoutMe(Player player){
-        for(PlayerBag playerBag : playerBags.values()){
-            if(player.getUniqueId().equals(playerBag.uuid)) continue;
-            playerBag.remove(player);
-            playerBag.spawnBag(player);
+            playerBag.spawn(player);
         }
     }
 
@@ -35,32 +27,17 @@ public abstract class PlayerBag {
     }
      */
 
-    public static void removePlayerBagByPlayer(Player player){
-        for(PlayerBag playerBag : playerBags.values()){
-            if(player.getUniqueId().equals(playerBag.uuid)) continue;
-            if(!playerBag.players.contains(player.getUniqueId())) continue;
-            playerBag.remove(player);
-        }
-    }
+    public abstract void spawn(Player player);
 
-    public static void addPlayerBagByPlayer(Player player){
-        for(PlayerBag playerBag : playerBags.values()) {
-            if(player.getUniqueId().equals(playerBag.uuid)) continue;
-            playerBag.spawnBag(player);
-        }
-    }
+    public abstract void spawn(boolean exception);
 
-    public abstract void spawnBag(Player player);
-
-    public abstract void spawnBag(boolean marker, boolean all);
-
-    public abstract void remove(boolean all);
+    public abstract void remove();
 
     public abstract void remove(Player player);
 
     public abstract void addPassenger(Player player, Entity entity, Entity passenger);
 
-    public abstract void addPassenger(boolean all);
+    public abstract void addPassenger(boolean exception);
 
     public abstract void addPassenger(Player player);
 
@@ -68,6 +45,7 @@ public abstract class PlayerBag {
 
     public abstract void lookEntity(float yaw, float pitch, boolean all);
 
+    public abstract Entity getEntity();
 
     public Player getPlayer(){
         return Bukkit.getPlayer(uuid);

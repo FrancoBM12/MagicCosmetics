@@ -11,18 +11,23 @@ import org.bukkit.craftbukkit.v1_16_R3.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_16_R3.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_16_R3.inventory.CraftItemStack;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class PlayerBagHandler extends PlayerBag {
     private final EntityArmorStand armorStand;
+    private final double distance;
 
-    public PlayerBagHandler(Player p) {
-        players = new ArrayList<>();
+    public PlayerBagHandler(Player p, double distance) {
+        players = new CopyOnWriteArrayList<>(new ArrayList<>());
         this.uuid = p.getUniqueId();
+        this.distance = distance;
         playerBags.put(uuid, this);
         Player player = getPlayer();
         WorldServer world = ((CraftWorld) player.getWorld()).getHandle();
@@ -40,8 +45,19 @@ public class PlayerBagHandler extends PlayerBag {
     }
 
     @Override
-    public void spawnBag(Player player) {
-        if(players.contains(player.getUniqueId())) return;
+    public void spawn(Player player) {
+        if(players.contains(player.getUniqueId())) {
+            if(!getPlayer().getWorld().equals(player.getWorld())) {
+                remove(player);
+                return;
+            }
+            if(getPlayer().getLocation().distance(player.getLocation()) > distance) {
+                remove(player);
+            }
+            return;
+        }
+        if(!getPlayer().getWorld().equals(player.getWorld())) return;
+        if(getPlayer().getLocation().distance(player.getLocation()) > distance) return;
         armorStand.setInvulnerable(true); //invulnerable true
         armorStand.setInvisible(true); //Invisible true
         armorStand.setMarker(true); //Marker
@@ -60,41 +76,23 @@ public class PlayerBagHandler extends PlayerBag {
     }
 
     @Override
-    public void spawnBag(boolean marker, boolean all) {
-        if(all) {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                spawnBag(player);
-            }
-            return;
+    public void spawn(boolean exception) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if(exception && player.getUniqueId().equals(this.uuid)) continue;
+            spawn(player);
         }
-        Player player = getPlayer();
-        armorStand.setInvulnerable(true); //invulnerable true
-        armorStand.setInvisible(true); //Invisible true
-        armorStand.setMarker(true); //Marker
-
-        PlayerConnection connection = ((CraftPlayer)player).getHandle().playerConnection;
-        connection.sendPacket(new PacketPlayOutSpawnEntityLiving(armorStand));
-        //client settings
-        DataWatcher watcher = armorStand.getDataWatcher();
-        watcher.set(new DataWatcherObject<>(0, DataWatcherRegistry.a), (byte)0x20);
-        PacketPlayOutEntityMetadata packet = new PacketPlayOutEntityMetadata(armorStand.getId(), watcher, true);
-        connection.sendPacket(packet);
     }
 
     @Override
-    public void remove(boolean all) {
-        if(all){
-            for(Player player : Bukkit.getOnlinePlayers()){
-                if(!players.contains(player.getUniqueId())) continue;
-                PlayerConnection connection = ((CraftPlayer)player).getHandle().playerConnection;
-                connection.sendPacket(new PacketPlayOutEntityDestroy(armorStand.getId()));
-                players.remove(player.getUniqueId());
+    public void remove() {
+        for(UUID uuid : players){
+            Player player = Bukkit.getPlayer(uuid);
+            if(player == null) {
+                players.remove(uuid);
+                continue;
             }
-            playerBags.remove(uuid);
-            return;
+            remove(player);
         }
-        PlayerConnection connection = ((CraftPlayer)getPlayer()).getHandle().playerConnection;
-        connection.sendPacket(new PacketPlayOutEntityDestroy(armorStand.getId()));
         playerBags.remove(uuid);
     }
 
@@ -106,15 +104,16 @@ public class PlayerBagHandler extends PlayerBag {
     }
 
     @Override
-    public void addPassenger(boolean all) {
-        if(all){
-            for(UUID uuid : players){
-                Player player = Bukkit.getPlayer(uuid);
-                addPassenger(player);
+    public void addPassenger(boolean exception) {
+        for(UUID uuid : players){
+            Player player = Bukkit.getPlayer(uuid);
+            if(player == null) {
+                players.remove(uuid);
+                continue;
             }
-            return;
+            if(exception && player.getUniqueId().equals(this.uuid)) continue;
+            addPassenger(player);
         }
-        addPassenger(getPlayer());
     }
 
     @Override
@@ -153,7 +152,10 @@ public class PlayerBagHandler extends PlayerBag {
         if(all) {
             for (UUID uuid : players) {
                 Player player = Bukkit.getPlayer(uuid);
-                if(player == null) continue;
+                if(player == null) {
+                    players.remove(uuid);
+                    continue;
+                }
                 PlayerConnection connection = ((CraftPlayer)player).getHandle().playerConnection;
                 ArrayList<Pair<EnumItemSlot, net.minecraft.server.v1_16_R3.ItemStack>> list = new ArrayList<>();
                 list.add(new Pair<>(EnumItemSlot.HEAD, CraftItemStack.asNMSCopy(itemStack)));
@@ -172,7 +174,10 @@ public class PlayerBagHandler extends PlayerBag {
         if(all) {
             for (UUID uuid : players) {
                 Player player = Bukkit.getPlayer(uuid);
-                if(player == null) continue;
+                if(player == null) {
+                    players.remove(uuid);
+                    continue;
+                }
                 PlayerConnection connection = ((CraftPlayer) player).getHandle().playerConnection;
                 connection.sendPacket(new PacketPlayOutEntityHeadRotation(armorStand, (byte) (yaw * 256 / 360)));
                 connection.sendPacket(new PacketPlayOutEntity.PacketPlayOutEntityLook(armorStand.getId(), (byte) (yaw * 256 / 360), (byte) (pitch * 256 / 360), true));
@@ -200,5 +205,14 @@ public class PlayerBagHandler extends PlayerBag {
     @FunctionalInterface
     private interface UnsafeFunction<K, T> {
         T apply(K k) throws Exception;
+    }
+
+    public double getDistance() {
+        return distance;
+    }
+
+    @Override
+    public Entity getEntity() {
+        return armorStand.getBukkitEntity();
     }
 }
