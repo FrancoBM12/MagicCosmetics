@@ -1,30 +1,35 @@
 package com.francobm.magicosmetics.listeners;
 
 import com.francobm.magicosmetics.MagicCosmetics;
+import com.francobm.magicosmetics.api.SprayKeys;
 import com.francobm.magicosmetics.cache.*;
 import com.francobm.magicosmetics.nms.NPC.NPC;
+import com.francobm.magicosmetics.nms.bag.EntityBag;
 import com.francobm.magicosmetics.nms.bag.PlayerBag;
 import com.francobm.magicosmetics.events.UnknownEntityInteractEvent;
+import com.francobm.magicosmetics.nms.balloon.EntityBalloon;
 import com.francobm.magicosmetics.nms.balloon.PlayerBalloon;
+import com.francobm.magicosmetics.nms.spray.CustomSpray;
 import com.francobm.magicosmetics.utils.XMaterial;
-import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.*;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.PlayerLeashEntityEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.Iterator;
 
@@ -34,29 +39,9 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event){
         Player player = event.getPlayer();
-        plugin.getSql().loadPlayer(player);
+        plugin.getSql().loadPlayer(player, true);
         plugin.getVersion().getPacketReader(player).inject();
     }
-
-    /*@EventHandler
-    public void onGameMode(PlayerGameModeChangeEvent event){
-        Player player = event.getPlayer();
-        GameMode gameMode = event.getNewGameMode();
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        if(playerCache.getEquip(CosmeticType.BAG) != null) {
-            Bag bag = (Bag) playerCache.getEquip(CosmeticType.BAG);
-            if(bag.isSpectator()){
-                bag.setSpectator(false);
-                playerCache.clearBag();
-                return;
-            }
-            if (gameMode == GameMode.SPECTATOR) {
-                playerCache.clearCosmeticsInUse();
-                bag.setSpectator(true);
-            }
-
-        }
-    }*/
 
     @EventHandler
     public void onCommand(PlayerCommandPreprocessEvent event){
@@ -73,9 +58,7 @@ public class PlayerListener implements Listener {
         if(playerCache.isZone()){
             playerCache.exitZoneSync();
         }
-        plugin.getSql().savePlayer(playerCache);
-        PlayerBag.removePlayerBagByPlayer(player);
-        PlayerBalloon.removePlayerBalloonByPlayer(player);
+        plugin.getSql().savePlayer(playerCache, false);
     }
 
     @EventHandler
@@ -83,10 +66,11 @@ public class PlayerListener implements Listener {
         Player player = event.getPlayer();
         PlayerCache playerCache = PlayerCache.getPlayer(player);
         if(playerCache.isZone()){
+            if(!playerCache.isSpectator()) return;
             event.setCancelled(true);
         }
         //PlayerBag.refreshPlayerBag(player);
-        playerCache.clearCosmeticsInUse();
+        playerCache.clearCosmeticsInUse(false);
     }
 
     @EventHandler
@@ -107,10 +91,21 @@ public class PlayerListener implements Listener {
     public void onUnkInteract(UnknownEntityInteractEvent event){
         Player player = event.getPlayer();
         NPC entity = event.getUnknownEntity();
-        if(!(entity.getPunchEntity() instanceof ArmorStand)) return;
+        if(entity == null) return;
         if(event.getAction() == com.francobm.magicosmetics.events.Action.INTERACT) return;
         plugin.getCosmeticsManager().openMenu(player, "hat");
-        //entity.equipNPC(player, ItemSlot.HELMET, XMaterial.DIAMOND_HELMET.parseItem());
+    }
+
+    @EventHandler
+    public void onDrop(PlayerDropItemEvent event){
+        Player player = event.getPlayer();
+        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        if(playerCache.getSpray() == null) return;
+        if(plugin.getSprayKey() == null)  return;
+        if (!plugin.getSprayKey().isKey(SprayKeys.SHIFT_Q)) return;
+        if (!player.isSneaking()) return;
+        event.setCancelled(true);
+        playerCache.draw(plugin.getSprayKey());
     }
 
     @EventHandler
@@ -123,10 +118,9 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onDead(PlayerDeathEvent event){
         Player player = event.getEntity();
-        //PlayerBag.refreshPlayerBag(player);
         PlayerCache playerCache = PlayerCache.getPlayer(player);
         if(playerCache == null) return;
-        playerCache.clearBalloon();
+        playerCache.clearBalloon(false);
         playerCache.clearBag();
         Iterator<ItemStack> stackList = event.getDrops().iterator();
         while (stackList.hasNext()){
@@ -149,7 +143,18 @@ public class PlayerListener implements Listener {
         Player player = event.getPlayer();
         if(!(event.getRightClicked() instanceof ItemFrame)) return;
         PlayerCache playerCache = PlayerCache.getPlayer(player);
+        if(event.getHand() != EquipmentSlot.OFF_HAND) return;
+        if(!playerCache.getWStick().isCosmetic(player.getInventory().getItemInOffHand())) return;
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onBlock(BlockPlaceEvent event) {
+        if(event.getHand() != EquipmentSlot.OFF_HAND) return;
+        Player player = event.getPlayer();
+        PlayerCache playerCache = PlayerCache.getPlayer(player);
         if(playerCache.getWStick() == null) return;
+        if(!playerCache.getWStick().isCosmetic(event.getItemInHand())) return;
         event.setCancelled(true);
     }
 
@@ -158,53 +163,72 @@ public class PlayerListener implements Listener {
         Player player = event.getPlayer();
         PlayerCache playerCache = PlayerCache.getPlayer(player);
         ItemStack itemStack = event.getItem();
-        if(itemStack == null) return;
-        //plugin.getLogger().info("Material: " + itemStack.getType());
-        if(itemStack.getType() == XMaterial.BLAZE_ROD.parseMaterial()){
-            if(!itemStack.hasItemMeta()) return;
-            if(!itemStack.getItemMeta().hasDisplayName()) return;
-            if(itemStack.getItemMeta().getDisplayName().split(" ").length < 6) return;
-            ItemMeta itemMeta = itemStack.getItemMeta();
-            Zone zone = Zone.getZone(itemMeta.getDisplayName().split(" ")[6]);
-            if(zone == null) return;
-            event.setCancelled(true);
-            if(event.getAction() == Action.LEFT_CLICK_BLOCK){
-                Location location = event.getClickedBlock().getLocation();
-                zone.setCorn1(location);
-                player.sendMessage(plugin.prefix + plugin.getMessages().getString("set-corn1").replace("%name%", zone.getName()));
+        if(itemStack != null) {
+            //plugin.getLogger().info("Material: " + itemStack.getType());
+            if(itemStack.getType() == XMaterial.BLAZE_ROD.parseMaterial()){
+                if(!itemStack.hasItemMeta()) return;
+                if(!itemStack.getItemMeta().hasDisplayName()) return;
+                if(itemStack.getItemMeta().getDisplayName().split(" ").length < 6) return;
+                ItemMeta itemMeta = itemStack.getItemMeta();
+                Zone zone = Zone.getZone(itemMeta.getDisplayName().split(" ")[6]);
+                if(zone == null) return;
+                event.setCancelled(true);
+                if(event.getAction() == Action.LEFT_CLICK_BLOCK){
+                    Location location = event.getClickedBlock().getLocation();
+                    zone.setCorn1(location);
+                    player.sendMessage(plugin.prefix + plugin.getMessages().getString("set-corn1").replace("%name%", zone.getName()));
+                    return;
+                }
+                if(event.getAction() == Action.RIGHT_CLICK_BLOCK){
+                    Location location = event.getClickedBlock().getLocation();
+                    zone.setCorn2(location);
+                    player.sendMessage(plugin.prefix + plugin.getMessages().getString("set-corn2").replace("%name%", zone.getName()));
+                    return;
+                }
                 return;
             }
-            if(event.getAction() == Action.RIGHT_CLICK_BLOCK){
-                Location location = event.getClickedBlock().getLocation();
-                zone.setCorn2(location);
-                player.sendMessage(plugin.prefix + plugin.getMessages().getString("set-corn2").replace("%name%", zone.getName()));
-                return;
+            if(itemStack.getType().toString().toUpperCase().endsWith("HELMET")){
+                if(event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+                    if (playerCache.getHat() != null) {
+                        if(player.getInventory().getHelmet() == null) return;
+                        if(playerCache.getHat().isCosmetic(player.getInventory().getHelmet())) {
+                            player.getInventory().setHelmet(itemStack.clone());
+                            player.getInventory().removeItem(itemStack);
+                        }
+                    }
+                }
             }
-            return;
-        }
-        if(itemStack.getType().toString().toUpperCase().endsWith("HELMET")){
-            if(event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-                if (playerCache.getHat() != null) {
-                    if(player.getInventory().getHelmet() == null) return;
-                    if(playerCache.getHat().isCosmetic(player.getInventory().getHelmet())) {
-                        player.getInventory().setHelmet(itemStack.clone());
+            if(playerCache.getHat() != null) {
+                if (playerCache.getHat().isCosmetic(itemStack)) {
+                    player.getInventory().removeItem(itemStack);
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+            if(playerCache.getWStick() != null) {
+                if(event.getHand() == EquipmentSlot.OFF_HAND) {
+                    if (playerCache.getWStick().isCosmetic(itemStack)) {
                         player.getInventory().removeItem(itemStack);
+                        event.setUseInteractedBlock(Event.Result.DENY);
+                        event.setUseItemInHand(Event.Result.DENY);
+                        event.setCancelled(true);
                     }
                 }
             }
         }
-        if(playerCache.getHat() != null) {
-            if (playerCache.getHat().isCosmetic(itemStack)) {
-                player.getInventory().removeItem(itemStack);
-                event.setCancelled(true);
-                return;
-            }
+        if(playerCache.getSpray() == null) return;
+        if(plugin.getSprayKey() == null) return;
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+            if (!plugin.getSprayKey().isKey(SprayKeys.SHIFT_RC)) return;
+            if (!player.isSneaking()) return;
+            playerCache.draw(plugin.getSprayKey());
+            event.setCancelled(true);
         }
-        if(playerCache.getWStick() != null) {
-            if (playerCache.getWStick().isCosmetic(itemStack)) {
-                player.getInventory().removeItem(itemStack);
-                event.setCancelled(true);
-            }
+        if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
+            if (!plugin.getSprayKey().isKey(SprayKeys.SHIFT_LC)) return;
+            if (!player.isSneaking()) return;
+            playerCache.draw(plugin.getSprayKey());
+            event.setCancelled(true);
         }
     }
 
@@ -238,6 +262,13 @@ public class PlayerListener implements Listener {
                 }
             }
         }
+
+        if(playerCache.getSpray() == null) return;
+        if(plugin.getSprayKey() == null) return;
+        if (!plugin.getSprayKey().isKey(SprayKeys.SHIFT_F)) return;
+        if (!player.isSneaking()) return;
+        playerCache.draw(plugin.getSprayKey());
+        event.setCancelled(true);
     }
 
     @EventHandler
@@ -315,6 +346,7 @@ public class PlayerListener implements Listener {
                 }
                 if(event.getSlotType() == InventoryType.SlotType.QUICKBAR && event.getSlot() == 40){
                     event.setCancelled(true);
+                    if(player.getItemOnCursor().getType() == XMaterial.AIR.parseMaterial()) return;
                     event.setCurrentItem(player.getItemOnCursor());
                     player.setItemOnCursor(XMaterial.AIR.parseItem());
                     return;
@@ -339,34 +371,32 @@ public class PlayerListener implements Listener {
             if (event.getCurrentItem() == null) {
                 return;
             }
-
-            if (playerCache.getHat().isCosmetic(event.getCurrentItem())) {
-                event.setCurrentItem(XMaterial.AIR.parseItem());
-                event.setCancelled(true);
-                return;
+            if(playerCache.getHat().isCosmetic(event.getCursor())){
+                player.setItemOnCursor(XMaterial.AIR.parseItem());
             }
-
-            if (event.getSlotType() == InventoryType.SlotType.ARMOR) {
-                if (event.getCurrentItem() == null) {
+            if (playerCache.getHat().isCosmetic(player.getInventory().getHelmet())) {
+                if(event.getSlotType() == InventoryType.SlotType.ARMOR && event.getSlot() == 39){
+                    event.setCancelled(true);
+                    if(player.getItemOnCursor().getType() == XMaterial.AIR.parseMaterial()) return;
+                    if(player.getItemOnCursor().getType().name().endsWith("HELMET") || player.getItemOnCursor().getType().name().endsWith("HEAD")) {
+                        event.setCurrentItem(event.getCursor());
+                        player.setItemOnCursor(XMaterial.AIR.parseItem());
+                    }
                     return;
                 }
 
                 if (playerCache.getHat().isCosmetic(event.getCurrentItem())) {
-                    if (event.getSlot() != 5 && event.getSlot() != 39) {
-                        event.setCurrentItem(null);
-                        event.setCancelled(true);
-                        playerCache.activeHat();
-                        return;
-                    }
-
+                    event.setCurrentItem(XMaterial.AIR.parseItem());
                     event.setCancelled(true);
                     return;
                 }
-
-                if (!playerCache.isZone() && (event.getSlot() == 5 || event.getSlot() == 39)) {
-                    playerCache.getHat().active(player);
-                }
             }
+
+            if (playerCache.getHat().isCosmetic(event.getCurrentItem())) {
+                event.setCurrentItem(XMaterial.AIR.parseItem());
+                event.setCancelled(true);
+            }
+
         }
     }
 }
