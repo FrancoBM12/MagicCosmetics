@@ -1,6 +1,8 @@
 package com.francobm.magicosmetics.commands;
 
 import com.francobm.magicosmetics.MagicCosmetics;
+import com.francobm.magicosmetics.api.CosmeticType;
+import com.francobm.magicosmetics.api.MagicAPI;
 import com.francobm.magicosmetics.cache.*;
 import com.francobm.magicosmetics.cache.inventories.Menu;
 import com.francobm.magicosmetics.files.FileCreator;
@@ -10,6 +12,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.*;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,6 +68,46 @@ public class Command implements CommandExecutor, TabCompleter {
                         return true;
                     case "reload":
                         plugin.getCosmeticsManager().reload(sender);
+                        return true;
+                    case "equip":
+                        //cosmetics equip <player> <id> <color> <force>
+                        if(args.length < 3){
+                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("commands.equip-usage"));
+                            return true;
+                        }
+                        target = Bukkit.getPlayer(args[1]);
+                        if(target == null){
+                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
+                            return true;
+                        }
+                        if(args.length == 4) {
+                            if(!args[3].startsWith("#")) {
+                                plugin.getCosmeticsManager().equipCosmetic(target, args[2], null, false);
+                            }
+                            plugin.getCosmeticsManager().equipCosmetic(target, args[2], args[3], false);
+                            return true;
+                        }
+                        if(args.length == 5) {
+                            plugin.getCosmeticsManager().equipCosmetic(target, args[2], args[3], Boolean.parseBoolean(args[4]));
+                            return true;
+                        }
+                        plugin.getCosmeticsManager().equipCosmetic(target, args[2], null, false);
+                        return true;
+                    case "unequip":
+                        // /cosmetics unequip <player> <id>
+                        if(args.length < 3){
+                            return true;
+                        }
+                        target = Bukkit.getPlayer(args[1]);
+                        if(target == null){
+                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
+                            return true;
+                        }
+                        if(args[2].equalsIgnoreCase("all")){
+                            plugin.getCosmeticsManager().unEquipAll(sender, target);
+                            return true;
+                        }
+                        plugin.getCosmeticsManager().unSetCosmetic(target, args[2]);
                         return true;
                     case "open":
                         //cosmetics open <menu-id> <player>
@@ -159,12 +202,16 @@ public class Command implements CommandExecutor, TabCompleter {
                         plugin.getCosmeticsManager().reload(sender);
                         return true;
                     case "use":
-                        //cosmetics use <id>
+                        //cosmetics use <id> <color>
                         if(args.length < 2){
                             plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("commands.use-usage"));
                             return true;
                         }
-                        plugin.getCosmeticsManager().useCosmetic(player, args[1]);
+                        if(args.length == 3) {
+                            plugin.getCosmeticsManager().equipCosmetic(player, args[1], args[2], false);
+                            return true;
+                        }
+                        plugin.getCosmeticsManager().equipCosmetic(player, args[1], null, false);
                         return true;
                     case "preview":
                         if(args.length < 2){
@@ -189,6 +236,10 @@ public class Command implements CommandExecutor, TabCompleter {
                         return true;
                     case "unequip":
                         if(args.length < 2){
+                            return true;
+                        }
+                        if(args[1].equalsIgnoreCase("all")){
+                            plugin.getCosmeticsManager().unEquipAll(player);
                             return true;
                         }
                         plugin.getCosmeticsManager().unSetCosmetic(player, args[1]);
@@ -232,6 +283,16 @@ public class Command implements CommandExecutor, TabCompleter {
                             plugin.getCosmeticsManager().addZone(player, args[2]);
                             return true;
                         }
+                        if(args[1].equalsIgnoreCase("remove")){
+                            if(args.length < 3){
+                                for(String msg : plugin.getMessages().getStringList("commands.zones-usage")){
+                                    plugin.getCosmeticsManager().sendMessage(player,msg);
+                                }
+                                return true;
+                            }
+                            plugin.getCosmeticsManager().removeZone(player, args[2]);
+                            return true;
+                        }
                         if(args[1].equalsIgnoreCase("setnpc")){
                             if(args.length < 3){
                                 for(String msg : plugin.getMessages().getStringList("commands.zones-usage")){
@@ -250,6 +311,16 @@ public class Command implements CommandExecutor, TabCompleter {
                                 return true;
                             }
                             plugin.getCosmeticsManager().setBalloonNPC(player, args[2]);
+                            return true;
+                        }
+                        if(args[1].equalsIgnoreCase("setspray")){
+                            if(args.length < 3){
+                                for(String msg : plugin.getMessages().getStringList("commands.zones-usage")){
+                                    plugin.getCosmeticsManager().sendMessage(player,msg);
+                                }
+                                return true;
+                            }
+                            plugin.getCosmeticsManager().setSpray(player, args[2]);
                             return true;
                         }
                         if(args[1].equalsIgnoreCase("setenter")){
@@ -332,12 +403,38 @@ public class Command implements CommandExecutor, TabCompleter {
                     case "check":
                         plugin.getCosmeticsManager().sendCheck(player);
                         return true;
+                    case "npc":
+                        if(!plugin.isCitizens()){
+                            plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + "&cCitizens is not installed!");
+                            return true;
+                        }
+                        //cosmetics npc 1 <cosmetic-id> <color>
+                        if(args.length < 3){
+                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + plugin.getMessages().getString("commands.npc-usage"));
+                            return true;
+                        }
+                        try{
+                            plugin.getCitizens().equipCosmetic(player, args[1], args[2], args[3]);
+                        }catch (ArrayIndexOutOfBoundsException exception){
+                            plugin.getCitizens().equipCosmetic(player, args[1], args[2], null);
+                        }
+                        return true;
+                    case "tint":
+                        //cosmetics tint <color>
+                        if(args.length < 2){
+                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + plugin.getMessages().getString("commands.tint-usage"));
+                            return true;
+                        }
+                        plugin.getCosmeticsManager().tintItem(player, args[1]);
+                        return true;
                     default:
                         plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + plugin.getMessages().getString("commands.not-found"));
                         return true;
                 }
             }
-            plugin.getCosmeticsManager().openMenu(player, "hat");
+            if(player.hasPermission("magicosmetics.cosmetics.use")) {
+                plugin.getCosmeticsManager().openMenu(player, "hat");
+            }
             return true;
         }
         return true;
@@ -350,6 +447,9 @@ public class Command implements CommandExecutor, TabCompleter {
             arguments.add("add");
             arguments.add("remove");
             arguments.add("addAll");
+            if(plugin.isCitizens()) {
+                arguments.add("npc");
+            }
         }
         if(sender.hasPermission("magicosmetics.menus")) {
             arguments.add("open");
@@ -365,6 +465,13 @@ public class Command implements CommandExecutor, TabCompleter {
         }
         if(sender.hasPermission("magicosmetics.hide")){
             arguments.add("hide");
+        }
+        if(sender.hasPermission("magicosmetics.equip")){
+            arguments.add("use");
+            arguments.add("unequip");
+        }
+        if(sender.hasPermission("magicosmetics.tint")){
+            arguments.add("tint");
         }
         if(arguments.size() == 0) return arguments;
         List<String> result = new ArrayList<>();
@@ -383,6 +490,22 @@ public class Command implements CommandExecutor, TabCompleter {
                     case "addall":
                     case "remove":
                         return  null;
+                    case "npc":
+                        if(!plugin.isCitizens()) return null;
+                        for(String a : plugin.getCitizens().getNPCs()){
+                            if(a.toLowerCase().startsWith(args[1].toLowerCase()))
+                                result.add(a);
+                        }
+                        return result;
+                    case "unequip":
+                    case "use":
+                        if(!sender.hasPermission("magicosmetics.equip")) return null;
+                        result.add("all");
+                        for(String a : Cosmetic.cosmetics.keySet()){
+                            if(a.toLowerCase().startsWith(args[1].toLowerCase()))
+                                result.add(a);
+                        }
+                        return result;
                     case "open":
                         if(!sender.hasPermission("magicosmetics.menus")) return null;
                         for(String a : Menu.inventories.keySet()){
@@ -393,8 +516,10 @@ public class Command implements CommandExecutor, TabCompleter {
                     case "zones":
                         if(!sender.hasPermission("magicosmetics.zones")) return null;
                         subArgs.add("add");
+                        subArgs.add("remove");
                         subArgs.add("setNPC");
                         subArgs.add("setBalloon");
+                        subArgs.add("setSpray");
                         subArgs.add("setEnter");
                         subArgs.add("setExit");
                         subArgs.add("giveCorns");
@@ -414,16 +539,27 @@ public class Command implements CommandExecutor, TabCompleter {
                                 result.add(a);
                         }
                         return result;
+                    case "tint":
+                        if(!sender.hasPermission("magicosmetics.tint")) return null;
+                        result.add("#FFFFFF");
+                        return result;
                 }
             case 3:
                 switch (args[0].toLowerCase()){
                     case "add":
                     case "remove":
+                    case "npc":
                         if(!sender.hasPermission("magicosmetics.cosmetics")) return null;
                         for(String a : Cosmetic.cosmetics.keySet()){
                             if(a.toLowerCase().startsWith(args[2].toLowerCase()))
                                 result.add(a);
                         }
+                        return result;
+                    case "use":
+                    case "equip":
+                        if(!sender.hasPermission("magicosmetics.equip")) return null;
+                        result.add("#FFFFFF");
+                        result.add("null");
                         return result;
                     case "zones":
                         if(!sender.hasPermission("magicosmetics.zones")) return null;
@@ -443,6 +579,12 @@ public class Command implements CommandExecutor, TabCompleter {
                         if(a.toLowerCase().startsWith(args[3].toLowerCase()))
                             result.add(a);
                     }
+                    return result;
+                }
+                if(args[0].equalsIgnoreCase("npc")){
+                    if(!plugin.isCitizens()) return null;
+                    if(!sender.hasPermission("magicosmetics.cosmetics")) return null;
+                    result.add("#FFFFFF");
                     return result;
                 }
 
