@@ -1,8 +1,12 @@
 package com.francobm.magicosmetics.cache;
 
+import com.francobm.magicosmetics.api.CosmeticType;
 import com.francobm.magicosmetics.cache.balloons.Balloon;
 import com.francobm.magicosmetics.cache.balloons.BalloonEngine;
+import com.francobm.magicosmetics.cache.balloons.BalloonIA;
+import com.francobm.magicosmetics.files.FileCosmetics;
 import com.francobm.magicosmetics.files.FileCreator;
+import com.francobm.magicosmetics.utils.Utils;
 import com.francobm.magicosmetics.utils.XMaterial;
 import com.francobm.magicosmetics.MagicCosmetics;
 import org.bukkit.Color;
@@ -10,10 +14,10 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.LeatherArmorMeta;
-import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.inventory.meta.*;
 
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.util.*;
 
 public abstract class Cosmetic {
@@ -24,9 +28,13 @@ public abstract class Cosmetic {
     private final int modelData;
     private final CosmeticType cosmeticType;
     private final boolean colored;
+    private boolean defaultColor;
     private Color color;
+    private final String permission;
+    private final boolean texture;
+    private boolean hideMenu;
 
-    public Cosmetic(String id, String name, ItemStack itemStack, int modelData, boolean colored, CosmeticType cosmeticType, Color color) {
+    public Cosmetic(String id, String name, ItemStack itemStack, int modelData, boolean colored, CosmeticType cosmeticType, Color color, String permission, boolean texture, boolean hideMenu) {
         this.id = id;
         this.name = name;
         this.itemStack = itemStack;
@@ -34,6 +42,35 @@ public abstract class Cosmetic {
         this.colored = colored;
         this.cosmeticType = cosmeticType;
         this.color = color;
+        this.permission = permission;
+        this.texture = texture;
+        this.hideMenu = hideMenu;
+    }
+
+    public Cosmetic(String id, String name, String permission) {
+        this.id = id;
+        this.name = name;
+        this.permission = permission;
+        this.itemStack = null;
+        this.modelData = 0;
+        this.colored = false;
+        this.cosmeticType = null;
+        this.color = null;
+        this.texture = false;
+        this.hideMenu = false;
+    }
+
+    public static List<Cosmetic> getCosmeticsUnHideByType(CosmeticType cosmeticType){
+        List<Cosmetic> cosmetics2 = new ArrayList<>();
+        for(String id : cosmetics.keySet()){
+            if(id.isEmpty()) continue;
+            Cosmetic cosmetic = Cosmetic.getCloneCosmetic(id);
+            if(cosmetic == null) continue;
+            if(cosmetic.isHideMenu()) continue;
+            if(cosmetic.getCosmeticType() != cosmeticType) continue;
+            cosmetics2.add(cosmetic);
+        }
+        return cosmetics2;
     }
 
     public static List<Cosmetic> getCosmeticsByType(CosmeticType cosmeticType){
@@ -68,19 +105,23 @@ public abstract class Cosmetic {
         switch (cosmetic.getCosmeticType()){
             case HAT:
                 Hat hat = (Hat) cosmetic;
-                cosmec = new Hat(hat.getId(), hat.getName(), hat.getItemStack(), hat.getModelData(), hat.isColored(), hat.getCosmeticType(), hat.getColor(), hat.isOverlaps());
+                cosmec = new Hat(hat.getId(), hat.getName(), hat.getItemStack().clone(), hat.getModelData(), hat.isColored(), hat.getCosmeticType(), hat.getColor(), hat.isOverlaps(), hat.getPermission(), hat.isTexture(), hat.isHideMenu());
                 break;
             case BAG:
                 Bag bag = (Bag) cosmetic;
-                cosmec = new Bag(bag.getId(), bag.getName(), bag.getItemStack(), bag.getModelData(), bag.getModelDataForMe(), bag.isColored(), bag.getSpace(), bag.getCosmeticType(), bag.getColor());
+                cosmec = new Bag(bag.getId(), bag.getName(), bag.getItemStack().clone(), bag.getModelData(), bag.getModelDataForMe(), bag.isColored(), bag.getSpace(), bag.getCosmeticType(), bag.getColor(), bag.getDistance(), bag.getPermission(), bag.isTexture(), bag.isHideMenu());
                 break;
             case WALKING_STICK:
                 WStick wStick = (WStick) cosmetic;
-                cosmec = new WStick(wStick.getId(), wStick.getName(), wStick.getItemStack(), wStick.getModelData(), wStick.isColored(), wStick.getCosmeticType(), wStick.getColor());
+                cosmec = new WStick(wStick.getId(), wStick.getName(), wStick.getItemStack().clone(), wStick.getModelData(), wStick.isColored(), wStick.getCosmeticType(), wStick.getColor(), wStick.getPermission(), wStick.isTexture(), wStick.isOverlaps(), wStick.isHideMenu());
                 break;
             case BALLOON:
                 Balloon balloon = (Balloon) cosmetic;
-                cosmec = new Balloon(balloon.getId(), balloon.getName(), balloon.getItemStack(), balloon.getModelData(), balloon.isColored(), balloon.getSpace(), balloon.getCosmeticType(), balloon.getColor(), balloon.isRotation(), balloon.getRotationType(), balloon.getBalloonEngine());
+                cosmec = new Balloon(balloon.getId(), balloon.getName(), balloon.getItemStack().clone(), balloon.getModelData(), balloon.isColored(), balloon.getSpace(), balloon.getCosmeticType(), balloon.getColor(), balloon.isRotation(), balloon.getRotationType(), balloon.getBalloonEngine(), balloon.getBalloonIA(), balloon.getDistance(), balloon.getPermission(), balloon.isTexture(), balloon.isBigHead(), balloon.isHideMenu(), balloon.isInvisibleLeash());
+                break;
+            case SPRAY:
+                Spray spray = (Spray) cosmetic;
+                cosmec = new Spray(spray.getId(), spray.getName(), spray.getItemStack().clone(), spray.getModelData(), spray.isColored(), spray.getCosmeticType(), spray.getColor(), spray.getPermission(), spray.isTexture(), spray.getImage(), spray.isItemImage(), spray.isHideMenu());
                 break;
         }
         return cosmec;
@@ -88,162 +129,256 @@ public abstract class Cosmetic {
 
     public static void loadCosmetics(){
         cosmetics.clear();
-        FileCreator cosmeticsConf = MagicCosmetics.getInstance().getCosmetics();
-        for(String key : cosmeticsConf.getConfigurationSection("cosmetics").getKeys(false)){
-            String name = "";
-            ItemStack itemStack = null;
-            CosmeticType cosmeticType = null;
-            boolean colored = false;
-            Color color = null;
-            String type = "";
-            double space = 0;
-            boolean overlaps = false;
-            BalloonEngine balloonEngine = null;
-            boolean rotation = false;
-            RotationType rotationType = null;
-            int modelData = 0;
-            int modelDataForMe = 0;
-            if(cosmeticsConf.contains("cosmetics." + key + ".item")){
-                List<String> lore = null;
-                boolean unbreakable = false;
-                boolean glow = false;
-                boolean hide_attributes = false;
-                if(cosmeticsConf.contains("cosmetics." + key + ".item.display")){
-                    name = cosmeticsConf.getString("cosmetics." + key + ".item.display");
+        FileCosmetics cosmeticsFiles = MagicCosmetics.getInstance().getCosmetics();
+        for(FileCreator cosmeticsConf : cosmeticsFiles.getFiles().values()){
+            MagicCosmetics.getInstance().getLogger().info("Loading cosmetics from file: " + cosmeticsConf.getFileName());
+            if(!cosmeticsConf.contains("cosmetics")) continue;
+            for(String key : cosmeticsConf.getConfigurationSection("cosmetics").getKeys(false)){
+                String name = "";
+                ItemStack itemStack = null;
+                CosmeticType cosmeticType = null;
+                boolean colored = false;
+                Color color = null;
+                String type = "";
+                double space = 0;
+                boolean overlaps = false;
+                BalloonEngine balloonEngine = null;
+                BalloonIA balloonIA = null;
+                boolean rotation = false;
+                RotationType rotationType = null;
+                int modelData = 0;
+                int modelDataForMe = 0;
+                double distance = 100;
+                String permission = "";
+                BufferedImage image = null;
+                boolean itemImage = false;
+                boolean isTexture = false;
+                boolean bigHead = false;
+                boolean hideMenu = false;
+                boolean invisibleLeash = false;
+                if(cosmeticsConf.contains("cosmetics." + key + ".permission")){
+                    permission = cosmeticsConf.getString("cosmetics." + key + ".permission");
                 }
-                if(cosmeticsConf.contains("cosmetics." + key + ".item.material")){
-                    String item = cosmeticsConf.getString("cosmetics." + key + ".item.material");
+                if(cosmeticsConf.contains("cosmetics." + key + ".url")){
+                    String url = cosmeticsConf.getString("cosmetics." + key + ".url");
+                    image = Utils.getImage(url);
+                    if(image == null){
+                        MagicCosmetics.getInstance().getLogger().warning("Could not load Spray image from url: " + url);
+                        continue;
+                    }
+                }
+                if(cosmeticsConf.contains("cosmetics." + key + ".item")){
+                    List<String> lore = null;
+                    boolean unbreakable = false;
+                    boolean glow = false;
+                    boolean hide_attributes = false;
+                    String texture = "";
+                    if(cosmeticsConf.contains("cosmetics." + key + ".item.texture")){
+                        texture = cosmeticsConf.getString("cosmetics." + key + ".item.texture");
+                        isTexture = true;
+                    }
+                    if(cosmeticsConf.contains("cosmetics." + key + ".item.display")){
+                        name = cosmeticsConf.getString("cosmetics." + key + ".item.display");
+                        if(MagicCosmetics.getInstance().isItemsAdder()){
+                            name = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(name);
+                        }
+                    }
+                    if(cosmeticsConf.contains("cosmetics." + key + ".item.material")){
+                        String item = cosmeticsConf.getString("cosmetics." + key + ".item.material");
+                        try{
+                            itemStack = XMaterial.valueOf(item.toUpperCase()).parseItem();
+                        }catch (IllegalArgumentException exception){
+                            MagicCosmetics.getInstance().getLogger().info("Item Material '" + item + "' in Cosmetic '" + key + "' Not Found!");
+                        }
+                    }
+                    if(cosmeticsConf.contains("cosmetics." + key + ".item.lore")){
+                        lore = cosmeticsConf.getStringList("cosmetics." + key + ".item.lore");
+                        if(MagicCosmetics.getInstance().isItemsAdder()){
+                            List<String> lore2 = new ArrayList<>();
+                            for(String l : lore) {
+                                lore2.add(MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(l));
+                            }
+                            lore.clear();
+                            lore.addAll(lore2);
+                        }
+                    }
+                    if(cosmeticsConf.contains("cosmetics." + key + ".item.glow")){
+                        glow = cosmeticsConf.getBoolean("cosmetics." + key + ".item.glow");
+                    }
+                    if(cosmeticsConf.contains("cosmetics." + key + ".item.hide-attributes")){
+                        hide_attributes = cosmeticsConf.getBoolean("cosmetics." + key + ".item.hide-attributes");
+                    }
+                    if(cosmeticsConf.contains("cosmetics." + key + ".item.unbreakable")){
+                        unbreakable = cosmeticsConf.getBoolean("cosmetics." + key + ".item.unbreakable");
+                    }
+                    if(cosmeticsConf.contains("cosmetics." + key + ".item.modeldata")){
+                        modelData = cosmeticsConf.getInt("cosmetics." + key + ".item.modeldata");
+                    }
+                    if(cosmeticsConf.contains("cosmetics." + key + ".item.color")){
+                        String hex = cosmeticsConf.getStringWF("cosmetics." + key + ".item.color");
+                        if(hex != null){
+                            color = com.francobm.magicosmetics.cache.Color.hex2Rgb(hex);
+                        }
+                    }
+                    if(cosmeticsConf.contains("cosmetics." + key + ".item.modeldata-for-me")){
+                        modelDataForMe = cosmeticsConf.getInt("cosmetics." + key + ".item.modeldata-for-me");
+                    }
+                    if(cosmeticsConf.contains("cosmetics." + key + ".item.item-adder")){
+                        if(!MagicCosmetics.getInstance().isItemsAdder()){
+                            MagicCosmetics.getInstance().getLogger().info("Item Adder plugin Not Found skipping cosmetic '" + key + "'");
+                            continue;
+                        }
+                        String id = cosmeticsConf.getString("cosmetics." + key + ".item.item-adder");
+                        ItemStack ia = MagicCosmetics.getInstance().getItemsAdder().getCustomItemStack(id);
+                        if(ia == null){
+                            MagicCosmetics.getInstance().getLogger().info("IA Item: '" + id + "' Not Found skipping...");
+                            continue;
+                        }
+                        itemStack = ia.clone();
+                        modelData = -1;
+                    }
+                    if(cosmeticsConf.contains("cosmetics." + key + ".item.oraxen")){
+                        if(!MagicCosmetics.getInstance().isOraxen()){
+                            MagicCosmetics.getInstance().getLogger().info("Oraxen plugin Not Found skipping cosmetic '" + key + "'");
+                            continue;
+                        }
+                        String id = cosmeticsConf.getString("cosmetics." + key + ".item.oraxen");
+                        ItemStack oraxen = MagicCosmetics.getInstance().getOraxen().getItemStackById(id);
+                        if(oraxen == null){
+                            MagicCosmetics.getInstance().getLogger().info("Oraxen item:  '" + id + "' Not Found skipping...");
+                            continue;
+                        }
+                        itemStack = oraxen.clone();
+                        modelData = -1;
+                    }
+                    if(itemStack == null){
+                        continue;
+                    }
+                    ItemMeta itemMeta = itemStack.getItemMeta();
+                    itemMeta.setDisplayName(name);
+                    itemMeta.setLore(lore);
+                    if(glow){
+                        itemStack.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
+                        itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                    }
+                    if(hide_attributes) {
+                        itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_DYE, ItemFlag.HIDE_UNBREAKABLE);
+                    }
+                    itemMeta.setUnbreakable(unbreakable);
+                    if(modelData != -1) {
+                        itemMeta.setCustomModelData(modelData);
+                    }
+                    itemStack.setItemMeta(itemMeta);
+                    if(itemStack.getType() == XMaterial.PLAYER_HEAD.parseMaterial()) {
+                        itemStack = Utils.getCustomHead(itemStack, texture);
+                    }
+                    //CustomCosmetics.getInstance().getLogger().severe(itemStack.toString());
+                }
+                if(cosmeticsConf.contains("cosmetics." + key + ".item-image")){
+                    itemImage = cosmeticsConf.getBoolean("cosmetics." + key + ".item-image");
+                }
+                if(cosmeticsConf.contains("cosmetics." + key + ".type")){
+                    type = cosmeticsConf.getString("cosmetics." + key + ".type");
                     try{
-                        itemStack = XMaterial.valueOf(item.toUpperCase()).parseItem();
+                        cosmeticType = CosmeticType.valueOf(type.toUpperCase());
                     }catch (IllegalArgumentException exception){
-                        MagicCosmetics.getInstance().getLogger().info("Item Material '" + item + "' in Cosmetic '" + key + "' Not Found!");
+                        MagicCosmetics.getInstance().getLogger().info("Cosmetic Type: " + type + " Not Found.");
+                        return;
                     }
                 }
-                if(cosmeticsConf.contains("cosmetics." + key + ".item.lore")){
-                    lore = cosmeticsConf.getStringList("cosmetics." + key + ".item.lore");
+                if(cosmeticsConf.contains("cosmetics." + key + ".colored")){
+                    colored = cosmeticsConf.getBoolean("cosmetics." + key + ".colored");
                 }
-                if(cosmeticsConf.contains("cosmetics." + key + ".item.glow")){
-                    glow = cosmeticsConf.getBoolean("cosmetics." + key + ".item.glow");
+                if(cosmeticsConf.contains("cosmetics." + key + ".hide-menu")){
+                    hideMenu = cosmeticsConf.getBoolean("cosmetics." + key + ".hide-menu");
                 }
-                if(cosmeticsConf.contains("cosmetics." + key + ".item.hide-attributes")){
-                    hide_attributes = cosmeticsConf.getBoolean("cosmetics." + key + ".item.hide-attributes");
+                if(cosmeticsConf.contains("cosmetics." + key + ".big-head")){
+                    bigHead = cosmeticsConf.getBoolean("cosmetics." + key + ".big-head");
                 }
-                if(cosmeticsConf.contains("cosmetics." + key + ".item.unbreakable")){
-                    unbreakable = cosmeticsConf.getBoolean("cosmetics." + key + ".item.unbreakable");
-                }
-                if(cosmeticsConf.contains("cosmetics." + key + ".item.modeldata")){
-                    modelData = cosmeticsConf.getInt("cosmetics." + key + ".item.modeldata");
-                }
-                if(cosmeticsConf.contains("cosmetics." + key + ".item.color")){
-                    String hex = cosmeticsConf.getStringWF("cosmetics." + key + ".item.color");
-                    MagicCosmetics.getInstance().getLogger().info("Hex: " + hex);
-                    if(hex != null){
-                        color = com.francobm.magicosmetics.cache.Color.hex2Rgb(hex);
+                if(cosmeticsConf.contains("cosmetics." + key + ".rotation")){
+                    rotation = cosmeticsConf.getBoolean("cosmetics." + key + ".rotation.enabled");
+                    String rotType = cosmeticsConf.getString("cosmetics." + key + ".rotation.type");
+                    try{
+                        rotationType = RotationType.valueOf(rotType.toUpperCase());
+                    }catch (IllegalArgumentException exception){
+                        MagicCosmetics.getInstance().getLogger().info("Cosmetic Type: " + type + " Rotation Type Not Found.");
                     }
                 }
-                if(cosmeticsConf.contains("cosmetics." + key + ".item.modeldata-for-me")){
-                    modelDataForMe = cosmeticsConf.getInt("cosmetics." + key + ".item.modeldata-for-me");
+                if(cosmeticsConf.contains("cosmetics." + key + ".space")){
+                    space = cosmeticsConf.getDouble("cosmetics." + key + ".space");
                 }
-                if(cosmeticsConf.contains("cosmetics." + key + ".item.item-adder")){
+                if(cosmeticsConf.contains("cosmetics." + key + ".overlaps")){
+                    overlaps = cosmeticsConf.getBoolean("cosmetics." + key + ".overlaps");
+                }
+                if(cosmeticsConf.contains("cosmetics." + key + ".distance")){
+                    distance = cosmeticsConf.getDouble("cosmetics." + key + ".distance");
+                }
+                if(cosmeticsConf.contains("cosmetics." + key + ".invisible-leash")) {
+                    invisibleLeash = cosmeticsConf.getBoolean("cosmetics." + key + ".invisible-leash");
+                }
+                if(cosmeticsConf.contains("cosmetics." + key + ".meg.model")){
+                    if(!MagicCosmetics.getInstance().isModelEngine()){
+                        MagicCosmetics.getInstance().getLogger().info("Model Engine plugin Not Found skipping cosmetic '" + key + "'");
+                        continue;
+                    }
+                    String modelId = cosmeticsConf.getString("cosmetics." + key + ".meg.model");
+                    List<String> colorableParts = cosmeticsConf.getStringListWF("cosmetics." + key + ".meg.colorable-parts");
+                    List<String> animationParts = cosmeticsConf.getStringListWF("cosmetics." + key + ".meg.animation-parts");
+                    balloonEngine = new BalloonEngine(modelId, colorableParts, animationParts);
+                }
+                if(cosmeticsConf.contains("cosmetics." + key + ".ia.model")){
                     if(!MagicCosmetics.getInstance().isItemsAdder()){
-                        MagicCosmetics.getInstance().getLogger().info("Item Adder plugin Not Found skipping cosmetic '" + key + "'");
+                        MagicCosmetics.getInstance().getLogger().info("ItemsAdder plugin Not Found skipping cosmetic '" + key + "'");
                         continue;
                     }
-                    String id = cosmeticsConf.getString("cosmetics." + key + ".item.item-adder");
-                    ItemStack ia = MagicCosmetics.getInstance().getItemsAdder().getCustomItemStack(id);
-                    if(ia == null){
-                        MagicCosmetics.getInstance().getLogger().info("IA Item: '" + id + "' Not Found skipping...");
+                    String modelId = cosmeticsConf.getString("cosmetics." + key + ".ia.model");
+                    if(!MagicCosmetics.getInstance().getItemsAdder().existModel(modelId)) {
+                        MagicCosmetics.getInstance().getLogger().info("ItemsAdder model Not Found skipping cosmetic '" + key + "'");
                         continue;
                     }
-                    itemStack = ia.clone();
-                    modelData = -1;
+                    balloonIA = new BalloonIA(modelId);
                 }
-                if(cosmeticsConf.contains("cosmetics." + key + ".item.oraxen")){
-                    if(!MagicCosmetics.getInstance().isOraxen()){
-                        MagicCosmetics.getInstance().getLogger().info("Oraxen plugin Not Found skipping cosmetic '" + key + "'");
-                        continue;
-                    }
-                    String id = cosmeticsConf.getString("cosmetics." + key + ".item.oraxen");
-                    ItemStack oraxen = MagicCosmetics.getInstance().getOraxen().getItemStackById(id);
-                    if(oraxen == null){
-                        MagicCosmetics.getInstance().getLogger().info("Oraxen item:  '" + id + "' Not Found skipping...");
-                        continue;
-                    }
-                    itemStack = oraxen.clone();
-                    modelData = -1;
-                }
-                if(itemStack == null){
-                    continue;
-                }
-                ItemMeta itemMeta = itemStack.getItemMeta();
-                itemMeta.setDisplayName(name);
-                itemMeta.setLore(lore);
-                if(glow){
-                    itemStack.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
-                    itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                }
-                if(hide_attributes) {
-                    itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_DYE, ItemFlag.HIDE_UNBREAKABLE);
-                }
-                itemMeta.setUnbreakable(unbreakable);
-                if(modelData != -1) {
-                    itemMeta.setCustomModelData(modelData);
-                }
-                itemStack.setItemMeta(itemMeta);
-                //CustomCosmetics.getInstance().getLogger().severe(itemStack.toString());
-            }
-            if(cosmeticsConf.contains("cosmetics." + key + ".type")){
-                type = cosmeticsConf.getString("cosmetics." + key + ".type");
-                try{
-                    cosmeticType = CosmeticType.valueOf(type.toUpperCase());
-                }catch (IllegalArgumentException exception){
-                    MagicCosmetics.getInstance().getLogger().info("Cosmetic Type: " + type + " Not Found.");
+                if(cosmeticType == null){
                     return;
                 }
-            }
-            if(cosmeticsConf.contains("cosmetics." + key + ".colored")){
-                colored = cosmeticsConf.getBoolean("cosmetics." + key + ".colored");
-            }
-            if(cosmeticsConf.contains("cosmetics." + key + ".rotation")){
-                rotation = cosmeticsConf.getBoolean("cosmetics." + key + ".rotation.enabled");
-                String rotType = cosmeticsConf.getString("cosmetics." + key + ".rotation.type");
-                try{
-                    rotationType = RotationType.valueOf(rotType.toUpperCase());
-                }catch (IllegalArgumentException exception){
-                    MagicCosmetics.getInstance().getLogger().info("Cosmetic Type: " + type + " Rotation Type Not Found.");
+                MagicCosmetics.getInstance().getLogger().info("Cosmetic id: '" + key + "' registered.");
+                switch (cosmeticType){
+                    case HAT:
+                        Hat hat = new Hat(key, name, itemStack, modelData, colored, cosmeticType, color, overlaps, permission, isTexture, hideMenu);
+                        if(color != null) {
+                            hat.setDefaultColor(true);
+                        }
+                        cosmetics.put(key, hat);
+                        break;
+                    case BAG:
+                        Bag bag = new Bag(key, name, itemStack, modelData, modelDataForMe, colored, space, cosmeticType, color, distance, permission, isTexture, hideMenu);
+                        if(color != null) {
+                            bag.setDefaultColor(true);
+                        }
+                        cosmetics.put(key, bag);
+                        break;
+                    case WALKING_STICK:
+                        WStick wStick = new WStick(key, name, itemStack, modelData, colored, cosmeticType, color, permission, isTexture, overlaps, hideMenu);
+                        if(color != null) {
+                            wStick.setDefaultColor(true);
+                        }
+                        cosmetics.put(key, wStick);
+                        break;
+                    case BALLOON:
+                        Balloon balloon = new Balloon(key, name, itemStack, modelData, colored, space, cosmeticType, color, rotation, rotationType, balloonEngine, balloonIA, distance, permission, isTexture, bigHead, hideMenu, invisibleLeash);
+                        if(color != null) {
+                            balloon.setDefaultColor(true);
+                        }
+                        cosmetics.put(key, balloon);
+                        break;
+                    case SPRAY:
+                        Spray spray = new Spray(key, name, itemStack, modelData, colored, cosmeticType, color, permission, isTexture, image, itemImage, hideMenu);
+                        if(color != null) {
+                            spray.setDefaultColor(true);
+                        }
+                        cosmetics.put(key, spray);
+                        break;
                 }
-            }
-            if(cosmeticsConf.contains("cosmetics." + key + ".space")){
-                space = cosmeticsConf.getDouble("cosmetics." + key + ".space");
-            }
-            if(cosmeticsConf.contains("cosmetics." + key + ".overlaps")){
-                overlaps = cosmeticsConf.getBoolean("cosmetics." + key + ".overlaps");
-            }
-            if(cosmeticsConf.contains("cosmetics." + key + ".meg.model")){
-                if(!MagicCosmetics.getInstance().isModelEngine()){
-                    MagicCosmetics.getInstance().getLogger().info("Model Engine plugin Not Found skipping cosmetic '" + key + "'");
-                    continue;
-                }
-                String modelId = cosmeticsConf.getString("cosmetics." + key + ".meg.model");
-                List<String> colorableParts = cosmeticsConf.getStringListWF("cosmetics." + key + ".meg.colorable-parts");
-                balloonEngine = new BalloonEngine(modelId, colorableParts);
-            }
-            if(cosmeticType == null){
-                return;
-            }
-            switch (cosmeticType){
-                case HAT:
-                    cosmetics.put(key, new Hat(key, name, itemStack, modelData, colored, cosmeticType, color, overlaps));
-                    break;
-                case BAG:
-                    cosmetics.put(key, new Bag(key, name, itemStack, modelData, modelDataForMe, colored, space, cosmeticType, color));
-                    break;
-                case WALKING_STICK:
-                    cosmetics.put(key, new WStick(key, name, itemStack, modelData, colored, cosmeticType, color));
-                    break;
-                case BALLOON:
-                    cosmetics.put(key, new Balloon(key, name, itemStack, modelData, colored, space, cosmeticType, color, rotation, rotationType, balloonEngine));
-                    break;
             }
         }
     }
@@ -257,7 +392,7 @@ public abstract class Cosmetic {
     }
 
     public ItemStack getItemStack() {
-        if(!isColored() && getColor() != null){
+        if(isDefaultColor()){
             return getItemColor();
         }
         return itemStack;
@@ -311,14 +446,35 @@ public abstract class Cosmetic {
                 return true;
             }
         }
-        return itemStack.isSimilar(getItemColor());
+        if(cosmetic.hasItemMeta() && itemStack.hasItemMeta()) {
+            if (cosmetic.getItemMeta().hasDisplayName() && itemStack.getItemMeta().hasDisplayName()) {
+                return cosmetic.getItemMeta().getDisplayName().equals(itemStack.getItemMeta().getDisplayName());
+            }
+        }
+        return false;
     }
 
     public ItemStack getItemColor(){
         if(itemStack == null) return null;
         ItemStack itemStack = this.itemStack.clone();
-        if(itemStack.getType() == XMaterial.LEATHER_HORSE_ARMOR.parseMaterial()){
+        if(itemStack.getItemMeta() instanceof LeatherArmorMeta){
             LeatherArmorMeta itemMeta = (LeatherArmorMeta) itemStack.getItemMeta();
+            if(color != null) {
+                itemMeta.setColor(color);
+            }
+            itemStack.setItemMeta(itemMeta);
+            return itemStack;
+        }
+        if(itemStack.getItemMeta() instanceof PotionMeta){
+            PotionMeta itemMeta = (PotionMeta) itemStack.getItemMeta();
+            if(color != null) {
+                itemMeta.setColor(color);
+            }
+            itemStack.setItemMeta(itemMeta);
+            return itemStack;
+        }
+        if(itemStack.getItemMeta() instanceof MapMeta){
+            MapMeta itemMeta = (MapMeta) itemStack.getItemMeta();
             if(color != null) {
                 itemMeta.setColor(color);
             }
@@ -329,11 +485,37 @@ public abstract class Cosmetic {
     }
 
     public ItemStack getItemColor(Player player) {
+        if(isTexture()) return getItemColor();
         ItemStack itemStack = getItemColor();
         if(itemStack.getType() != XMaterial.PLAYER_HEAD.parseMaterial()) return itemStack;
         SkullMeta skullMeta = (SkullMeta) itemStack.getItemMeta();
         skullMeta.setOwningPlayer(player);
         itemStack.setItemMeta(skullMeta);
         return itemStack;
+    }
+
+    public String getPermission() {
+        return permission;
+    }
+
+    public boolean hasPermission(Player player){
+        if(permission == null || permission.isEmpty()) return false;
+        return player.hasPermission(permission);
+    }
+
+    public boolean isTexture() {
+        return texture;
+    }
+
+    public void setDefaultColor(boolean defaultColor) {
+        this.defaultColor = defaultColor;
+    }
+
+    public boolean isDefaultColor() {
+        return defaultColor;
+    }
+
+    public boolean isHideMenu() {
+        return hideMenu;
     }
 }
