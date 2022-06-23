@@ -33,6 +33,14 @@ public class FileCreator extends YamlConfiguration {
 
     private void createFile() {
         try {
+            if(!fileName.endsWith(".yml")){
+                if(!file.exists()) {
+                    if (this.plugin.getResource(this.fileName) != null) {
+                        this.plugin.saveResource(this.fileName, false);
+                    }
+                    return;
+                }
+            }
             if (!file.exists()) {
                 if (this.plugin.getResource(this.fileName) != null) {
                     this.plugin.saveResource(this.fileName, false);
@@ -93,4 +101,11 @@ public class FileCreator extends YamlConfiguration {
         return super.getStringList(path);
     }
 
+    public boolean exists(){
+        return file.exists();
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
 }
