@@ -26,6 +26,7 @@ public class BalloonEngine {
     public void setState(int state){
         switch (state){
             case 0:
+                if(!MagicCosmetics.getInstance().getModelEngine().existAnimation(modelId, "idle")) return;
                 //activeModel.addState("idle", 1, 1, 1);
                 if(activeModel.getStates().contains("idle")) {
                     activeModel.getStates().removeIf(s -> !s.equals("idle"));
@@ -35,6 +36,7 @@ public class BalloonEngine {
                 activeModel.setState(ActiveModel.ModelState.IDLE);
                 return;
             case 1:
+                if(!MagicCosmetics.getInstance().getModelEngine().existAnimation(modelId, "walk")) return;
                 if(activeModel.getStates().contains("walk")){
                     activeModel.getStates().removeIf(s -> !s.equals("walk"));
                     return;
