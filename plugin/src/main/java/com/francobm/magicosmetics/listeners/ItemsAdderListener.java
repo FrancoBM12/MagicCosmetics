@@ -18,6 +18,9 @@ public class ItemsAdderListener implements Listener {
         new BukkitRunnable() {
             @Override
             public void run() {
+                plugin.ava = plugin.getItemsAdder().replaceFontImages(plugin.ava);
+                plugin.unAva = plugin.getItemsAdder().replaceFontImages(plugin.unAva);
+                plugin.equip = plugin.getItemsAdder().replaceFontImages(plugin.equip);
                 Cosmetic.loadCosmetics();
                 Color.loadColors();
                 Items.loadItems();
@@ -25,6 +28,8 @@ public class ItemsAdderListener implements Listener {
                 Token.loadTokens();
                 Sound.loadSounds();
                 Menu.loadMenus();
+                if(!plugin.isCitizens()) return;
+                plugin.getCitizens().loadNPCCosmetics();
             }
         }.runTask(plugin);
     }
