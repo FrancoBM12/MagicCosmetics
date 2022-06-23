@@ -1,26 +1,14 @@
-package com.francobm.magicosmetics.cache.nms.v1_17_R1;
+package com.francobm.magicosmetics.cache.nms.v1_16_R3;
 
 import com.francobm.magicosmetics.cache.RotationType;
 import com.francobm.magicosmetics.nms.balloon.PlayerBalloon;
 import com.mojang.datafixers.util.Pair;
-import net.minecraft.core.Vector3f;
-import net.minecraft.network.protocol.game.*;
-import net.minecraft.network.syncher.DataWatcher;
-import net.minecraft.network.syncher.DataWatcherObject;
-import net.minecraft.network.syncher.DataWatcherRegistry;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.server.level.WorldServer;
-import net.minecraft.server.network.PlayerConnection;
-import net.minecraft.world.entity.EntityLiving;
-import net.minecraft.world.entity.EntityTypes;
-import net.minecraft.world.entity.EnumItemSlot;
-import net.minecraft.world.entity.animal.EntityPufferFish;
-import net.minecraft.world.entity.decoration.EntityArmorStand;
+import net.minecraft.server.v1_16_R3.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
-import org.bukkit.craftbukkit.v1_17_R1.entity.CraftPlayer;
-import org.bukkit.craftbukkit.v1_17_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_16_R3.CraftWorld;
+import org.bukkit.craftbukkit.v1_16_R3.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_16_R3.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
@@ -48,17 +36,16 @@ public class PlayerBalloonHandler extends PlayerBalloon {
         Location location = getPlayer().getLocation().clone().add(0, space, 0);
         location = location.clone().add(getPlayer().getLocation().getDirection().multiply(-1));
 
-        armorStand = new EntityArmorStand(EntityTypes.c, world);
+        armorStand = new EntityArmorStand(EntityTypes.ARMOR_STAND, world);
         armorStand.setInvulnerable(true); //invulnerable true
         armorStand.setInvisible(true); //Invisible true
         armorStand.setMarker(true); //Marker true
         armorStand.setPositionRotation(location.getX(), location.getY() - 1.3, location.getZ(), location.getYaw(), location.getPitch());
         this.bigHead = bigHead;
         if(isBigHead()){
-            armorStand.setRightArmPose(new Vector3f(armorStand.cj.getX(), 0, 0));
+            armorStand.setRightArmPose(new Vector3f(armorStand.rightArmPose.getX(), 0, 0));
         }
-
-        leashed = new EntityPufferFish(EntityTypes.at, world);
+        leashed = new EntityPufferFish(EntityTypes.PUFFERFISH, world);
         leashed.setInvulnerable(true); //invulnerable true
         leashed.setInvisible(true); //Invisible true
         leashed.setSilent(true); //Marker
@@ -83,7 +70,7 @@ public class PlayerBalloonHandler extends PlayerBalloon {
         }
         if(!getPlayer().getWorld().equals(player.getWorld())) return;
         if(getPlayer().getLocation().distance(player.getLocation()) > distance) return;
-        PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
+        PlayerConnection connection = ((CraftPlayer)player).getHandle().playerConnection;
         connection.sendPacket(new PacketPlayOutSpawnEntityLiving(armorStand));
         connection.sendPacket(new PacketPlayOutEntityMetadata(armorStand.getId(), armorStand.getDataWatcher(), true));
         //connection.a(new PacketPlayOutEntityMetadata(armorStand.ae(), armorStand.ai(), true));
@@ -108,12 +95,7 @@ public class PlayerBalloonHandler extends PlayerBalloon {
 
     @Override
     public void remove() {
-        for(UUID uuid : players){
-            Player player = Bukkit.getPlayer(uuid);
-            if(player == null) {
-                players.remove(uuid);
-                continue;
-            }
+        for(Player player : Bukkit.getOnlinePlayers()){
             if(!players.contains(player.getUniqueId())) continue;
             remove(player);
         }
@@ -122,7 +104,7 @@ public class PlayerBalloonHandler extends PlayerBalloon {
 
     @Override
     public void remove(Player player) {
-        PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
+        PlayerConnection connection = ((CraftPlayer)player).getHandle().playerConnection;
         connection.sendPacket(new PacketPlayOutEntityDestroy(armorStand.getId()));
         connection.sendPacket(new PacketPlayOutEntityDestroy(leashed.getId()));
         players.remove(player.getUniqueId());
@@ -136,13 +118,10 @@ public class PlayerBalloonHandler extends PlayerBalloon {
         }
         for (UUID uuid : players) {
             Player player = Bukkit.getPlayer(uuid);
-            if(player == null) {
-                players.remove(uuid);
-                continue;
-            }
-            PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
-            ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
-            list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(itemStack)));
+            if(player == null) continue;
+            PlayerConnection connection = ((CraftPlayer)player).getHandle().playerConnection;
+            ArrayList<Pair<EnumItemSlot, net.minecraft.server.v1_16_R3.ItemStack>> list = new ArrayList<>();
+            list.add(new Pair<>(EnumItemSlot.HEAD, CraftItemStack.asNMSCopy(itemStack)));
             connection.sendPacket(new PacketPlayOutEntityEquipment(armorStand.getId(), list));
         }
     }
@@ -154,9 +133,9 @@ public class PlayerBalloonHandler extends PlayerBalloon {
                 players.remove(uuid);
                 continue;
             }
-            PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
-            ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
-            list.add(new Pair<>(EnumItemSlot.a, CraftItemStack.asNMSCopy(itemStack)));
+            PlayerConnection connection = ((CraftPlayer)player).getHandle().playerConnection;
+            ArrayList<Pair<EnumItemSlot, net.minecraft.server.v1_16_R3.ItemStack>> list = new ArrayList<>();
+            list.add(new Pair<>(EnumItemSlot.MAINHAND, CraftItemStack.asNMSCopy(itemStack)));
             connection.sendPacket(new PacketPlayOutEntityEquipment(armorStand.getId(), list));
         }
     }
@@ -165,11 +144,8 @@ public class PlayerBalloonHandler extends PlayerBalloon {
     public void lookEntity(float yaw, float pitch) {
         for (UUID uuid : players) {
             Player player = Bukkit.getPlayer(uuid);
-            if(player == null) {
-                players.remove(uuid);
-                continue;
-            }
-            PlayerConnection connection = ((CraftPlayer) player).getHandle().b;
+            if(player == null) continue;
+            PlayerConnection connection = ((CraftPlayer) player).getHandle().playerConnection;
             connection.sendPacket(new PacketPlayOutEntityHeadRotation(armorStand, (byte) (yaw * 256 / 360)));
             connection.sendPacket(new PacketPlayOutEntity.PacketPlayOutEntityLook(armorStand.getId(), (byte) (yaw * 256 / 360), /*(byte) (pitch * 256 / 360)*/(byte)0, true));
             connection.sendPacket(new PacketPlayOutEntityHeadRotation(leashed, (byte) (yaw * 256 / 360)));
@@ -228,14 +204,14 @@ public class PlayerBalloonHandler extends PlayerBalloon {
 
             if (!rotateLoop) {
                 rot += 0.01;
-                armorStand.setHeadPose(new Vector3f(armorStand.v().getX() - 0.5f, armorStand.v().getY(), armorStand.v().getZ() + rotate));
+                armorStand.setHeadPose(new Vector3f(armorStand.r().getX() - 0.5f, armorStand.r().getY(), armorStand.r().getZ() + rotate));
                 //armorStand.setHeadPose(armorStand.getHeadPose().add(0, 0, rotate).subtract(0.008, 0, 0));
                 if (rot > 0.20) {
                     rotateLoop = true;
                 }
             } else {
                 rot -= 0.01;
-                armorStand.setHeadPose(new Vector3f(armorStand.v().getX() + 0.5f, armorStand.v().getY(), armorStand.v().getZ() + rotate));
+                armorStand.setHeadPose(new Vector3f(armorStand.r().getX() + 0.5f, armorStand.r().getY(), armorStand.r().getZ() + rotate));
                 //armorStand.setHeadPose(armorStand.getHeadPose().add(0.008, 0, rotate));//.subtract(0.006, 0, 0));
                 if (rot < -0.20) {
                     rotateLoop = false;
@@ -247,30 +223,27 @@ public class PlayerBalloonHandler extends PlayerBalloon {
         }
         for(UUID uuid : players){
             Player player = Bukkit.getPlayer(uuid);
-            if(player == null) {
-                players.remove(uuid);
-                continue;
-            }
+            if(player == null) continue;
             EntityPlayer p = ((CraftPlayer)player).getHandle();
             if(!invisibleLeash) {
-                p.b.sendPacket(new PacketPlayOutAttachEntity(leashed, ((CraftPlayer) getPlayer()).getHandle()));
+                p.playerConnection.sendPacket(new PacketPlayOutAttachEntity(leashed, ((CraftPlayer) getPlayer()).getHandle()));
             }
-            p.b.sendPacket(new PacketPlayOutEntityMetadata(armorStand.getId(), armorStand.getDataWatcher(), true));
-            p.b.sendPacket(new PacketPlayOutEntityTeleport(leashed));
-            p.b.sendPacket(new PacketPlayOutEntityTeleport(armorStand));
+            p.playerConnection.sendPacket(new PacketPlayOutEntityMetadata(armorStand.getId(), armorStand.getDataWatcher(), true));
+            p.playerConnection.sendPacket(new PacketPlayOutEntityTeleport(leashed));
+            p.playerConnection.sendPacket(new PacketPlayOutEntityTeleport(armorStand));
         }
 
         if(distance1.distanceSquared(distance2) > SQUARED_WALKING){
             if(!heightLoop){
                 height += 0.01;
-                armorStand.setHeadPose(new Vector3f(armorStand.v().getX() - 0.8f, armorStand.v().getY(), armorStand.v().getZ()));
+                armorStand.setHeadPose(new Vector3f(armorStand.r().getX() - 0.8f, armorStand.r().getY(), armorStand.r().getZ()));
                 //((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().subtract(0.022, 0, 0));
                 if(height > 0.10) heightLoop = true;
             }
         }else{
             if (heightLoop) {
                 height -= 0.01;
-                armorStand.setHeadPose(new Vector3f(armorStand.v().getX() + 0.8f, armorStand.v().getY(), armorStand.v().getZ()));
+                armorStand.setHeadPose(new Vector3f(armorStand.r().getX() + 0.8f, armorStand.r().getY(), armorStand.r().getZ()));
                 //((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().add(0.022, 0, 0));
                 if (height < (-0.10 + 0)) heightLoop = false;
                 return;
@@ -328,14 +301,14 @@ public class PlayerBalloonHandler extends PlayerBalloon {
 
             if (!rotateLoop) {
                 rot += 0.01;
-                armorStand.setRightArmPose(new Vector3f(armorStand.cj.getX() - 0.5f, armorStand.cj.getY(), armorStand.cj.getZ() + rotate));
+                armorStand.setRightArmPose(new Vector3f(armorStand.rightArmPose.getX() - 0.5f, armorStand.rightArmPose.getY(), armorStand.rightArmPose.getZ() + rotate));
                 //armorStand.setHeadPose(armorStand.getHeadPose().add(0, 0, rotate).subtract(0.008, 0, 0));
                 if (rot > 0.20) {
                     rotateLoop = true;
                 }
             } else {
                 rot -= 0.01;
-                armorStand.setRightArmPose(new Vector3f(armorStand.cj.getX() + 0.5f, armorStand.cj.getY(), armorStand.cj.getZ() + rotate));
+                armorStand.setRightArmPose(new Vector3f(armorStand.rightArmPose.getX() + 0.5f, armorStand.rightArmPose.getY(), armorStand.rightArmPose.getZ() + rotate));
                 //armorStand.setHeadPose(armorStand.getHeadPose().add(0.008, 0, rotate));//.subtract(0.006, 0, 0));
                 if (rot < -0.20) {
                     rotateLoop = false;
@@ -353,24 +326,24 @@ public class PlayerBalloonHandler extends PlayerBalloon {
             }
             EntityPlayer p = ((CraftPlayer)player).getHandle();
             if(!invisibleLeash) {
-                p.b.sendPacket(new PacketPlayOutAttachEntity(leashed, ((CraftPlayer) getPlayer()).getHandle()));
+                p.playerConnection.sendPacket(new PacketPlayOutAttachEntity(leashed, ((CraftPlayer) getPlayer()).getHandle()));
             }
-            p.b.sendPacket(new PacketPlayOutEntityMetadata(armorStand.getId(), armorStand.getDataWatcher(), true));
-            p.b.sendPacket(new PacketPlayOutEntityTeleport(leashed));
-            p.b.sendPacket(new PacketPlayOutEntityTeleport(armorStand));
+            p.playerConnection.sendPacket(new PacketPlayOutEntityMetadata(armorStand.getId(), armorStand.getDataWatcher(), true));
+            p.playerConnection.sendPacket(new PacketPlayOutEntityTeleport(leashed));
+            p.playerConnection.sendPacket(new PacketPlayOutEntityTeleport(armorStand));
         }
 
         if(distance1.distanceSquared(distance2) > SQUARED_WALKING){
             if(!heightLoop){
                 height += 0.01;
-                armorStand.setRightArmPose(new Vector3f(armorStand.cj.getX() - 0.8f, armorStand.cj.getY(), armorStand.cj.getZ()));
+                armorStand.setRightArmPose(new Vector3f(armorStand.rightArmPose.getX() - 0.8f, armorStand.rightArmPose.getY(), armorStand.rightArmPose.getZ()));
                 //((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().subtract(0.022, 0, 0));
                 if(height > 0.10) heightLoop = true;
             }
         }else{
             if (heightLoop) {
                 height -= 0.01;
-                armorStand.setRightArmPose(new Vector3f(armorStand.cj.getX() + 0.8f, armorStand.cj.getY(), armorStand.cj.getZ()));
+                armorStand.setRightArmPose(new Vector3f(armorStand.rightArmPose.getX() + 0.8f, armorStand.rightArmPose.getY(), armorStand.rightArmPose.getZ()));
                 //((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().add(0.022, 0, 0));
                 if (height < (-0.10 + 0)) heightLoop = false;
                 return;
@@ -383,8 +356,6 @@ public class PlayerBalloonHandler extends PlayerBalloon {
             CATCH_UP_INCREMENTS_DISTANCE = CATCH_UP_INCREMENTS;
         }
     }
-
-
 
     @Override
     public void update(Player player){
@@ -432,14 +403,14 @@ public class PlayerBalloonHandler extends PlayerBalloon {
 
             if (!rotateLoop) {
                 rot += 0.01;
-                armorStand.setHeadPose(new Vector3f(armorStand.v().getX() - 0.5f, armorStand.v().getY(), armorStand.v().getZ() + rotate));
+                armorStand.setHeadPose(new Vector3f(armorStand.r().getX() - 0.5f, armorStand.r().getY(), armorStand.r().getZ() + rotate));
                 //armorStand.setHeadPose(armorStand.getHeadPose().add(0, 0, rotate).subtract(0.008, 0, 0));
                 if (rot > 0.20) {
                     rotateLoop = true;
                 }
             } else {
                 rot -= 0.01;
-                armorStand.setHeadPose(new Vector3f(armorStand.v().getX() + 0.5f, armorStand.v().getY(), armorStand.v().getZ() + rotate));
+                armorStand.setHeadPose(new Vector3f(armorStand.r().getX() + 0.5f, armorStand.r().getY(), armorStand.r().getZ() + rotate));
                 //armorStand.setHeadPose(armorStand.getHeadPose().add(0.008, 0, rotate));//.subtract(0.006, 0, 0));
                 if (rot < -0.20) {
                     rotateLoop = false;
@@ -449,21 +420,21 @@ public class PlayerBalloonHandler extends PlayerBalloon {
             leashed.setLocation(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
             armorStand.setLocation(newLocation.getX(), newLocation.getY() - 1.3, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
         }
-        p.b.sendPacket(new PacketPlayOutEntityMetadata(armorStand.getId(), armorStand.getDataWatcher(), true));
-        p.b.sendPacket(new PacketPlayOutEntityTeleport(leashed));
-        p.b.sendPacket(new PacketPlayOutEntityTeleport(armorStand));
+        p.playerConnection.sendPacket(new PacketPlayOutEntityMetadata(armorStand.getId(), armorStand.getDataWatcher(), true));
+        p.playerConnection.sendPacket(new PacketPlayOutEntityTeleport(leashed));
+        p.playerConnection.sendPacket(new PacketPlayOutEntityTeleport(armorStand));
 
         if(distance1.distanceSquared(distance2) > SQUARED_WALKING){
             if(!heightLoop){
                 height += 0.01;
-                armorStand.setHeadPose(new Vector3f(armorStand.v().getX() - 0.8f, armorStand.v().getY(), armorStand.v().getZ()));
+                armorStand.setHeadPose(new Vector3f(armorStand.r().getX() - 0.8f, armorStand.r().getY(), armorStand.r().getZ()));
                 //((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().subtract(0.022, 0, 0));
                 if(height > 0.10) heightLoop = true;
             }
         }else{
             if (heightLoop) {
                 height -= 0.01;
-                armorStand.setHeadPose(new Vector3f(armorStand.v().getX() + 0.8f, armorStand.v().getY(), armorStand.v().getZ()));
+                armorStand.setHeadPose(new Vector3f(armorStand.r().getX() + 0.8f, armorStand.r().getY(), armorStand.r().getZ()));
                 //((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().add(0.022, 0, 0));
                 if (height < (-0.10 + 0)) heightLoop = false;
                 return;
@@ -486,22 +457,19 @@ public class PlayerBalloonHandler extends PlayerBalloon {
         if(!rotation) return;
         switch (rotationType){
             case RIGHT:
-                armorStand.setHeadPose(new Vector3f(armorStand.v().getX(), armorStand.v().getY() + rotate, armorStand.v().getZ()));
+                armorStand.setHeadPose(new Vector3f(armorStand.r().getX(), armorStand.r().getY() + rotate, armorStand.r().getZ()));
                 break;
             case UP:
-                armorStand.setHeadPose(new Vector3f(armorStand.v().getX() + rotate, armorStand.v().getY(), armorStand.v().getZ()));
+                armorStand.setHeadPose(new Vector3f(armorStand.r().getX() + rotate, armorStand.r().getY(), armorStand.r().getZ()));
                 break;
             case ALL:
-                armorStand.setHeadPose(new Vector3f(armorStand.v().getX() + rotate, armorStand.v().getY() + rotate, armorStand.v().getZ()));
+                armorStand.setHeadPose(new Vector3f(armorStand.r().getX() + rotate, armorStand.r().getY() + rotate, armorStand.r().getZ()));
                 break;
         }
         for(UUID uuid : players){
             Player player = Bukkit.getPlayer(uuid);
-            if(player == null) {
-                players.remove(uuid);
-                continue;
-            }
-            ((CraftPlayer)player).getHandle().b.sendPacket(new PacketPlayOutEntityMetadata(armorStand.getId(), armorStand.getDataWatcher(), true));
+            if(player == null) continue;
+            ((CraftPlayer)player).getHandle().playerConnection.sendPacket(new PacketPlayOutEntityMetadata(armorStand.getId(), armorStand.getDataWatcher(), true));
         }
     }
 
@@ -509,22 +477,19 @@ public class PlayerBalloonHandler extends PlayerBalloon {
         if(!rotation) return;
         switch (rotationType){
             case RIGHT:
-                armorStand.setRightArmPose(new Vector3f(armorStand.cj.getX(), armorStand.cj.getY() + rotate, armorStand.cj.getZ()));
+                armorStand.setRightArmPose(new Vector3f(armorStand.rightArmPose.getX(), armorStand.rightArmPose.getY() + rotate, armorStand.rightArmPose.getZ()));
                 break;
             case UP:
-                armorStand.setRightArmPose(new Vector3f(armorStand.cj.getX() + rotate, armorStand.cj.getY(), armorStand.cj.getZ()));
+                armorStand.setRightArmPose(new Vector3f(armorStand.rightArmPose.getX() + rotate, armorStand.rightArmPose.getY(), armorStand.rightArmPose.getZ()));
                 break;
             case ALL:
-                armorStand.setRightArmPose(new Vector3f(armorStand.cj.getX() + rotate, armorStand.cj.getY() + rotate, armorStand.cj.getZ()));
+                armorStand.setRightArmPose(new Vector3f(armorStand.rightArmPose.getX() + rotate, armorStand.rightArmPose.getY() + rotate, armorStand.rightArmPose.getZ()));
                 break;
         }
         for(UUID uuid : players){
             Player player = Bukkit.getPlayer(uuid);
-            if(player == null) {
-                players.remove(uuid);
-                continue;
-            }
-            ((CraftPlayer)player).getHandle().b.sendPacket(new PacketPlayOutEntityMetadata(armorStand.getId(), armorStand.getDataWatcher(), true));
+            if(player == null) continue;
+            ((CraftPlayer)player).getHandle().playerConnection.sendPacket(new PacketPlayOutEntityMetadata(armorStand.getId(), armorStand.getDataWatcher(), true));
         }
     }
 }

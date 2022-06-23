@@ -1,9 +1,9 @@
 package com.francobm.magicosmetics.cache.nms.v1_18_R1;
 
+import com.francobm.magicosmetics.cache.RotationType;
 import com.francobm.magicosmetics.nms.balloon.PlayerBalloon;
 import com.mojang.datafixers.util.Pair;
-import io.netty.buffer.Unpooled;
-import net.minecraft.network.PacketDataSerializer;
+import net.minecraft.core.Vector3f;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.DataWatcher;
 import net.minecraft.network.syncher.DataWatcherObject;
@@ -21,116 +21,99 @@ import org.bukkit.Location;
 import org.bukkit.craftbukkit.v1_18_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_18_R1.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_18_R1.inventory.CraftItemStack;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class PlayerBalloonHandler extends PlayerBalloon {
     private final EntityArmorStand armorStand;
     private final EntityLiving leashed;
+    private final double distance;
+    private final double SQUARED_WALKING;
+    private final double SQUARED_DISTANCE;
 
-    public PlayerBalloonHandler(Player p, double space) {
-        players = new ArrayList<>();
+    public PlayerBalloonHandler(Player p, double space, double distance, boolean bigHead, boolean invisibleLeash) {
+        players = new CopyOnWriteArrayList<>(new ArrayList<>());
         this.uuid = p.getUniqueId();
+        this.distance = distance;
+        this.invisibleLeash = invisibleLeash;
         playerBalloons.put(uuid, this);
         Player player = getPlayer();
-        EntityPlayer entityPlayer = ((CraftPlayer)player).getHandle();
         WorldServer world = ((CraftWorld)player.getWorld()).getHandle();
 
+        Location location = getPlayer().getLocation().clone().add(0, space, 0);
+        location = location.clone().add(getPlayer().getLocation().clone().getDirection().multiply(-1));
         armorStand = new EntityArmorStand(EntityTypes.c, world);
-        armorStand.b(player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), player.getLocation().getYaw(), 0);
-
-        leashed = new EntityPufferFish(EntityTypes.at, world);
-        leashed.b(player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), player.getLocation().getYaw(), 0);
-        this.space = space;
-    }
-
-    @Override
-    public void spawnBag(Player player) {
-        if(players.contains(player.getUniqueId())) return;
+        armorStand.b(location.getX(), location.getY() - 1.3, location.getZ(), location.getYaw(), location.getPitch());
         armorStand.j(true); //Invisible
         armorStand.m(true); //Invulnerable
         armorStand.t(true); //Marker
-        Location location = getPlayer().getLocation();
-        armorStand.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
-        PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
-        connection.a(new PacketPlayOutSpawnEntityLiving(armorStand));
-
-        DataWatcher watcher = armorStand.ai();
-        watcher.b(new DataWatcherObject<>(0, DataWatcherRegistry.a), (byte)0x20);
-        connection.a(new PacketPlayOutEntityMetadata(armorStand.ae(), watcher, true));
-        //connection.a(new PacketPlayOutEntityMetadata(armorStand.ae(), armorStand.ai(), true));
-        //client settings
+        this.bigHead = bigHead;
+        if(isBigHead()){
+            armorStand.d(new Vector3f(armorStand.cj.b(), 0, 0));
+        }
+        leashed = new EntityPufferFish(EntityTypes.at, world);
+        leashed.collides = false;
         leashed.j(true); //Invisible
         leashed.m(true); //Invulnerable
-        ((EntityPufferFish)leashed).b(((CraftPlayer)getPlayer()).getHandle(), true); //leashed
-        leashed.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
-        connection.a(new PacketPlayOutSpawnEntityLiving(leashed));
+        leashed.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+        this.space = space;
+        this.SQUARED_WALKING = 5.5 * space;
+        this.SQUARED_DISTANCE = 10 * space;
+    }
 
-        watcher = leashed.ai();
-        watcher.b(new DataWatcherObject<>(0, DataWatcherRegistry.a), (byte)0x20);
-        connection.a(new PacketPlayOutEntityMetadata(leashed.ae(), watcher, true));
-        //connection.a(new PacketPlayOutEntityMetadata(leashed.ae(), leashed.ai(), true));
+    @Override
+    public void spawn(Player player) {
+        if(players.contains(player.getUniqueId())) {
+            if(!getPlayer().getWorld().equals(player.getWorld())) {
+                remove(player);
+                return;
+            }
+            if(getPlayer().getLocation().distance(player.getLocation()) > distance) {
+                remove(player);
+            }
+            return;
+        }
+        if(!getPlayer().getWorld().equals(player.getWorld())) return;
+        if(getPlayer().getLocation().distance(player.getLocation()) > distance) return;
+
+        PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
+        connection.a(new PacketPlayOutSpawnEntityLiving(armorStand));
+        connection.a(new PacketPlayOutEntityMetadata(armorStand.ae(), armorStand.ai(), true));
+
+        //connection.a(new PacketPlayOutEntityMetadata(armorStand.ae(), armorStand.ai(), true));
+        //client settings
+        connection.a(new PacketPlayOutSpawnEntityLiving(leashed));
+        if(!invisibleLeash) {
+            connection.a(new PacketPlayOutAttachEntity(leashed, ((CraftPlayer) getPlayer()).getHandle()));
+        }
+        connection.a(new PacketPlayOutEntityMetadata(leashed.ae(), leashed.ai(), true));
         //client settings
         players.add(player.getUniqueId());
     }
 
-    public void update(){
+    @Override
+    public void spawn(boolean exception) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if(exception && player.getUniqueId().equals(uuid)) continue;
+            spawn(player);
+        }
+    }
+
+    @Override
+    public void remove() {
         for(UUID uuid : players){
             Player player = Bukkit.getPlayer(uuid);
-            if(player == null) continue;
-            if(!players.contains(uuid)){
-                spawnBag(player);
+            if(player == null) {
+                players.remove(uuid);
                 continue;
             }
+            remove(player);
         }
-    }
-
-    @Override
-    public void spawnBag(boolean marker, boolean all) {
-        if(all) {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                spawnBag(player);
-            }
-            return;
-        }
-        PlayerConnection connection = ((CraftPlayer)getPlayer()).getHandle().b;
-        armorStand.j(true); //Invisible
-        armorStand.m(true); //Invulnerable
-        armorStand.t(marker); //Marker
-        connection.a(new PacketPlayOutSpawnEntityLiving(armorStand));
-
-        DataWatcher watcher = armorStand.ai();
-        watcher.b(new DataWatcherObject<>(0, DataWatcherRegistry.a), (byte)0x20);
-        connection.a(new PacketPlayOutEntityMetadata(armorStand.ae(), watcher, true));
-        //connection.a(new PacketPlayOutEntityMetadata(armorStand.ae(), armorStand.ai(), true));
-        //client settings
-
-        connection.a(new PacketPlayOutSpawnEntityLiving(leashed));
-        leashed.j(true); //Invisible
-        leashed.m(true); //Invulnerable
-        ((EntityPufferFish)leashed).b(((CraftPlayer)getPlayer()).getHandle(), true); //leashed
-
-        watcher = leashed.ai();
-        watcher.b(new DataWatcherObject<>(0, DataWatcherRegistry.a), (byte)0x20);
-        connection.a(new PacketPlayOutEntityMetadata(leashed.ae(), watcher, true));
-    }
-
-    @Override
-    public void remove(boolean all) {
-        if(all){
-            for(Player player : Bukkit.getOnlinePlayers()){
-                if(!players.contains(player.getUniqueId())) continue;
-                remove(player);
-            }
-            playerBalloons.remove(uuid);
-            return;
-        }
-        remove(getPlayer());
         playerBalloons.remove(uuid);
     }
 
@@ -143,127 +126,72 @@ public class PlayerBalloonHandler extends PlayerBalloon {
     }
 
     @Override
-    public void setItemOnHelmet(ItemStack itemStack, boolean all) {
-        if(all) {
-            for (UUID uuid : players) {
-                Player player = Bukkit.getPlayer(uuid);
-                if(player == null) continue;
-                PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
-                ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
-                list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(itemStack)));
-                connection.a(new PacketPlayOutEntityEquipment(armorStand.ae(), list));
-            }
+    public void setItem(ItemStack itemStack) {
+        if(isBigHead()) {
+            setItemBigHead(itemStack);
             return;
         }
-        PlayerConnection connection = ((CraftPlayer)getPlayer()).getHandle().b;
-        ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
-        list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(itemStack)));
-        connection.a(new PacketPlayOutEntityEquipment(armorStand.ae(), list));
+        for (UUID uuid : players) {
+            Player player = Bukkit.getPlayer(uuid);
+            if(player == null) {
+                players.remove(uuid);
+                continue;
+            }
+            PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
+            ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
+            list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(itemStack)));
+            connection.a(new PacketPlayOutEntityEquipment(armorStand.ae(), list));
+        }
+    }
+
+    public void setItemBigHead(ItemStack itemStack) {
+        for (UUID uuid : players) {
+            Player player = Bukkit.getPlayer(uuid);
+            if(player == null) {
+                players.remove(uuid);
+                continue;
+            }
+            PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
+            ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
+            list.add(new Pair<>(EnumItemSlot.a, CraftItemStack.asNMSCopy(itemStack)));
+            connection.a(new PacketPlayOutEntityEquipment(armorStand.ae(), list));
+        }
     }
 
     @Override
-    public void lookEntity(float yaw, float pitch, boolean all) {
-        if(all) {
-            for (UUID uuid : players) {
-                Player player = Bukkit.getPlayer(uuid);
-                if(player == null) continue;
-                PlayerConnection connection = ((CraftPlayer) player).getHandle().b;
-                connection.a(new PacketPlayOutEntityHeadRotation(armorStand, (byte) (yaw * 256 / 360)));
-                connection.a(new PacketPlayOutEntity.PacketPlayOutEntityLook(armorStand.ae(), (byte) (yaw * 256 / 360), /*(byte) (pitch * 256 / 360)*/(byte)0, true));
-                connection.a(new PacketPlayOutEntityHeadRotation(leashed, (byte) (yaw * 256 / 360)));
-                connection.a(new PacketPlayOutEntity.PacketPlayOutEntityLook(leashed.ae(), (byte) (yaw * 256 / 360), /*(byte) (pitch * 256 / 360)*/(byte)0, true));
+    public void lookEntity(float yaw, float pitch) {
+        for (UUID uuid : players) {
+            Player player = Bukkit.getPlayer(uuid);
+            if(player == null) {
+                players.remove(uuid);
+                continue;
             }
-            return;
+            PlayerConnection connection = ((CraftPlayer) player).getHandle().b;
+            connection.a(new PacketPlayOutEntityHeadRotation(armorStand, (byte) (yaw * 256 / 360)));
+            connection.a(new PacketPlayOutEntity.PacketPlayOutEntityLook(armorStand.ae(), (byte) (yaw * 256 / 360), /*(byte) (pitch * 256 / 360)*/(byte)0, true));
+            connection.a(new PacketPlayOutEntityHeadRotation(leashed, (byte) (yaw * 256 / 360)));
+            connection.a(new PacketPlayOutEntity.PacketPlayOutEntityLook(leashed.ae(), (byte) (yaw * 256 / 360), /*(byte) (pitch * 256 / 360)*/(byte)0, true));
         }
-        PlayerConnection connection = ((CraftPlayer) getPlayer()).getHandle().b;
-        connection.a(new PacketPlayOutEntityHeadRotation(armorStand, (byte) (yaw * 256 / 360)));
-        connection.a(new PacketPlayOutEntity.PacketPlayOutEntityLook(armorStand.ae(), (byte) (yaw * 256 / 360), (byte) (pitch * 256 / 360), true));
-        connection.a(new PacketPlayOutEntityHeadRotation(leashed, (byte) (yaw * 256 / 360)));
-        connection.a(new PacketPlayOutEntity.PacketPlayOutEntityLook(leashed.ae(), (byte) (yaw * 256 / 360), /*(byte) (pitch * 256 / 360)*/(byte)0, true));
     }
-
-    public void lookEntity(Player player, float yaw, float pitch) {
-        PlayerConnection connection = ((CraftPlayer) player).getHandle().b;
-        connection.a(new PacketPlayOutEntityHeadRotation(armorStand, (byte) (yaw * 256 / 360)));
-        connection.a(new PacketPlayOutEntity.PacketPlayOutEntityLook(armorStand.ae(), (byte) (yaw * 256 / 360), (byte) (pitch * 256 / 360), true));
-        connection.a(new PacketPlayOutEntityHeadRotation(leashed, (byte) (yaw * 256 / 360)));
-        connection.a(new PacketPlayOutEntity.PacketPlayOutEntityLook(leashed.ae(), (byte) (yaw * 256 / 360), /*(byte) (pitch * 256 / 360)*/(byte)0, true));
-    }
-
-    public void update(boolean all){
-        if(all){
-            for(UUID uuid : players){
-                Player player = Bukkit.getPlayer(uuid);
-                if(player == null) continue;
-                update(player);
-            }
-            return;
-        }
-        update(getPlayer());
-    }
-    private final double SQUARED_WALKING = 12.5;
-    private final double SQUARED_RUN = 12.4;
-    private final double SQUARED_DISTANCE = 20;
 
     private final double CATCH_UP_INCREMENTS = .27; //.25
-    private double CATCH_UP_INCREMENTS_DISTANCE = CATCH_UP_INCREMENTS; //.25
-    public void update(Player player) {
-        if(!players.contains(player.getUniqueId())){
-            spawnBag(player);
+    private double CATCH_UP_INCREMENTS_DISTANCE = CATCH_UP_INCREMENTS;
+    @Override
+    public void update(){
+        if(isBigHead()) {
+            updateBigHead();
             return;
         }
-        EntityPlayer p = ((CraftPlayer)player).getHandle();
-        /*if (armorStand == null) return;
-        if (leashed == null) return;
-        //Location location = armorStand.getLocation();//getLocalCoord(1, 0, 0, armorStand.getLocation());
-        Location pLoc = getPlayer().getLocation().getBlock().getLocation().clone();
-        Location as = armorStand.getBukkitEntity().getLocation().getBlock().getLocation().clone();
-        pLoc.setY(0);
-        as.setY(0);
-        ////location.add(player.getLocation().clone().add(0, 1, 0));
-        //location.setX(player.getLocation().getX());
-        //location.setZ(player.getLocation().getZ());
-        //location.setDirection(player.getLocation().getDirection());
-        Location bLocation = armorStand.getBukkitEntity().getLocation();
-        Location lLocation = leashed.getBukkitEntity().getLocation();
-        if (!pLoc.equals(as)) {
-            lookEntity(player, getPlayer().getLocation().getYaw(), getPlayer().getLocation().getPitch());
-            lLocation.setY(getPlayer().getLocation().getY() + space + 1.0 + 1.3);
-            bLocation.setY(getPlayer().getLocation().getY() + space + 1.0 + 1.3);
-            if (!heightLoop) {
-                height += 0.01;
-                ((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().subtract(0.01, 0, 0));
-
-                if (height > 0.10) heightLoop = true;
-            }
-        } else {
-            if (heightLoop) {
-                height -= 0.01;
-                ((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().add(0.01, 0, 0));
-                if (height < (-0.10 + 0)) heightLoop = false;
-            }
-            lLocation.subtract(0, 1.2, 0);
-            if (!floatLoop) {
-                y += 0.01;
-                armorStand.b(bLocation.getX(), bLocation.getY() + 0.01, bLocation.getZ(), bLocation.getYaw(), bLocation.getPitch());
-                leashed.b(lLocation.getX(), lLocation.getY() + 0.01, lLocation.getZ(), lLocation.getYaw(), lLocation.getPitch());
-                if (y > 0.10) floatLoop = true;
-            } else {
-                y -= 0.01;
-                armorStand.b(bLocation.getX(), bLocation.getY() - 0.01, bLocation.getZ(), bLocation.getYaw(), bLocation.getPitch());
-                leashed.b(lLocation.getX(), lLocation.getY() - 0.01, lLocation.getZ(), lLocation.getYaw(), lLocation.getPitch());
-                if (y < (-0.10 + 0)) floatLoop = false;
-            }
-        }
-        p.b.a(new PacketPlayOutEntityTeleport(leashed));
-        p.b.a(new PacketPlayOutEntityTeleport(armorStand));
-        */
+        Player owner = getPlayer();
         if(armorStand == null) return;
         if(leashed == null) return;
-        Location playerLoc = player.getLocation().clone().add(0, space + 1.0 + 1.3, 0);
+        Location playerLoc = owner.getLocation().clone().add(0, space, 0);
         Location stand = leashed.getBukkitEntity().getLocation();
-        Vector standDir = player.getEyeLocation().clone().subtract(stand).toVector();
-        if(player.getLocation().distanceSquared(stand) > SQUARED_WALKING){
+        Vector standDir = owner.getEyeLocation().clone().subtract(stand).toVector();
+        Location distance2 = stand.clone();
+        Location distance1 = owner.getLocation().clone();
+
+        if(distance1.distanceSquared(distance2) > SQUARED_WALKING){
             Vector lineBetween = playerLoc.clone().subtract(stand).toVector();
             if (!standDir.equals(new Vector())) {
                 standDir.normalize();
@@ -271,8 +199,8 @@ public class PlayerBalloonHandler extends PlayerBalloon {
             Vector distVec = lineBetween.clone().normalize().multiply(CATCH_UP_INCREMENTS_DISTANCE);
             Location standTo = stand.clone().setDirection(standDir.setY(0)).add(distVec.clone());
             Location newLocation = standTo.clone();
-            leashed.b(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
-            armorStand.b(newLocation.getX(), newLocation.getY() - 1.3, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            armorStand.a(newLocation.getX(), newLocation.getY() - 1.3, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
         }else {
             if (!standDir.equals(new Vector())) {
                 standDir.normalize();
@@ -289,7 +217,7 @@ public class PlayerBalloonHandler extends PlayerBalloon {
                 y -= 0.01;
                 standToLoc.subtract(0, 0.01, 0);
                 //standToLoc.setYaw(standToLoc.getYaw() + 3F);
-                if (y < (-0.10 + 0)) {
+                if (y < (-0.11 + 0)) {
                     floatLoop = false;
                     rotate *= -1;
                 }
@@ -297,43 +225,302 @@ public class PlayerBalloonHandler extends PlayerBalloon {
 
             if (!rotateLoop) {
                 rot += 0.01;
-                ((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().add(0.007, 0, rotate));
-                if (rot > 0.25) {
+                armorStand.a(new Vector3f(armorStand.u().b() - 0.5f, armorStand.u().c(), armorStand.u().d() + rotate));
+                //armorStand.setHeadPose(armorStand.getHeadPose().add(0, 0, rotate).subtract(0.008, 0, 0));
+                if (rot > 0.20) {
                     rotateLoop = true;
                 }
             } else {
                 rot -= 0.01;
-                ((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().add(0, 0, rotate).subtract(0.007, 0, 0));
-                if (rot < -0.25) {
+                armorStand.a(new Vector3f(armorStand.u().b() + 0.5f, armorStand.u().c(), armorStand.u().d() + rotate));
+                //armorStand.setHeadPose(armorStand.getHeadPose().add(0.008, 0, rotate));//.subtract(0.006, 0, 0));
+                if (rot < -0.20) {
                     rotateLoop = false;
                 }
             }
             Location newLocation = standToLoc.clone();
-            leashed.b(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
-            armorStand.b(newLocation.getX(), newLocation.getY() - 1.3, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            armorStand.a(newLocation.getX(), newLocation.getY() - 1.3, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
         }
-        p.b.a(new PacketPlayOutEntityTeleport(leashed));
-        p.b.a(new PacketPlayOutEntityTeleport(armorStand));
+        for(UUID uuid : players){
+            Player player = Bukkit.getPlayer(uuid);
+            if(player == null) {
+                players.remove(uuid);
+                continue;
+            }
+            EntityPlayer p = ((CraftPlayer)player).getHandle();
+            if(!invisibleLeash) {
+                p.b.a(new PacketPlayOutAttachEntity(leashed, ((CraftPlayer) getPlayer()).getHandle()));
+            }
+            p.b.a(new PacketPlayOutEntityMetadata(armorStand.ae(), armorStand.ai(), true));
+            p.b.a(new PacketPlayOutEntityTeleport(leashed));
+            p.b.a(new PacketPlayOutEntityTeleport(armorStand));
+        }
 
-        if(player.getLocation().distanceSquared(stand) > SQUARED_RUN){
+        if(distance1.distanceSquared(distance2) > SQUARED_WALKING){
             if(!heightLoop){
                 height += 0.01;
-                ((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().subtract(0.022, 0, 0));
+                armorStand.a(new Vector3f(armorStand.u().b() - 0.8f, armorStand.u().c(), armorStand.u().d()));
+                //((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().subtract(0.022, 0, 0));
                 if(height > 0.10) heightLoop = true;
             }
         }else{
             if (heightLoop) {
                 height -= 0.01;
-                ((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().add(0.022, 0, 0));
+                armorStand.a(new Vector3f(armorStand.u().b() + 0.8f, armorStand.u().c(), armorStand.u().d()));
+                //((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().add(0.022, 0, 0));
                 if (height < (-0.10 + 0)) heightLoop = false;
                 return;
             }
 
         }
-        if(player.getLocation().distanceSquared(stand) > SQUARED_DISTANCE){
+        if(distance1.distanceSquared(distance2) > SQUARED_DISTANCE){
             CATCH_UP_INCREMENTS_DISTANCE += 0.01;
         }else{
             CATCH_UP_INCREMENTS_DISTANCE = CATCH_UP_INCREMENTS;
         }
+    }
+
+    public void updateBigHead(){
+        Player owner = getPlayer();
+        if(armorStand == null) return;
+        if(leashed == null) return;
+        Location playerLoc = owner.getLocation().clone().add(0, space, 0);
+        Location stand = leashed.getBukkitEntity().getLocation();
+        Vector standDir = owner.getEyeLocation().clone().subtract(stand).toVector();
+        Location distance2 = stand.clone();
+        Location distance1 = owner.getLocation().clone();
+
+        if(distance1.distanceSquared(distance2) > SQUARED_WALKING){
+            Vector lineBetween = playerLoc.clone().subtract(stand).toVector();
+            if (!standDir.equals(new Vector())) {
+                standDir.normalize();
+            }
+            Vector distVec = lineBetween.clone().normalize().multiply(CATCH_UP_INCREMENTS_DISTANCE);
+            Location standTo = stand.clone().setDirection(standDir.setY(0)).add(distVec.clone());
+            Location newLocation = standTo.clone();
+            leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            armorStand.a(newLocation.getX(), newLocation.getY() - 1.3, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+        }else {
+            if (!standDir.equals(new Vector())) {
+                standDir.normalize();
+            }
+            Location standToLoc = stand.clone().setDirection(standDir.setY(0));
+            if (!floatLoop) {
+                y += 0.01;
+                standToLoc.add(0, 0.01, 0);
+                //standToLoc.setYaw(standToLoc.getYaw() - 3F);
+                if (y > 0.10) {
+                    floatLoop = true;
+                }
+            } else {
+                y -= 0.01;
+                standToLoc.subtract(0, 0.01, 0);
+                //standToLoc.setYaw(standToLoc.getYaw() + 3F);
+                if (y < (-0.11 + 0)) {
+                    floatLoop = false;
+                    rotate *= -1;
+                }
+            }
+
+            if (!rotateLoop) {
+                rot += 0.01;
+                armorStand.d(new Vector3f(armorStand.cj.b() - 0.5f, armorStand.cj.c(), armorStand.cj.d() + rotate));
+                //armorStand.setHeadPose(armorStand.getHeadPose().add(0, 0, rotate).subtract(0.008, 0, 0));
+                if (rot > 0.20) {
+                    rotateLoop = true;
+                }
+            } else {
+                rot -= 0.01;
+                armorStand.d(new Vector3f(armorStand.cj.b() + 0.5f, armorStand.cj.c(), armorStand.cj.d() + rotate));
+                //armorStand.setHeadPose(armorStand.getHeadPose().add(0.008, 0, rotate));//.subtract(0.006, 0, 0));
+                if (rot < -0.20) {
+                    rotateLoop = false;
+                }
+            }
+            Location newLocation = standToLoc.clone();
+            leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            armorStand.a(newLocation.getX(), newLocation.getY() - 1.3, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+        }
+        for(UUID uuid : players){
+            Player player = Bukkit.getPlayer(uuid);
+            if(player == null) {
+                players.remove(uuid);
+                continue;
+            }
+            EntityPlayer p = ((CraftPlayer)player).getHandle();
+            if(!invisibleLeash) {
+                p.b.a(new PacketPlayOutAttachEntity(leashed, ((CraftPlayer) getPlayer()).getHandle()));
+            }
+            p.b.a(new PacketPlayOutEntityMetadata(armorStand.ae(), armorStand.ai(), true));
+            p.b.a(new PacketPlayOutEntityTeleport(leashed));
+            p.b.a(new PacketPlayOutEntityTeleport(armorStand));
+        }
+
+        if(distance1.distanceSquared(distance2) > SQUARED_WALKING){
+            if(!heightLoop){
+                height += 0.01;
+                armorStand.d(new Vector3f(armorStand.cj.b() - 0.8f, armorStand.cj.c(), armorStand.cj.d()));
+                //((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().subtract(0.022, 0, 0));
+                if(height > 0.10) heightLoop = true;
+            }
+        }else{
+            if (heightLoop) {
+                height -= 0.01;
+                armorStand.d(new Vector3f(armorStand.cj.b() + 0.8f, armorStand.cj.c(), armorStand.cj.d()));
+                //((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().add(0.022, 0, 0));
+                if (height < (-0.10 + 0)) heightLoop = false;
+                return;
+            }
+
+        }
+        if(distance1.distanceSquared(distance2) > SQUARED_DISTANCE){
+            CATCH_UP_INCREMENTS_DISTANCE += 0.01;
+        }else{
+            CATCH_UP_INCREMENTS_DISTANCE = CATCH_UP_INCREMENTS;
+        }
+    }
+
+    @Override
+    public void rotate(boolean rotation, RotationType rotationType, float rotate) {
+        if(isBigHead()){
+            rotateBigHead(rotation, rotationType, rotate);
+            return;
+        }
+        if(!rotation) return;
+        switch (rotationType){
+            case RIGHT:
+                armorStand.a(new Vector3f(armorStand.u().b(), armorStand.u().c() + rotate, armorStand.u().d()));
+                break;
+            case UP:
+                armorStand.a(new Vector3f(armorStand.u().b() + rotate, armorStand.u().c(), armorStand.u().d()));
+                break;
+            case ALL:
+                armorStand.a(new Vector3f(armorStand.u().b() + rotate, armorStand.u().c() + rotate, armorStand.u().d()));
+                break;
+        }
+        for(UUID uuid : players){
+            Player player = Bukkit.getPlayer(uuid);
+            if(player == null) {
+                players.remove(uuid);
+                continue;
+            }
+            ((CraftPlayer)player).getHandle().b.a(new PacketPlayOutEntityMetadata(armorStand.ae(), armorStand.ai(), true));
+        }
+    }
+
+    public void rotateBigHead(boolean rotation, RotationType rotationType, float rotate) {
+        if(!rotation) return;
+        switch (rotationType){
+            case RIGHT:
+                armorStand.d(new Vector3f(armorStand.cj.b(), armorStand.cj.c() + rotate, armorStand.cj.d()));
+                break;
+            case UP:
+                armorStand.d(new Vector3f(armorStand.cj.b() + rotate, armorStand.cj.c(), armorStand.cj.d()));
+                break;
+            case ALL:
+                armorStand.d(new Vector3f(armorStand.cj.b() + rotate, armorStand.cj.c() + rotate, armorStand.cj.d()));
+                break;
+        }
+        for(UUID uuid : players){
+            Player player = Bukkit.getPlayer(uuid);
+            if(player == null) {
+                players.remove(uuid);
+                continue;
+            }
+            ((CraftPlayer)player).getHandle().b.a(new PacketPlayOutEntityMetadata(armorStand.ae(), armorStand.ai(), true));
+        }
+    }
+
+    @Override
+    public void update(Player player) {
+        if(armorStand == null) return;
+        if(leashed == null) return;
+        Player owner = getPlayer();
+        EntityPlayer p = ((CraftPlayer)player).getHandle();
+        Location playerLoc = owner.getLocation().clone().add(0, space + 1.0 + 1.3, 0);
+        Location stand = leashed.getBukkitEntity().getLocation();
+        Vector standDir = owner.getEyeLocation().clone().subtract(stand).toVector();
+        if(owner.getLocation().distanceSquared(stand) > SQUARED_WALKING){
+            Vector lineBetween = playerLoc.clone().subtract(stand).toVector();
+            if (!standDir.equals(new Vector())) {
+                standDir.normalize();
+            }
+            Vector distVec = lineBetween.clone().normalize().multiply(CATCH_UP_INCREMENTS_DISTANCE);
+            Location standTo = stand.clone().setDirection(standDir.setY(0)).add(distVec.clone());
+            Location newLocation = standTo.clone();
+            leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            armorStand.a(newLocation.getX(), newLocation.getY() - 1.3, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+        }else {
+            if (!standDir.equals(new Vector())) {
+                standDir.normalize();
+            }
+            Location standToLoc = stand.clone().setDirection(standDir.setY(0));
+            if (!floatLoop) {
+                y += 0.01;
+                standToLoc.add(0, 0.01, 0);
+                //standToLoc.setYaw(standToLoc.getYaw() - 3F);
+                if (y > 0.10) {
+                    floatLoop = true;
+                }
+            } else {
+                y -= 0.01;
+                standToLoc.subtract(0, 0.01, 0);
+                //standToLoc.setYaw(standToLoc.getYaw() + 3F);
+                if (y < (-0.11 + 0)) {
+                    floatLoop = false;
+                    rotate *= -1;
+                }
+            }
+
+            if (!rotateLoop) {
+                rot += 0.01;
+                armorStand.a(new Vector3f(armorStand.u().b() - 0.5f, armorStand.u().c(), armorStand.u().d() + rotate));
+                //armorStand.setHeadPose(armorStand.getHeadPose().add(0, 0, rotate).subtract(0.008, 0, 0));
+                if (rot > 0.20) {
+                    rotateLoop = true;
+                }
+            } else {
+                rot -= 0.01;
+                armorStand.a(new Vector3f(armorStand.u().b() + 0.5f, armorStand.u().c(), armorStand.u().d() + rotate));
+                //armorStand.setHeadPose(armorStand.getHeadPose().add(0.008, 0, rotate));//.subtract(0.006, 0, 0));
+                if (rot < -0.20) {
+                    rotateLoop = false;
+                }
+            }
+            Location newLocation = standToLoc.clone();
+            leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            armorStand.a(newLocation.getX(), newLocation.getY() - 1.3, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+        }
+        p.b.a(new PacketPlayOutEntityMetadata(armorStand.ae(), armorStand.ai(), true));
+        p.b.a(new PacketPlayOutEntityTeleport(leashed));
+        p.b.a(new PacketPlayOutEntityTeleport(armorStand));
+
+        if(owner.getLocation().distanceSquared(stand) > SQUARED_WALKING){
+            if(!heightLoop){
+                height += 0.01;
+                armorStand.a(new Vector3f(armorStand.u().b() - 0.8f, armorStand.u().c(), armorStand.u().d()));
+                //((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().subtract(0.022, 0, 0));
+                if(height > 0.10) heightLoop = true;
+            }
+        }else{
+            if (heightLoop) {
+                height -= 0.01;
+                armorStand.a(new Vector3f(armorStand.u().b() + 0.8f, armorStand.u().c(), armorStand.u().d()));
+                //((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().add(0.022, 0, 0));
+                if (height < (-0.10 + 0)) heightLoop = false;
+                return;
+            }
+
+        }
+        if(owner.getLocation().distanceSquared(stand) > SQUARED_DISTANCE){
+            CATCH_UP_INCREMENTS_DISTANCE += 0.01;
+        }else{
+            CATCH_UP_INCREMENTS_DISTANCE = CATCH_UP_INCREMENTS;
+        }
+    }
+
+    public double getDistance() {
+        return distance;
     }
 }
