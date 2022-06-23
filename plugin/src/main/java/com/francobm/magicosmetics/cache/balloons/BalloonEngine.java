@@ -1,7 +1,10 @@
 package com.francobm.magicosmetics.cache.balloons;
 
+import com.francobm.magicosmetics.MagicCosmetics;
 import com.ticxo.modelengine.api.model.ActiveModel;
 import com.ticxo.modelengine.api.model.ModeledEntity;
+import com.ticxo.modelengine.api.model.PartEntity;
+import org.bukkit.Location;
 
 import java.util.List;
 
@@ -10,30 +13,36 @@ public class BalloonEngine {
     private ActiveModel activeModel;
     private final String modelId;
     private final List<String> colorableParts;
-    private boolean walk;
-    private boolean iddle;
+    private final List<String> animationParts;
 
-    public BalloonEngine(String modelId, List<String> colorableParts){
+    public BalloonEngine(String modelId, List<String> colorableParts, List<String> animationParts) {
         this.modelId = modelId;
         this.colorableParts = colorableParts;
+        this.animationParts = animationParts;
         this.modeledEntity = null;
         this.activeModel = null;
     }
 
-    public void setIddle(){
-        if(activeModel == null) return;
-        if(isIddle()) return;
-        activeModel.setState(ActiveModel.ModelState.IDLE);
-        setIddle(true);
-        setWalk(false);
-    }
-
-    public void setWalk(){
-        if(activeModel == null) return;
-        if(isWalk()) return;
-        activeModel.setState(ActiveModel.ModelState.WALK);
-        setIddle(false);
-        setWalk(true);
+    public void setState(int state){
+        switch (state){
+            case 0:
+                //activeModel.addState("idle", 1, 1, 1);
+                if(activeModel.getStates().contains("idle")) {
+                    activeModel.getStates().removeIf(s -> !s.equals("idle"));
+                    return;
+                }
+                activeModel.getStates().clear();
+                activeModel.setState(ActiveModel.ModelState.IDLE);
+                return;
+            case 1:
+                if(activeModel.getStates().contains("walk")){
+                    activeModel.getStates().removeIf(s -> !s.equals("walk"));
+                    return;
+                }
+                activeModel.getStates().clear();
+                activeModel.setState(ActiveModel.ModelState.WALK);
+                //activeModel.setState(ActiveModel.ModelState.WALK);
+        }
     }
 
     public void remove(){
@@ -70,19 +79,7 @@ public class BalloonEngine {
         return colorableParts;
     }
 
-    public boolean isWalk() {
-        return walk;
-    }
-
-    public boolean isIddle() {
-        return iddle;
-    }
-
-    public void setIddle(boolean iddle) {
-        this.iddle = iddle;
-    }
-
-    public void setWalk(boolean walk) {
-        this.walk = walk;
+    public List<String> getAnimationParts() {
+        return animationParts;
     }
 }
