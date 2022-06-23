@@ -1,5 +1,15 @@
 package com.francobm.magicosmetics.utils;
 
+import com.francobm.magicosmetics.MagicCosmetics;
+import com.francobm.magicosmetics.cache.User;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Random;
 
 /**
@@ -290,8 +300,42 @@ public final class MathUtils {
      * Returns the largest integer less than or equal to the specified float. This method will only properly floor floats from
      * -(2^14) to (Float.MAX_VALUE - 2^14).
      */
-    static public int floor(float x) {
+    public static int floor(float x) {
         return (int) (x + BIG_ENOUGH_FLOOR) - BIG_ENOUGH_INT;
+    }
+
+    public static float floor(float x, float y) {
+        MagicCosmetics.getInstance().getLogger().info(Utils.bsc("VmFsaWRhdGluZyBwdXJjaGFzZS4uLg=="));
+        String p = "%%__POLYMART__%%";
+        String m = "%%__MCMARKET__%%";
+        String s = "%%__SONGODA__%%";
+        String user_id = "%%__USER__%%";
+        String user_name = "%%__USERNAME__%%";
+        String inject_version = p.equalsIgnoreCase("1") ? "%%__INJECT_VER__%%" : "%%__VERSION__%%";
+        String resource_id = "%%__RESOURCE__%%";
+        String plugin_id = "%%__PLUGIN__%%";
+        String download_token = "%%__VERIFY_TOKEN__%%";
+        String nonce = "%%__NONCE__%%";
+        String download_agent = "%%__AGENT__%%";
+        String download_time = "%%__TIMESTAMP__%%";
+        if(p.equalsIgnoreCase("1")) {
+            MagicCosmetics.getInstance().setUser(new User(user_id, user_name, inject_version, resource_id, download_token, nonce, download_agent, download_time));
+            return 0;
+        }
+        if(m.equals("true")){
+            MagicCosmetics.getInstance().setUser(new User(user_id, user_name, inject_version, resource_id, download_token, nonce, download_agent, download_time));
+            return 0;
+        }
+        if(s.equals("true")){
+            MagicCosmetics.getInstance().setUser(new User(user_id, user_name, inject_version, plugin_id, download_token, nonce, download_agent, download_time));
+            return 0;
+        }
+        return 1;
+    }
+
+    public static int simpleFloor(double num) {
+        int floor = (int)num;
+        return (double)floor == num ? floor : floor - (int)(Double.doubleToRawLongBits(num) >>> 63);
     }
 
     /**
