@@ -15,6 +15,16 @@ public abstract class NPC {
     protected Entity entity;
     protected Entity punch;
     protected Entity armorStand;
+    protected Location balloonPosition;
+    protected boolean floatLoop = true;
+    protected double y = 0;
+    protected double height = 0;
+    protected boolean heightLoop = true;
+    protected float rotate = -0.4f;
+    protected double rot = 0;
+    protected boolean rotateLoop = true;
+    protected boolean bigHead = false;
+    protected int passengerID;
 
     public abstract void spawnNPC(Player player);
 
@@ -50,7 +60,7 @@ public abstract class NPC {
 
     public abstract void addPassenger(Player player, Entity entity1, Entity entity2);
 
-    public abstract void balloonNPC(Player player, Location location, ItemStack itemStack);
+    public abstract void balloonNPC(Player player, Location location, ItemStack itemStack, boolean bigHead);
 
     public abstract void armorStandSetItem(Player player, ItemStack itemStack);
 
@@ -78,5 +88,9 @@ public abstract class NPC {
 
     public Entity getPunchEntity(){
         return punch;
+    }
+
+    public boolean isBigHead() {
+        return bigHead;
     }
 }
