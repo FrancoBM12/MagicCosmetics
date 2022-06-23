@@ -6,6 +6,7 @@ public enum InventoryType {
     WALKING_STICK,
     FREE,
     BALLOON,
+    SPRAY,
     COLORED,
     FREE_COLORED,
     TOKEN
