@@ -53,13 +53,11 @@ public class PacketReaderHandler extends PacketReader{
         if(version == null) return;
         Plugin plugin = Bukkit.getPluginManager().getPlugin("MagicCosmetics");
         if(plugin == null) return;
-        int entityID = (int) getValue(packetPlayInUseEntity, "a");
         Object object = getValue(packetPlayInUseEntity, "b");
         if (object.toString().split("\\$")[1].charAt(0) == '1'){
             // call event
             NPC npc = version.getNPC(player);
             if(npc == null) return;
-            if((npc.getPunchEntity().getEntityId() != entityID)) return;
             new BukkitRunnable() {
                 @Override
                 public void run() {
@@ -73,7 +71,6 @@ public class PacketReaderHandler extends PacketReader{
             // call event
             NPC npc = version.getNPC(player);
             if(npc == null) return;
-            if((npc.getPunchEntity().getEntityId() != entityID)) return;
             new BukkitRunnable() {
                 @Override
                 public void run() {

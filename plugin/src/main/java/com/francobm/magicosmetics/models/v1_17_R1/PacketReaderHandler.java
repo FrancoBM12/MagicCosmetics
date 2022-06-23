@@ -30,7 +30,6 @@ public class PacketReaderHandler extends PacketReader {
         Channel channel = craftPlayer.getHandle().b.a.k;
 
         if(channel.pipeline().get("PacketInjector") != null) return false;
-
         channel.pipeline().addAfter("decoder", "PacketInjector", new MessageToMessageDecoder<PacketPlayInUseEntity>() {
             @Override
             protected void decode(ChannelHandlerContext ctx, PacketPlayInUseEntity msg, List<Object> out) throws Exception {
@@ -55,7 +54,6 @@ public class PacketReaderHandler extends PacketReader {
             // call event
             NPC npc = plugin.getVersion().getNPC(player);
             if(npc == null) return;
-            if((npc.getPunchEntity().getEntityId() != entityID)) return;
             new BukkitRunnable() {
                 @Override
                 public void run() {
@@ -69,7 +67,6 @@ public class PacketReaderHandler extends PacketReader {
             // call event
             NPC npc = plugin.getVersion().getNPC(player);
             if(npc == null) return;
-            if((npc.getPunchEntity().getEntityId() != entityID)) return;
             new BukkitRunnable() {
                 @Override
                 public void run() {
