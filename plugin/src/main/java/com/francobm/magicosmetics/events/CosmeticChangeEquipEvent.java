@@ -3,15 +3,14 @@ package com.francobm.magicosmetics.events;
 import com.francobm.magicosmetics.cache.Cosmetic;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
-import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
+import org.bukkit.event.player.PlayerEvent;
 
 /**
- *  Called when a player changes their cosmetic
+ *  Event called when a player changes their cosmetic
  */
-public class CosmeticChangeEquipEvent extends Event implements Cancellable {
+public class CosmeticChangeEquipEvent extends PlayerEvent implements Cancellable {
 
-    private final Player player;
     private final Cosmetic newCosmetic;
     private final Cosmetic oldCosmetic;
 
@@ -19,7 +18,7 @@ public class CosmeticChangeEquipEvent extends Event implements Cancellable {
     private boolean isCancelled;
 
     public CosmeticChangeEquipEvent(Player player, Cosmetic oldCosmetic, Cosmetic newCosmetic) {
-        this.player = player;
+        super(player);
         this.oldCosmetic = oldCosmetic;
         this.newCosmetic = newCosmetic;
         this.isCancelled = false;
@@ -32,10 +31,6 @@ public class CosmeticChangeEquipEvent extends Event implements Cancellable {
 
     public static HandlerList getHandlerList() {
         return HANDLER_LIST;
-    }
-
-    public Player getPlayer() {
-        return player;
     }
 
     public Cosmetic getOldCosmetic() {

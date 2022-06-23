@@ -1,33 +1,32 @@
 package com.francobm.magicosmetics.events;
 
 import com.francobm.magicosmetics.cache.Cosmetic;
-import com.francobm.magicosmetics.cache.CosmeticType;
+import com.francobm.magicosmetics.api.CosmeticType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
-import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
+import org.bukkit.event.player.PlayerEvent;
 
 /**
- *  Called when player unequip a cosmetic
+ *  Called when player unequipped a cosmetic
  */
-public class CosmeticUnequipEvent extends Event implements Cancellable {
+public class CosmeticUnEquipEvent extends PlayerEvent implements Cancellable {
 
-    private final Player player;
     private final Cosmetic cosmetic;
     private final CosmeticType cosmeticType;
 
     private static final HandlerList HANDLER_LIST = new HandlerList();
     private boolean isCancelled;
 
-    public CosmeticUnequipEvent(Player player, Cosmetic cosmetic, CosmeticType cosmeticType) {
-        this.player = player;
+    public CosmeticUnEquipEvent(Player player, Cosmetic cosmetic, CosmeticType cosmeticType) {
+        super(player);
         this.cosmetic = cosmetic;
         this.cosmeticType = cosmeticType;
         this.isCancelled = false;
     }
 
-    public CosmeticUnequipEvent(Player player, Cosmetic cosmetic) {
-        this.player = player;
+    public CosmeticUnEquipEvent(Player player, Cosmetic cosmetic) {
+        super(player);
         this.cosmetic = cosmetic;
         this.cosmeticType = cosmetic.getCosmeticType();
         this.isCancelled = false;
@@ -40,10 +39,6 @@ public class CosmeticUnequipEvent extends Event implements Cancellable {
 
     public static HandlerList getHandlerList() {
         return HANDLER_LIST;
-    }
-
-    public Player getPlayer() {
-        return player;
     }
 
     public Cosmetic getCosmetic() {
