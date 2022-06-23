@@ -3,6 +3,7 @@ package com.francobm.magicosmetics.listeners;
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.cache.inventories.Menu;
 import com.francobm.magicosmetics.cache.inventories.menus.FreeColoredMenu;
+import com.francobm.magicosmetics.cache.inventories.menus.TokenMenu;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -22,7 +23,13 @@ public class InventoryListener implements Listener {
         if(holder instanceof FreeColoredMenu){
             event.setCancelled(true);
         }
+        if(holder instanceof TokenMenu){
+            TokenMenu menu = (TokenMenu) holder;
+            if(!menu.isDrag()) return;
+            event.setCancelled(true);
+        }
     }
+
     @EventHandler
     public void onClick(InventoryClickEvent event){
         InventoryHolder holder = event.getInventory().getHolder();
@@ -30,6 +37,13 @@ public class InventoryListener implements Listener {
             FreeColoredMenu menu = (FreeColoredMenu) holder;
             menu.handleMenu(event);
             return;
+        }
+        if(holder instanceof TokenMenu){
+            TokenMenu menu = (TokenMenu) holder;
+            if(menu.isDrag()){
+                menu.handleMenu(event);
+                return;
+            }
         }
         if(holder instanceof Menu){
             event.setCancelled(true);
@@ -46,6 +60,10 @@ public class InventoryListener implements Listener {
         InventoryHolder holder = event.getInventory().getHolder();
         if(holder instanceof FreeColoredMenu){
             FreeColoredMenu menu = (FreeColoredMenu) holder;
+            menu.returnItem();
+        }
+        if(holder instanceof TokenMenu){
+            TokenMenu menu = (TokenMenu) holder;
             menu.returnItem();
         }
     }
