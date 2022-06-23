@@ -7,7 +7,7 @@
         <groupId>com.francobm</groupId>
         <version>1.4-SNAPSHOT</version>
     </parent>
-    <version>1.5.9-SNAPSHOT</version>
+    <version>1.9.2-SNAPSHOT</version>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>MagicCosmetics</artifactId>
@@ -75,6 +75,10 @@
             <id>sonatype-oss-snapshots</id>
             <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
         </repository>
+        <repository>
+            <id>everything</id>
+            <url>https://repo.citizensnpcs.co/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -91,12 +95,17 @@
         </dependency>
         <dependency>
             <groupId>com.francobm</groupId>
-            <artifactId>v1_18_R1</artifactId>
+            <artifactId>v1_19_R1</artifactId>
             <version>1.4-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.francobm</groupId>
             <artifactId>v1_18_R2</artifactId>
+            <version>1.4-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.francobm</groupId>
+            <artifactId>v1_18_R1</artifactId>
             <version>1.4-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -107,13 +116,13 @@
         <dependency>
             <groupId>com.ticxo.modelengine</groupId>
             <artifactId>api</artifactId>
-            <version>R2.4.0</version>
+            <version>R2.5.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.github.LoneDev6</groupId>
             <artifactId>api-itemsadder</artifactId>
-            <version>2.5.5</version>
+            <version>3.2.0c-beta6</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -137,13 +146,20 @@
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-minimessage</artifactId>
-            <version>4.10.0</version>
+            <version>4.11.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-platform-bukkit</artifactId>
-            <version>4.1.0</version>
+            <version>4.1.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.citizensnpcs</groupId>
+            <artifactId>citizens-main</artifactId>
+            <version>2.0.29-SNAPSHOT</version>
+            <type>jar</type>
             <scope>provided</scope>
         </dependency>
     </dependencies>
