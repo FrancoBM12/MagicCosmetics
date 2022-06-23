@@ -4,6 +4,7 @@ import com.francobm.magicosmetics.files.FileCreator;
 import com.francobm.magicosmetics.utils.XMaterial;
 import com.francobm.magicosmetics.MagicCosmetics;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -18,11 +19,13 @@ public class Token {
     private final String id;
     private final ItemStack itemStack;
     private final String cosmetic;
+    private final boolean exchangeable;
 
-    public Token(boolean log, String id, ItemStack itemStack, String cosmetic){
+    public Token(boolean log, String id, ItemStack itemStack, String cosmetic, boolean exchangeable) {
         this.id = id;
         this.itemStack = itemStack;
         this.cosmetic = cosmetic;
+        this.exchangeable = exchangeable;
         if(log) {
             MagicCosmetics.getInstance().getLogger().info("Token named: '" + id + "' registered.");
         }
@@ -49,6 +52,24 @@ public class Token {
         return null;
     }
 
+    public static boolean removeToken(Player player, ItemStack itemStack){
+        MagicCosmetics plugin = MagicCosmetics.getInstance();
+        Token token = Token.getTokenByItem(itemStack);
+        if(token == null){
+            return false;
+        }
+        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        if(itemStack.getAmount() < token.getItemStack().getAmount()){
+            plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("insufficient-tokens"));
+            return false;
+        }
+        if(playerCache.getCosmeticById(token.getCosmetic()) != null){
+            plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
+            return false;
+        }
+        return true;
+    }
+
     public static void loadTokens(){
         tokens.clear();
         FileCreator token = MagicCosmetics.getInstance().getTokens();
@@ -63,6 +84,7 @@ public class Token {
             boolean hide_attributes = false;
             int modelData = 0;
             String cosmetic = "";
+            boolean exchangeable = true;
             if(token.contains("tokens." + key + ".item.display")){
                 display = token.getString("tokens." + key + ".item.display");
             }
@@ -123,6 +145,9 @@ public class Token {
             if(token.contains("tokens." + key + ".cosmetic")){
                 cosmetic = token.getString("tokens." + key + ".cosmetic");
             }
+            if(token.contains("tokens." + key + ".exchangeable")){
+                exchangeable = token.getBoolean("tokens." + key + ".exchangeable");
+            }
             if(itemStack == null) return;
             itemStack.setAmount(amount);
             ItemMeta itemMeta = itemStack.getItemMeta();
@@ -141,7 +166,7 @@ public class Token {
                 itemMeta.setCustomModelData(modelData);
             }
             itemStack.setItemMeta(itemMeta);
-            tokens.put(key, new Token(true, key, itemStack, cosmetic));
+            tokens.put(key, new Token(true, key, itemStack, cosmetic, exchangeable));
         }
     }
 
@@ -172,5 +197,9 @@ public class Token {
 
     public String getCosmetic() {
         return cosmetic;
+    }
+
+    public boolean isExchangeable() {
+        return exchangeable;
     }
 }
