@@ -8,6 +8,11 @@ import org.bukkit.entity.Entity;
 public class ModelEngine {
     private final ModelEngineAPI modelEngineAPI;
 
+    public boolean existAnimation(String modelId, String animationName) {
+        if(ModelEngineAPI.getModelBlueprint(modelId) == null) return false;
+        return ModelEngineAPI.getModelBlueprint(modelId).getAnimation(animationName) != null;
+    }
+
     public ModelEngine(){
         this.modelEngineAPI = ModelEngineAPI.api;
     }
