@@ -2,7 +2,7 @@ package com.francobm.magicosmetics.cache.inventories.menus;
 
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.cache.Cosmetic;
-import com.francobm.magicosmetics.cache.CosmeticType;
+import com.francobm.magicosmetics.api.CosmeticType;
 import com.francobm.magicosmetics.cache.PlayerCache;
 import com.francobm.magicosmetics.cache.Sound;
 import com.francobm.magicosmetics.cache.inventories.*;
@@ -57,7 +57,7 @@ public class WStickMenu extends PaginatedMenu {
         }
         if(slotMenu.getSlot() == getNextSlot()){
             slotMenu.playSound(player);
-            List<Cosmetic> cosmetics = Cosmetic.getCosmeticsByType(CosmeticType.WALKING_STICK);
+            List<Cosmetic> cosmetics = Cosmetic.getCosmeticsUnHideByType(CosmeticType.WALKING_STICK);
             if(((index + 1) >= cosmetics.size())){
                 //player.sendMessage(CustomCosmetics.getInstance().prefix + CustomCosmetics.getInstance().getMessages().getString("last-page"));
                 return;
@@ -76,7 +76,7 @@ public class WStickMenu extends PaginatedMenu {
         StringBuilder title = new StringBuilder();
         //title.append(getContentMenu().getTitle() + "             ");
         title.append(getContentMenu().getTitle());
-        List<Cosmetic> cosmetics = Cosmetic.getCosmeticsByType(CosmeticType.WALKING_STICK);
+        List<Cosmetic> cosmetics = Cosmetic.getCosmeticsUnHideByType(CosmeticType.WALKING_STICK);
         if(getBackSlot() != -1) {
             SlotMenu s;
             if(page == 0){
@@ -104,33 +104,42 @@ public class WStickMenu extends PaginatedMenu {
                 }
                 title.append(getContentMenu().getSlots().isSlot(slot));
                 Items items = new Items(getPage()+index+"_wstick", Items.getItem("wstick-template").copyItem(playerCache, cosmetic, cosmetic.getItemStack()));
-                items.addVariable("%name%", cosmetic.getName()).addVariable("%available%", playerCache.getCosmeticById(cosmetic.getId()) != null ? MagicCosmetics.getInstance().getMessages().getString("available") : MagicCosmetics.getInstance().getMessages().getString("unavailable")).addVariable("%type%", cosmetic.getCosmeticType());
                 SlotMenu slotMenu;
                 items.addVariable("%equip%", playerCache.getEquip(cosmetic.getId()) != null ? MagicCosmetics.getInstance().getMessages().getString("equip") : MagicCosmetics.getInstance().getMessages().getString("unequip"));
                 items.addPlaceHolder(playerCache.getOfflinePlayer().getPlayer());
-                if(playerCache.getCosmeticById(cosmetic.getId()) != null) {
-                    title.append(playerCache.getEquip(cosmetic.getId()) != null ? plugin.equip : plugin.ava);
-                }else{
-                    title.append(plugin.unAva);
+                if(plugin.isPermissions()){
+                    items.addVariable("%name%", cosmetic.getName()).addVariable("%available%", cosmetic.hasPermission(playerCache.getOfflinePlayer().getPlayer()) ? MagicCosmetics.getInstance().getMessages().getString("available") : MagicCosmetics.getInstance().getMessages().getString("unavailable")).addVariable("%type%", cosmetic.getCosmeticType());
+                    if(cosmetic.hasPermission(playerCache.getOfflinePlayer().getPlayer())){
+                        title.append(playerCache.getEquip(cosmetic.getId()) != null ? plugin.equip : plugin.ava);
+                    }else{
+                        title.append(plugin.unAva);
+                    }
+                }else {
+                    items.addVariable("%name%", cosmetic.getName()).addVariable("%available%", playerCache.getCosmeticById(cosmetic.getId()) != null ? MagicCosmetics.getInstance().getMessages().getString("available") : MagicCosmetics.getInstance().getMessages().getString("unavailable")).addVariable("%type%", cosmetic.getCosmeticType());
+                    if (playerCache.getCosmeticById(cosmetic.getId()) != null) {
+                        title.append(playerCache.getEquip(cosmetic.getId()) != null ? plugin.equip : plugin.ava);
+                    } else {
+                        title.append(plugin.unAva);
+                    }
                 }
                 title.append(getPanel(slot));
                 if(playerCache.getWStick() != null){
                     if(playerCache.getWStick().getId().equalsIgnoreCase(cosmetic.getId())){
-                        slotMenu = new SlotMenu(slot, items, Collections.singletonList("cosmetics unset " + cosmetic.getId()), ActionType.PLAYER_COMMAND);
+                        slotMenu = new SlotMenu(slot, items, Collections.singletonList("magiccos unset " + cosmetic.getId()), ActionType.PLAYER_COMMAND);
                     }else{
                         if(cosmetic.isColored()){
-                            slotMenu = new SlotMenu(slot, items, Collections.singletonList("cosmetics unuse " + cosmetic.getId()),"colored|color1|"+cosmetic.getId(), ActionType.OPEN_MENU, ActionType.PLAYER_COMMAND);
+                            slotMenu = new SlotMenu(slot, items, Collections.singletonList("magiccos unuse " + cosmetic.getId()),"colored|color1|"+cosmetic.getId(), ActionType.OPEN_MENU, ActionType.PLAYER_COMMAND);
                         }else{
                             slotMenu = new SlotMenu(slot, items, cosmetic, ActionType.PREVIEW_ITEM, ActionType.PLAYER_COMMAND);
-                            slotMenu.getCommands().add("cosmetics unuse " + cosmetic.getId());
+                            slotMenu.getCommands().add("magiccos unuse " + cosmetic.getId());
                         }
                     }
                 }else{
                     if(cosmetic.isColored()){
-                        slotMenu = new SlotMenu(slot, items, Collections.singletonList("cosmetics unuse " + cosmetic.getId()),"colored|color1|"+cosmetic.getId(), ActionType.OPEN_MENU, ActionType.PLAYER_COMMAND);
+                        slotMenu = new SlotMenu(slot, items, Collections.singletonList("magiccos unuse " + cosmetic.getId()),"colored|color1|"+cosmetic.getId(), ActionType.OPEN_MENU, ActionType.PLAYER_COMMAND);
                     }else{
                         slotMenu = new SlotMenu(slot, items, cosmetic, ActionType.PREVIEW_ITEM, ActionType.PLAYER_COMMAND);
-                        slotMenu.getCommands().add("cosmetics unuse " + cosmetic.getId());
+                        slotMenu.getCommands().add("magiccos unuse " + cosmetic.getId());
                     }
                 }
                 slotMenu.setSound(Sound.getSound("on_click_cosmetic"));
