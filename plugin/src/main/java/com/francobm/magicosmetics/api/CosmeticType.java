@@ -1,8 +1,9 @@
-package com.francobm.magicosmetics.cache;
+package com.francobm.magicosmetics.api;
 
 public enum CosmeticType {
     HAT,
     BAG,
     WALKING_STICK,
-    BALLOON
+    BALLOON,
+    SPRAY
 }
