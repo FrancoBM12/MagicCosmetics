@@ -9,9 +9,12 @@ softdepend:
   - ModelEngine
   - TrMenu
   - PlaceholderAPI
+  - Citizens
+  - MythicMobs
 authors: [FrancoBM]
-description: simple plugin
+description: magic cosmetics for this server.
 website: FrancoBM#2980
+super: '%%__USER__%%'
 commands:
   magicosmetics:
     description: simple command.
