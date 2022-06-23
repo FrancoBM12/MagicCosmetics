@@ -1,18 +1,18 @@
 colors:
-  rows: #Don't touch this if you don't know how to use it.
-    3:
-      character: ''
-      selected: '쌍,쌍,쌍,쌍,     쌍,          쌍,              쌍'
-    4:
-      character: ''
-      selected: '쌍,쌍,쌍,쌍,쌍,     쌍,          쌍'
-    5:
-      character: ''
-      selected: '쌍,쌍,쌍,쌍,쌍,쌍,     쌍'
+  rows:
+    '3':
+      character: 
+      selected: 쌍,쌍,쌍,쌍,     쌍,          쌍,              쌍
+    '4':
+      character: 
+      selected: 쌍,쌍,쌍,쌍,쌍,     쌍,          쌍
+    '5':
+      character: 
+      selected: 쌍,쌍,쌍,쌍,쌍,쌍,     쌍
   color1:
     name: '&7Red Paint'
     primary-color: RED
-    select: '쌉'
+    select: 쌉
     with-row: true
     secondary-colors:
       - '#FF7272'
@@ -27,7 +27,7 @@ colors:
   color2:
     name: '&7Orange Paint'
     primary-color: ORANGE
-    select: '쌉'
+    select: 쌉
     with-row: true
     secondary-colors:
       - '#FF9D6A'
@@ -42,7 +42,7 @@ colors:
   color3:
     name: '&7Yellow Paint'
     primary-color: YELLOW
-    select: '쌉'
+    select: 쌉
     with-row: true
     secondary-colors:
       - '#FFE685'
@@ -58,7 +58,7 @@ colors:
   color4:
     name: '&7Pink Paint'
     primary-color: PINK
-    select: '쌊'
+    select: 쌊
     with-row: true
     secondary-colors:
       - '#FFB3E9'
@@ -75,7 +75,7 @@ colors:
   color5:
     name: '&7White Paint'
     primary-color: WHITE
-    select: '쌊'
+    select: 쌊
     with-row: true
     secondary-colors:
       - '#FFFFFF'
@@ -92,7 +92,7 @@ colors:
   color6:
     name: '&7Green Paint'
     primary-color: GREEN
-    select: '쌊'
+    select: 쌊
     with-row: true
     secondary-colors:
       - '#B9FFB9'
@@ -109,7 +109,7 @@ colors:
   color7:
     name: '&7Purple Paint'
     primary-color: PURPLE
-    select: '쌋'
+    select: 쌋
     with-row: true
     secondary-colors:
       - '#D3ACFF'
@@ -126,7 +126,7 @@ colors:
   color8:
     name: '&7Blue Paint'
     primary-color: BLUE
-    select: '쌋'
+    select: 쌋
     with-row: true
     secondary-colors:
       - '#7F88FF'
@@ -142,7 +142,7 @@ colors:
   color9:
     name: '&7Light Blue Paint'
     primary-color: LIGHT_BLUE
-    select: '쌋'
+    select: 쌋
     with-row: true
     secondary-colors:
       - '#B3E4FF'
@@ -206,7 +206,7 @@ items:
         - '&cYou do not have this cosmetic available!'
         - '&9See in -> https://spigotmc.org'
       amount: 1
-      glow: true
+      glow: false
       modeldata: 10000
   bag-template:
     item:
@@ -250,6 +250,20 @@ items:
       amount: 1
       glow: false
       modeldata: 10000
+  spray-template: #in 1.8.0
+    item:
+      display: '%name%'
+      material: PLAYER_HEAD
+      lore-available:
+        - '&6Type: &7%type%'
+        - '&eCondition: %available%'
+        - '&cEquip: %equip%'
+      lore-unavailable:
+        - '&cYou do not have this cosmetic available!'
+        - '&9See in -> https://spigotmc.org'
+      amount: 1
+      glow: false
+      modeldata: 10000
   color-template:
     item:
       display: '&aHere you can paint your cosmetic.'
@@ -260,7 +274,7 @@ items:
       lore-notselected:
         - '&8➜ Click to select'
       glow: false
-      modeldata: 10007
+      modeldata: 10012
   pages-template:
     item:
       display: '&eActual page: &b%pages%'
@@ -306,13 +320,22 @@ items:
       amount: 1
       glow: false
       modeldata: 10041
+  spray_menu:
+    item:
+      display: '&bSprays Menu'
+      material: FEATHER
+      lore:
+        - '&7Available balloons: %sprays_count%'
+      amount: 1
+      glow: false
+      modeldata: 10041
 menus:
   panels:
-    3: '쌥'
-    4: '쌦'
-    5: '쌧'
+    '3': 쌥
+    '4': 쌦
+    '5': 쌧
   hat:
-    title: '&f쌃' #1.5.4
+    title: '&f&f쌃'
     size: 6
     type: HAT
     start-slot: 19
@@ -320,33 +343,39 @@ menus:
     pages-slot: -1
     back-button-slot: 46
     next-button-slot: 52
-    unavailable-slots: '26,27,35,36'
-    1:
+    unavailable-slots: 26,27,35,36
+    '1':
       slot: 1
       item: hat_menu
       action:
         type: OPEN_MENU
         menu: hat
-    2:
+    '2':
       slot: 3
       item: bag_menu
       action:
         type: OPEN_MENU
         menu: bag
-    3:
+    '3':
       slot: 5
       item: wstick_menu
       action:
         type: OPEN_MENU
         menu: wstick
-    4:
+    '4':
       slot: 7
       item: balloon_menu
       action:
         type: OPEN_MENU
         menu: balloon
+    '5':
+      slot: 49
+      item: spray_menu
+      action:
+        type: OPEN_MENU
+        menu: spray
   bag:
-    title: '&f쌃' #1.5.4
+    title: '&f쌃'
     size: 6
     type: BAG
     start-slot: 19
@@ -354,33 +383,39 @@ menus:
     pages-slot: -1
     back-button-slot: 46
     next-button-slot: 52
-    unavailable-slots: '26,27,35,36'
-    1:
+    unavailable-slots: 26,27,35,36
+    '1':
       slot: 1
       item: hat_menu
       action:
         type: OPEN_MENU
         menu: hat
-    2:
+    '2':
       slot: 3
       item: bag_menu
       action:
         type: OPEN_MENU
         menu: bag
-    3:
+    '3':
       slot: 5
       item: wstick_menu
       action:
         type: OPEN_MENU
         menu: wstick
-    4:
+    '4':
       slot: 7
       item: balloon_menu
       action:
         type: OPEN_MENU
         menu: balloon
+    '5':
+      slot: 49
+      item: spray_menu
+      action:
+        type: OPEN_MENU
+        menu: spray
   wstick:
-    title: '&f쌃' #1.5.4
+    title: '&f쌃'
     size: 6
     type: WALKING_STICK
     start-slot: 19
@@ -388,33 +423,39 @@ menus:
     pages-slot: -1
     back-button-slot: 46
     next-button-slot: 52
-    unavailable-slots: '26,27,35,36'
-    1:
+    unavailable-slots: 26,27,35,36
+    '1':
       slot: 1
       item: hat_menu
       action:
         type: OPEN_MENU
         menu: hat
-    2:
+    '2':
       slot: 3
       item: bag_menu
       action:
         type: OPEN_MENU
         menu: bag
-    3:
+    '3':
       slot: 5
       item: wstick_menu
       action:
         type: OPEN_MENU
         menu: wstick
-    4:
+    '4':
       slot: 7
       item: balloon_menu
       action:
         type: OPEN_MENU
         menu: balloon
+    '5':
+      slot: 49
+      item: spray_menu
+      action:
+        type: OPEN_MENU
+        menu: spray
   balloon:
-    title: '&f쌃' #1.5.4
+    title: '&f쌃'
     size: 6
     type: BALLOON
     start-slot: 19
@@ -422,33 +463,79 @@ menus:
     pages-slot: -1
     back-button-slot: 46
     next-button-slot: 52
-    unavailable-slots: '26,27,35,36'
-    1:
+    unavailable-slots: 26,27,35,36
+    '1':
       slot: 1
       item: hat_menu
       action:
         type: OPEN_MENU
         menu: hat
-    2:
+    '2':
       slot: 3
       item: bag_menu
       action:
         type: OPEN_MENU
         menu: bag
-    3:
+    '3':
       slot: 5
       item: wstick_menu
       action:
         type: OPEN_MENU
         menu: wstick
-    4:
+    '4':
       slot: 7
       item: balloon_menu
       action:
         type: OPEN_MENU
         menu: balloon
+    '5':
+      slot: 49
+      item: spray_menu
+      action:
+        type: OPEN_MENU
+        menu: spray
+  spray: #in 1.8.0
+    title: '&f'
+    size: 6
+    type: SPRAY
+    start-slot: 19
+    end-slot: 39
+    pages-slot: -1
+    back-button-slot: 46
+    next-button-slot: 52
+    unavailable-slots: 26,27,35,36
+    '1':
+      slot: 1
+      item: hat_menu
+      action:
+        type: OPEN_MENU
+        menu: hat
+    '2':
+      slot: 3
+      item: bag_menu
+      action:
+        type: OPEN_MENU
+        menu: bag
+    '3':
+      slot: 5
+      item: wstick_menu
+      action:
+        type: OPEN_MENU
+        menu: wstick
+    '4':
+      slot: 7
+      item: balloon_menu
+      action:
+        type: OPEN_MENU
+        menu: balloon
+    '5':
+      slot: 49
+      item: spray_menu
+      action:
+        type: OPEN_MENU
+        menu: spray
   colored:
-    title: '&f '
+    title: '&f '
     size: 6
     type: COLORED
     start-slot: 37
@@ -458,9 +545,9 @@ menus:
     next-button-slot: 44
     preview-slot: 10
     result-slot: 16
-    unavailable-slots: '0,1,2,6,7,8,9,11,17,18,19,20,24,25,26,27,28,29,30,31,32,33,34,35,36,44'
+    unavailable-slots: 0,1,2,6,7,8,9,11,17,18,19,20,24,25,26,27,28,29,30,31,32,33,34,35,36,44
   free-colored:
-    title: '&f '
+    title: '&f '
     size: 6
     type: FREE_COLORED
     start-slot: 37
@@ -470,11 +557,12 @@ menus:
     next-button-slot: 44
     preview-slot: 10
     result-slot: 16
-    unavailable-slots: '0,1,2,6,7,8,9,11,17,18,19,20,24,25,26,27,28,29,30,31,32,33,34,35,36,44'
-    contains-item: 'contain-item'
+    unavailable-slots: 0,1,2,6,7,8,9,11,17,18,19,20,24,25,26,27,28,29,30,31,32,33,34,35,36,44
+    contains-item: contain-item
   token:
-    title: '&f'
+    title: '&f'
     size: 3
     type: TOKEN
     preview-slot: 11
     result-slot: 15
+    drag: false

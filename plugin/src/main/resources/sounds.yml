@@ -39,3 +39,7 @@ sounds:
     type: BLOCK_GLASS_HIT
     yaw: 1.0
     pitch: 0.5
+  spray: #in 1.8.0
+    type: entity.cat.hiss
+    yaw: 1.0
+    pitch: 2.0

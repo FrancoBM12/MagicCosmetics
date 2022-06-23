@@ -11,11 +11,12 @@ cosmetics:
       hide-attributes: true
       modeldata: 10005
     colored: true
+    hide-menu: false
     type: HAT
-    overlaps: false
+    overlaps: true
   hat2:
     item:
-      display: '&bHat Dog'
+      display: '&bHot Dog'
       material: LEATHER_HORSE_ARMOR
       lore:
         - ''
@@ -23,7 +24,7 @@ cosmetics:
       unbreakable: true
       glow: false
       hide-attributes: true
-      modeldata: 10008
+      modeldata: 10013
     colored: false
     type: HAT
     overlaps: false
@@ -40,6 +41,8 @@ cosmetics:
       modeldata: 10003
     colored: true
     type: BAG
+    space: 30
+
   bag2:
     item:
       display: '&bBanner backpack'
@@ -65,6 +68,18 @@ cosmetics:
       hide-attributes: true
       modeldata: 10001
     colored: true
+    type: WALKING_STICK
+  wstick2:
+    item:
+      display: '&bBig Head'
+      material: PLAYER_HEAD
+      lore:
+        - ''
+        - '&3This is a very big head!'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10003
     type: WALKING_STICK
   balloon1:
     item:
@@ -100,3 +115,45 @@ cosmetics:
     rotation:
       enabled: true
       type: RIGHT
+  balloon3:
+    item:
+      display: '&bBig balloon'
+      material: PLAYER_HEAD
+      texture: 'eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOTNmOWVlZGEzYmEyM2ZlMTQyM2M0MDM2ZTdkZDBhNzQ0NjFkZmY5NmJhZGM1YjJmMmI5ZmFhN2NjMTZmMzgyZiJ9fX0='
+      lore:
+        - ''
+        - '&aThis balloon is very big!!'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10003
+    type: BALLOON
+    space: 3
+    big-head: true
+  spray1:
+    item:
+      display: '&bDino Spray'
+      material: FEATHER
+      lore:
+        - ''
+        - '&aThis spray is the best!'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10044
+    colored: true
+    type: SPRAY
+    url: first.png
+  spray2:
+    item:
+      display: '&bMagic Spray'
+      material: PAPER
+      lore:
+        - ''
+        - '&aThis spray is magic!'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10009
+    type: SPRAY
+    item-image: true

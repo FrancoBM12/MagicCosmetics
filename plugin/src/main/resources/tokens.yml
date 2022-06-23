@@ -12,6 +12,7 @@ tokens:
       hide-attributes: true
       modeldata: 10006
     cosmetic: hat1
+    exchangeable: true #in 1.8.9 this is not required
   token2:
     item:
       display: '&6Creeper token'
@@ -24,6 +25,7 @@ tokens:
       hide-attributes: true
       modeldata: 10006
     cosmetic: bag1
+    exchangeable: true
   token3:
     item:
       display: '&6Banner token'
@@ -36,6 +38,7 @@ tokens:
       hide-attributes: true
       modeldata: 10006
     cosmetic: bag2
+    exchangeable: true
   token4:
     item:
       display: '&6Magic token'
@@ -48,6 +51,7 @@ tokens:
       hide-attributes: true
       modeldata: 10006
     cosmetic: wstick1
+    exchangeable: true
   token5:
     item:
       display: '&6HotAir token'
@@ -60,6 +64,7 @@ tokens:
       hide-attributes: true
       modeldata: 10006
     cosmetic: balloon1
+    exchangeable: true
   token6:
     item:
       display: '&6HotAir token'
@@ -72,3 +77,30 @@ tokens:
       hide-attributes: true
       modeldata: 10006
     cosmetic: balloon2
+    exchangeable: true
+  token7:
+    item:
+      display: '&6Dino token'
+      item-adder: token
+      lore:
+        - ''
+        - '&9Redeem the Dino spray!'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10006
+    cosmetic: spray1
+    exchangeable: true
+  token8:
+    item:
+      display: '&6MagicSpray token'
+      item-adder: token
+      lore:
+        - ''
+        - '&9Redeem the Magic spray!'
+      unbreakable: true
+      glow: false
+      hide-attributes: true
+      modeldata: 10006
+    cosmetic: spray2
+    exchangeable: true

@@ -1,8 +1,15 @@
 license: ''
 balloons-rotation: 25
 npc-rotation: 3
-leave-wardrobe-gamemode: SURVIVAL
 equip-message: true
+save-on-quit: true
+bossbar-color: YELLOW
+bungeecord: false
+permissions: false
+zones-hide-items: true
+spray-key: 'SHIFT_F'
+spray-stay-time: 60
+spray-cooldown: 5 #1.8.5 - in seconds
 MySQL:
   enabled: false
   host: "127.0.0.1"
