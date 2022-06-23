@@ -1,5 +1,7 @@
 package com.francobm.magicosmetics.cache;
 
+import com.francobm.magicosmetics.api.CosmeticType;
+import com.francobm.magicosmetics.nms.bag.EntityBag;
 import com.francobm.magicosmetics.nms.bag.PlayerBag;
 import com.francobm.magicosmetics.utils.XMaterial;
 import com.francobm.magicosmetics.MagicCosmetics;
@@ -14,19 +16,42 @@ import org.bukkit.util.EulerAngle;
 
 public class Bag extends Cosmetic {
     private PlayerBag bag1;
+    private EntityBag bag2;
     private final int modelDataForMe;
     private final double space;
     private boolean hide = false;
     private boolean spectator = false;
+    private final double distance;
 
-    public Bag(String id, String name, ItemStack itemStack, int modelData, int modelDataForMe, boolean colored, double space, CosmeticType cosmeticType, Color color) {
-        super(id, name, itemStack, modelData, colored, cosmeticType, color);
+    public Bag(String id, String name, ItemStack itemStack, int modelData, int modelDataForMe, boolean colored, double space, CosmeticType cosmeticType, Color color, double distance, String permission, boolean texture, boolean hideMenu) {
+        super(id, name, itemStack, modelData, colored, cosmeticType, color, permission, texture, hideMenu);
         this.modelDataForMe = modelDataForMe;
         this.space = space;
+        this.distance = distance;
     }
 
     public double getSpace() {
         return space;
+    }
+
+    public void active(Entity entity){
+        if(entity == null) return;
+        if(bag2 == null){
+            if(entity.isDead() || !entity.isValid()) {
+                clear(null);
+                return;
+            }
+            clear(null);
+            bag2 = MagicCosmetics.getInstance().getVersion().createEntityBag(entity, distance);
+            /*bag1.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 100, false, false));
+            MetadataValue metadataValue = new FixedMetadataValue(CustomCosmetics.getInstance(), "balloon");
+            bag1.setMetadata("cosmetics", metadataValue);*/
+            bag2.spawnBag();
+            //
+        }
+        bag2.addPassenger();
+        bag2.setItemOnHelmet(getItemColor());
+        bag2.lookEntity();
     }
 
     @Override
@@ -36,35 +61,41 @@ public class Bag extends Cosmetic {
             if(player.getGameMode() == GameMode.SPECTATOR) return;
 
             clear(player);
-            bag1 = MagicCosmetics.getInstance().getVersion().createPlayerBag(player);
+            bag1 = MagicCosmetics.getInstance().getVersion().createPlayerBag(player, getDistance());
             /*bag1.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 100, false, false));
             MetadataValue metadataValue = new FixedMetadataValue(CustomCosmetics.getInstance(), "balloon");
             bag1.setMetadata("cosmetics", metadataValue);*/
-            bag1.spawnBag(true, true);
+            bag1.spawn(false);
             if(hide){
                 hideSelf(false);
             }
             //
         }
-        bag1.addPassenger(true);
+        bag1.addPassenger(false);
         bag1.setItemOnHelmet(getItemColor(player), true);
         bag1.lookEntity(player.getLocation().getYaw(), player.getLocation().getPitch(), true);
+        bag1.spawn(true);
         if (player.getLocation().getPitch() >= space && space != 0) {
             if(bag1.getPlayers().contains(player.getUniqueId())) {
                 bag1.remove(player);
             }
             return;
         }
-        bag1.spawnBag(player);
+        if(hide) return;
+        bag1.spawn(player);
         //armorStand.teleport(behind);
     }
 
     @Override
     public void clear(Player player) {
         if(bag1 != null){
-            bag1.remove(true);
+            bag1.remove();
+        }
+        if(bag2 != null){
+            bag2.remove();
         }
         bag1 = null;
+        bag2 = null;
     }
 
     public void setHeadPos(ArmorStand as, double yaw, double pitch){
@@ -132,7 +163,7 @@ public class Bag extends Cosmetic {
             return;
         }
         if(bag1.getPlayers().contains(player.getUniqueId())) return;
-        bag1.spawnBag(player);
+        bag1.spawn(player);
     }
 
     public void hide(){
@@ -149,5 +180,13 @@ public class Bag extends Cosmetic {
 
     public PlayerBag getBag() {
         return bag1;
+    }
+
+    public double getDistance() {
+        return distance;
+    }
+
+    public boolean isHide() {
+        return hide;
     }
 }
