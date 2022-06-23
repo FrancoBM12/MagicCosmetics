@@ -7,6 +7,7 @@ import com.francobm.magicosmetics.cache.PlayerCache;
 import com.francobm.magicosmetics.cache.Sound;
 import com.francobm.magicosmetics.cache.inventories.*;
 import com.francobm.magicosmetics.cache.items.Items;
+import com.francobm.magicosmetics.utils.Utils;
 import com.francobm.magicosmetics.utils.XMaterial;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -66,20 +67,24 @@ public class FreeColoredMenu extends PaginatedMenu {
             }
             return;
         }
+        if(event.getClick() != ClickType.LEFT) {
+            event.setCancelled(true);
+            return;
+        }
         if (getContentMenu().getPreviewSlot() == slot) {
-            /*if (event.getCurrentItem() == null) {
-                if (containItem.isColored(event.getCursor())) {
-                    this.itemStack = event.getCursor().clone();
-                    SlotMenu slotMenu1 = new SlotMenu(getContentMenu().getPreviewSlot(), new Items(itemStack), "");
-                    getContentMenu().addSlotMenu(slotMenu1);
-                    setResultItem();
+            if(event.getCursor().getType() != XMaterial.AIR.parseMaterial()) {
+                if(containItem != null) {
+                    if (containItem.isColored(event.getCursor())) {
+                        this.itemStack = event.getCursor().clone();
+                        SlotMenu slotMenu1 = new SlotMenu(getContentMenu().getPreviewSlot(), new Items(itemStack), "");
+                        getContentMenu().addSlotMenu(slotMenu1);
+                        setResultItem();
+                        return;
+                    }
+                    event.setCancelled(true);
                     return;
                 }
-                event.setCancelled(true);
-                return;
-            }*/
-            if(event.getCursor().getType() != XMaterial.AIR.parseMaterial()) {
-                if (containItem.isColored(event.getCursor())) {
+                if(Utils.isDyeable(event.getCursor())) {
                     this.itemStack = event.getCursor().clone();
                     SlotMenu slotMenu1 = new SlotMenu(getContentMenu().getPreviewSlot(), new Items(itemStack), "");
                     getContentMenu().addSlotMenu(slotMenu1);
@@ -300,6 +305,9 @@ public class FreeColoredMenu extends PaginatedMenu {
         if(player == null) return;
         if(player.getInventory().firstEmpty() == -1){
             player.getWorld().dropItem(player.getLocation(), this.itemStack);
+            this.itemStack = null;
+            getContentMenu().removeSlotMenu(getContentMenu().getPreviewSlot());
+            getContentMenu().removeSlotMenu(getContentMenu().getResultSlot());
             return;
         }
         player.getInventory().addItem(itemStack);
