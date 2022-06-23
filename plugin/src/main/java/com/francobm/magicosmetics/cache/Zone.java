@@ -6,8 +6,11 @@ import com.francobm.magicosmetics.utils.Utils;
 import com.francobm.magicosmetics.utils.XMaterial;
 import com.francobm.magicosmetics.MagicCosmetics;
 import org.bukkit.Location;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -29,8 +32,10 @@ public class Zone {
     private Location enter;
     private Location exit;
     private Location balloon;
+    private Location sprayLoc;
+    private BlockFace sprayFace;
     private boolean active;
-    private ArmorStand spec;
+    private int rotation;
 
     public Zone(String id, String name){
         this.id = id;
@@ -42,8 +47,9 @@ public class Zone {
         this.enter = null;
         this.exit = null;
         this.balloon = null;
+        this.sprayLoc = null;
+        this.sprayFace = null;
         this.active = false;
-        this.spec = null;
     }
 
     public Zone(String name){
@@ -56,11 +62,12 @@ public class Zone {
         this.enter = null;
         this.exit = null;
         this.balloon = null;
+        this.sprayLoc = null;
+        this.sprayFace = null;
         this.active = false;
-        this.spec = null;
     }
 
-    public Zone(String id, String name, Location corn1, Location corn2, Location npc, Location enter, Location exit, Location balloon){
+    public Zone(String id, String name, Location corn1, Location corn2, Location npc, Location enter, Location exit, Location balloon, Location sprayLoc, BlockFace sprayFace){
         this.id = id;
         this.name = name;
         this.cuboid = new Cuboid(corn1, corn2);
@@ -70,32 +77,10 @@ public class Zone {
         this.enter = enter;
         this.exit = exit;
         this.balloon = balloon;
-        loadSpec();
+        this.sprayLoc = sprayLoc;
+        this.sprayFace = sprayFace;
         this.active = false;
-    }
-
-    public void removeSpec(){
-        if(spec != null) {
-            spec.remove();
-            spec = null;
-        }
-    }
-
-    private void loadSpec(){
-        if(enter == null) return;
-        if(enter.getWorld() == null) return;
-        if(spec != null) {
-            if(!spec.getLocation().equals(enter)) {
-                spec.remove();
-            }
-        }
-        spec = enter.getWorld().spawn(enter, ArmorStand.class);
-        spec.setGravity(false);
-        spec.setAI(false);
-        spec.setSilent(true);
-        spec.setVisible(false);
-        spec.setInvulnerable(true);
-        spec.setCollidable(false);
+        //loadSpec();
     }
 
     public static Zone getZone(String name){
@@ -118,6 +103,8 @@ public class Zone {
             Location enter = null;
             Location exit = null;
             Location balloon = null;
+            Location sprayLoc = null;
+            BlockFace sprayFace = null;
             boolean active = false;
             if(zone.contains("zones." + key + ".name")){
                 name = zone.getString("zones." + key + ".name");
@@ -170,18 +157,65 @@ public class Zone {
                     balloon = Utils.convertStringToLocation(balloonString);
                 }
             }
+            if(zone.contains("zones." + key + ".spray")){
+                String sprayLocString = zone.getString("zones." + key + ".spray.loc");
+                String sprayFaceString = zone.getString("zones." + key + ".spray.face");
+                if(sprayLocString.equalsIgnoreCase("Location is Null!!")){
+                    MagicCosmetics.getInstance().getLogger().info("Location of Spray is Null!");
+                }else{
+                    sprayLoc = Utils.convertStringToLocation(sprayLocString);
+                    try{
+                        sprayFace = BlockFace.valueOf(sprayFaceString.toUpperCase());
+                    }catch(IllegalArgumentException e){
+                        MagicCosmetics.getInstance().getLogger().info("Face of Spray is Null!");
+                    }
+                }
+            }
             if(zone.contains("zones." + key + ".enabled")){
                 active = zone.getBoolean("zones." + key + ".enabled");
             }
-            Zone z = new Zone(key, name, corn1, corn2, npc, enter, exit, balloon);
+            Zone z = new Zone(key, name, corn1, corn2, npc, enter, exit, balloon, sprayLoc, sprayFace);
             z.setActive(active);
             zones.put(name, z);
         }
     }
 
+    public static void removeZone(String id){
+        Zone zone = getZone(id);
+        if(zone == null) return;
+        zone.setCuboid(null);
+        zones.remove(zone.getName());
+        FileCreator zoneConf = MagicCosmetics.getInstance().getZones();
+        zoneConf.set("zones", null);
+        for(Zone z : zones.values()){
+            String zId = z.getId();
+            String name = z.getName();
+            String corn1 = Utils.convertLocationToString(z.getCorn1(), true);
+            String corn2 = Utils.convertLocationToString(z.getCorn2(), true);
+            String npc = Utils.convertLocationToString(z.getNpc(), false);
+            String enter = Utils.convertLocationToString(z.getEnter(), false);
+            String exit = Utils.convertLocationToString(z.getExit(), false);
+            String balloon = Utils.convertLocationToString(z.getBalloon(), false);
+            String sprayLoc = Utils.convertLocationToString(z.getSprayLoc(), true);
+            String sprayFace = z.getSprayFace().name();
+            boolean enabled = z.isActive();
+            zoneConf.set("zones." + zId + ".name", name);
+            zoneConf.set("zones." + zId + ".corn1", corn1);
+            zoneConf.set("zones." + zId + ".corn2", corn2);
+            zoneConf.set("zones." + zId + ".npc", npc);
+            zoneConf.set("zones." + zId + ".enter", enter);
+            zoneConf.set("zones." + zId + ".exit", exit);
+            zoneConf.set("zones." + zId + ".balloon", balloon);
+            zoneConf.set("zones." + zId + ".spray.loc", sprayLoc);
+            zoneConf.set("zones." + zId + ".spray.face", sprayFace);
+            zoneConf.set("zones." + zId + ".enabled", enabled);
+        }
+        zoneConf.save();
+    }
+
     public static void saveZone(String id){
         FileCreator zone = MagicCosmetics.getInstance().getZones();
-        Zone z = Zone.getZone(id);
+        Zone z = getZone(id);
         if(z == null) return;
         String name = z.getName();
         String corn1 = Utils.convertLocationToString(z.getCorn1(), true);
@@ -190,6 +224,8 @@ public class Zone {
         String enter = Utils.convertLocationToString(z.getEnter(), false);
         String exit = Utils.convertLocationToString(z.getExit(), false);
         String balloon = Utils.convertLocationToString(z.getBalloon(), false);
+        String sprayLoc = Utils.convertLocationToString(z.getSprayLoc(), true);
+        String sprayFace = z.getSprayFace().name();
         boolean enabled = z.isActive();
         zone.set("zones." + id + ".name", name);
         zone.set("zones." + id + ".corn1", corn1);
@@ -198,6 +234,8 @@ public class Zone {
         zone.set("zones." + id + ".enter", enter);
         zone.set("zones." + id + ".exit", exit);
         zone.set("zones." + id + ".balloon", balloon);
+        zone.set("zones." + id + ".spray.loc", sprayLoc);
+        zone.set("zones." + id + ".spray.face", sprayFace);
         zone.set("zones." + id + ".enabled", enabled);
         zone.save();
         if(z.getCuboid() == null) {
@@ -205,7 +243,6 @@ public class Zone {
                 z.setCuboid(new Cuboid(z.getCorn1(), z.getCorn2()));
             }
         }
-        z.loadSpec();
     }
 
     public static void saveZones(){
@@ -229,7 +266,6 @@ public class Zone {
             zone.set("zones." + id + ".exit", exit);
             zone.set("zones." + id + ".balloon", balloon);
             zone.set("zones." + id + ".enabled", enabled);
-            z.removeSpec();
         }
         zone.save();
     }
@@ -337,10 +373,29 @@ public class Zone {
                 setCuboid(new Cuboid(getCorn1(), getCorn2()));
             }
         }
-        loadSpec();
     }
 
-    public ArmorStand getSpec() {
-        return spec;
+    public void setSprayFace(BlockFace sprayFace) {
+        this.sprayFace = sprayFace;
+    }
+
+    public BlockFace getSprayFace() {
+        return sprayFace;
+    }
+
+    public void setSprayLoc(Location sprayLoc) {
+        this.sprayLoc = sprayLoc;
+    }
+
+    public Location getSprayLoc() {
+        return sprayLoc;
+    }
+
+    public void setRotation(int rotation) {
+        this.rotation = rotation;
+    }
+
+    public int getRotation() {
+        return rotation;
     }
 }

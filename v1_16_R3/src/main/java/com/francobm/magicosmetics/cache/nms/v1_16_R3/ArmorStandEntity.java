@@ -2,6 +2,7 @@ package com.francobm.magicosmetics.cache.nms.v1_16_R3;
 
 import net.minecraft.server.v1_16_R3.EntityArmorStand;
 import net.minecraft.server.v1_16_R3.EntityTypes;
+import net.minecraft.server.v1_16_R3.Vector3f;
 import net.minecraft.server.v1_16_R3.World;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.v1_16_R3.CraftWorld;
@@ -19,6 +20,7 @@ public class ArmorStandEntity extends EntityArmorStand {
         super.setInvulnerable(true);
         super.setInvisible(true);
         super.setMarker(true);
+        setHeadPose(new Vector3f(0,0,0));
         this.location = player.getLocation();
         this.player = player;
     }

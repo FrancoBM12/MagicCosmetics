@@ -3,12 +3,11 @@ package com.francobm.magicosmetics.events;
 import com.francobm.magicosmetics.cache.Zone;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
-import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
+import org.bukkit.event.player.PlayerEvent;
 
-public class ZoneExitEvent extends Event implements Cancellable {
+public class ZoneExitEvent extends PlayerEvent implements Cancellable {
 
-    private final Player player;
     private final Zone zone;
     private final Reason reason;
 
@@ -16,7 +15,7 @@ public class ZoneExitEvent extends Event implements Cancellable {
     private boolean isCancelled;
 
     public ZoneExitEvent(Player player, Zone zone, Reason reason) {
-        this.player = player;
+        super(player);
         this.zone = zone;
         this.reason = reason;
         this.isCancelled = false;
@@ -29,10 +28,6 @@ public class ZoneExitEvent extends Event implements Cancellable {
 
     public static HandlerList getHandlerList() {
         return HANDLER_LIST;
-    }
-
-    public Player getPlayer() {
-        return player;
     }
 
     public Zone getZone() {
