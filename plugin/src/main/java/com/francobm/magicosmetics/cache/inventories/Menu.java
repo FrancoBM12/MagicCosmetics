@@ -21,17 +21,20 @@ public abstract class Menu implements InventoryHolder {
     protected final String id;
     protected final PlayerCache playerCache;
     protected final ContentMenu contentMenu;
+    private String permission;
 
     public Menu(String id, ContentMenu contentMenu){
         this.id = id;
         this.contentMenu = contentMenu;
         this.playerCache = null;
+        this.permission = "";
         MagicCosmetics.getInstance().getLogger().info("Menu named: '" + id + "' registered.");
     }
 
     public Menu(PlayerCache playerCache, Menu menu) {
         this.id = menu.id;
         this.contentMenu = new ContentMenu(menu.getContentMenu().getTitle(), menu.getContentMenu().getSize(), menu.getContentMenu().getInventoryType(), menu.getContentMenu().getSlotMenu(), menu.getContentMenu().getPreviewSlot(), menu.getContentMenu().getResultSlot());
+        this.permission = menu.permission;
         this.playerCache = playerCache;
     }
 
@@ -58,7 +61,7 @@ public abstract class Menu implements InventoryHolder {
         for(String key : menu.getConfigurationSection("menus.panels").getKeys(false)){
             String character = menu.getString("menus.panels." + key);
             if(plugin.isItemsAdder()){
-                character = plugin.getItemsAdder().replaceFontImages(character);
+                character = plugin.getItemsAdder().replaceFontImageWithoutColor(character);
             }
             if(plugin.isOraxen()) {
                 character = plugin.getOraxen().replaceFontImages(character);
@@ -67,6 +70,7 @@ public abstract class Menu implements InventoryHolder {
         }
         for(String key : menu.getConfigurationSection("menus").getKeys(false)){
             if(!menu.contains("menus." + key + ".title")) continue;
+            String perm = "";
             String title = "";
             int size = 0;
             InventoryType inventoryType = null;
@@ -81,12 +85,13 @@ public abstract class Menu implements InventoryHolder {
             int resultSlot = 0;
             List<Integer> slotsUnavailable = new ArrayList<>();
             Items containItem = null;
+            boolean drag = false;
+            if(menu.contains("menus." + key + ".permission")){
+                perm = menu.getString("menus." + key + ".permission");
+            }
             if(menu.contains("menus." + key + ".title")){
                 title = menu.getString("menus." + key + ".title");
                 if(plugin.isItemsAdder()){
-                    /*if(plugin.getItemsAdder().isFontImageWrapper(title)) {
-                        title = plugin.getItemsAdder().getFontImageWrapperString(title);
-                    }*/
                     title = plugin.getItemsAdder().replaceFontImages(title);
                 }
                 if(plugin.isOraxen()){
@@ -104,6 +109,7 @@ public abstract class Menu implements InventoryHolder {
                     plugin.getLogger().info("Menu id '" + key + "' type: " + type + " Not Found.");
                 }
             }
+            if(inventoryType == null) continue;
             //
             if(menu.contains("menus." + key + ".start-slot")){
                 startSlot = menu.getInt("menus." + key + ".start-slot");
@@ -143,8 +149,10 @@ public abstract class Menu implements InventoryHolder {
             if(menu.contains("menus." + key + ".contains-item")){
                 containItem = Items.getItem(menu.getString("menus." + key + ".contains-item"));
             }
+            if(menu.contains("menus." + key + ".drag")){
+                drag = menu.getBoolean("menus." + key + ".drag");
+            }
             //
-            if(inventoryType == null) return;
             for(String slot : menu.getConfigurationSection("menus." + key).getKeys(false)){
                 if(!menu.contains("menus." + key + "." + slot + ".slot")) continue;
                 int itemSlot = 0;
@@ -197,28 +205,49 @@ public abstract class Menu implements InventoryHolder {
             ContentMenu contentMenu = new ContentMenu(title, size, inventoryType, slotMenus, previewSlot, resultSlot);
             switch (inventoryType){
                 case HAT:
-                    inventories.put(key, new HatMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable));
+                    HatMenu hatMenu = new HatMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable);
+                    hatMenu.setPermission(perm);
+                    inventories.put(key, hatMenu);
                     break;
                 case BAG:
-                    inventories.put(key, new BagMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable));
+                    BagMenu bagMenu = new BagMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable);
+                    bagMenu.setPermission(perm);
+                    inventories.put(key, bagMenu);
                     break;
                 case WALKING_STICK:
-                    inventories.put(key, new WStickMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable));
+                    WStickMenu wStickMenu = new WStickMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable);
+                    wStickMenu.setPermission(perm);
+                    inventories.put(key, wStickMenu);
                     break;
                 case BALLOON:
-                    inventories.put(key, new BalloonMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable));
+                    BalloonMenu balloonMenu = new BalloonMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable);
+                    balloonMenu.setPermission(perm);
+                    inventories.put(key, balloonMenu);
+                    break;
+                case SPRAY:
+                    SprayMenu sprayMenu = new SprayMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable);
+                    sprayMenu.setPermission(perm);
+                    inventories.put(key, sprayMenu);
                     break;
                 case FREE:
-                    inventories.put(key, new FreeMenu(key, contentMenu));
+                    FreeMenu freeMenu = new FreeMenu(key, contentMenu);
+                    freeMenu.setPermission(perm);
+                    inventories.put(key, freeMenu);
                     break;
                 case COLORED:
-                    inventories.put(key, new ColoredMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable));
+                    ColoredMenu coloredMenu = new ColoredMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable);
+                    coloredMenu.setPermission(perm);
+                    inventories.put(key, coloredMenu);
                     break;
                 case FREE_COLORED:
-                    inventories.put(key, new FreeColoredMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable, containItem));
+                    FreeColoredMenu freeColoredMenu = new FreeColoredMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable, containItem);
+                    freeColoredMenu.setPermission(perm);
+                    inventories.put(key, freeColoredMenu);
                     break;
                 case TOKEN:
-                    inventories.put(key, new TokenMenu(key, contentMenu));
+                    TokenMenu tokenMenu = new TokenMenu(key, contentMenu, drag);
+                    tokenMenu.setPermission(perm);
+                    inventories.put(key, tokenMenu);
                     break;
             }
         }
@@ -242,6 +271,9 @@ public abstract class Menu implements InventoryHolder {
             MagicCosmetics.getInstance().getLogger().info("Slot: " + slotMenu.getSlot() + " is Null!");
             return;
         }
+        Items items = slotMenu.getItems();
+        items.addPlaceHolder(playerCache.getOfflinePlayer().getPlayer());
+        slotMenu.setItems(items);
         contentMenu.getInventory().setItem(slotMenu.getSlot(), slotMenu.getItems().getItemStack());
     }
 
@@ -261,6 +293,10 @@ public abstract class Menu implements InventoryHolder {
         }
         if(!slotMenu.getItems().getId().endsWith(endsWith)){
             setItemInMenu(slotMenu);
+            return;
+        }
+        if(slotMenu.getItems().getItemStack() == null){
+            MagicCosmetics.getInstance().getLogger().info("Slot: " + slotMenu.getSlot() + " is Null!");
             return;
         }
         if(!slotMenu.getItems().getId().equalsIgnoreCase(page+index+endsWith)) return;
@@ -305,5 +341,13 @@ public abstract class Menu implements InventoryHolder {
         Panel panel = getPanel(String.valueOf(panelId));
         if(panel == null) return "";
         return panel.getCharacter();
+    }
+
+    public String getPermission() {
+        return permission;
+    }
+
+    public void setPermission(String permission) {
+        this.permission = permission;
     }
 }
