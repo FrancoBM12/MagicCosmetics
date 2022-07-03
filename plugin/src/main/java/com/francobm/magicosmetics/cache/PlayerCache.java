@@ -60,7 +60,7 @@ public class PlayerCache {
         this.inventory = new HashMap<>();
     }
 
-    public static PlayerCache getPlayer(Player player){
+    public static PlayerCache getPlayer(OfflinePlayer player){
         if(!players.containsKey(player.getUniqueId())){
             PlayerCache playerCache = new PlayerCache(player.getUniqueId());
             players.put(player.getUniqueId(), playerCache);
