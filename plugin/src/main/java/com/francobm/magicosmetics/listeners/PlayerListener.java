@@ -26,6 +26,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
+import org.bukkit.inventory.DoubleChestInventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -338,35 +339,68 @@ public class PlayerListener implements Listener {
         PlayerCache playerCache = PlayerCache.getPlayer(player);
         if(playerCache == null) return;
         if(event.getClickedInventory() == null) return;
+        if(event.getClickedInventory().getType() == InventoryType.PLAYER) {
+            if(playerCache.getWStick() != null) {
+                if (event.getClick() == ClickType.SWAP_OFFHAND) {
+                    event.setCancelled(true);
+                    return;
+                }
+                if (playerCache.getWStick().isCosmetic(player.getInventory().getItemInOffHand())) {
+                    if(event.getSlotType() == InventoryType.SlotType.QUICKBAR && event.getSlot() == 40){
+                        event.setCancelled(true);
+                        if(player.getItemOnCursor().getType() == XMaterial.AIR.parseMaterial()) return;
+                        event.setCurrentItem(player.getItemOnCursor());
+                        player.setItemOnCursor(XMaterial.AIR.parseItem());
+                        return;
+                    }
+                }
+                if(event.getCurrentItem() == null) return;
+                if(playerCache.getWStick().isCosmetic(event.getCurrentItem())){
+                    event.setCancelled(true);
+                    event.setCurrentItem(XMaterial.AIR.parseItem());
+                    return;
+                }
+            }
+            if (playerCache.getHat() != null) {
+                if (event.getCurrentItem() == null) {
+                    return;
+                }
+                if(playerCache.getHat().isCosmetic(event.getCursor())){
+                    player.setItemOnCursor(XMaterial.AIR.parseItem());
+                }
+                if (playerCache.getHat().isCosmetic(player.getInventory().getHelmet())) {
+                    if(event.getSlotType() == InventoryType.SlotType.ARMOR && event.getSlot() == 39){
+                        event.setCancelled(true);
+                        if(player.getItemOnCursor().getType() == XMaterial.AIR.parseMaterial()) return;
+                        if(player.getItemOnCursor().getType().name().endsWith("HELMET") || player.getItemOnCursor().getType().name().endsWith("HEAD")) {
+                            event.setCurrentItem(event.getCursor());
+                            player.setItemOnCursor(XMaterial.AIR.parseItem());
+                        }
+                        return;
+                    }
+
+                    if (playerCache.getHat().isCosmetic(event.getCurrentItem())) {
+                        event.setCurrentItem(XMaterial.AIR.parseItem());
+                        event.setCancelled(true);
+                        return;
+                    }
+                }
+
+                if (playerCache.getHat().isCosmetic(event.getCurrentItem())) {
+                    event.setCurrentItem(XMaterial.AIR.parseItem());
+                    event.setCancelled(true);
+                }
+
+            }
+            return;
+        }
         if(playerCache.getWStick() != null) {
             if (playerCache.getWStick().isCosmetic(player.getInventory().getItemInOffHand())) {
                 if (event.getClick() == ClickType.SWAP_OFFHAND) {
                     event.setCancelled(true);
                     return;
                 }
-                if(event.getSlotType() == InventoryType.SlotType.QUICKBAR && event.getSlot() == 40){
-                    event.setCancelled(true);
-                    if(player.getItemOnCursor().getType() == XMaterial.AIR.parseMaterial()) return;
-                    event.setCurrentItem(player.getItemOnCursor());
-                    player.setItemOnCursor(XMaterial.AIR.parseItem());
-                    return;
-                }
-            }
-            if(event.getCurrentItem() == null) return;
-            /*if(event.getSlotType() == InventoryType.SlotType.QUICKBAR){
-                if(playerCache.getWStick().isCosmetic(event.getCurrentItem())) {
-                    if(event.getSlot() == 40){
-                        event.setCancelled(true);
-                        return;
-                    }
-                }
-            }*/
-            if(playerCache.getWStick().isCosmetic(event.getCurrentItem())){
-                event.setCancelled(true);
-                event.setCurrentItem(XMaterial.AIR.parseItem());
-                return;
-            }
-        }
+            }}
         if (playerCache.getHat() != null) {
             if (event.getCurrentItem() == null) {
                 return;
@@ -382,19 +416,7 @@ public class PlayerListener implements Listener {
                         event.setCurrentItem(event.getCursor());
                         player.setItemOnCursor(XMaterial.AIR.parseItem());
                     }
-                    return;
                 }
-
-                if (playerCache.getHat().isCosmetic(event.getCurrentItem())) {
-                    event.setCurrentItem(XMaterial.AIR.parseItem());
-                    event.setCancelled(true);
-                    return;
-                }
-            }
-
-            if (playerCache.getHat().isCosmetic(event.getCurrentItem())) {
-                event.setCurrentItem(XMaterial.AIR.parseItem());
-                event.setCancelled(true);
             }
 
         }
