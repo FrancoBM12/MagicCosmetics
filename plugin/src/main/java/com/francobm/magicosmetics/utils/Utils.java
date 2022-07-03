@@ -220,13 +220,8 @@ public class Utils {
         return "Location is Null!!";
     }
 
-    public static boolean isLegacyVersion(){
-        String packageName = Bukkit.getServer().getClass().getPackage().getName();
-        return packageName.contains("1_17_") || packageName.contains("1_16_") || packageName.contains("1_15_") || packageName.contains("1_14_") || packageName.contains("1_13_") || packageName.contains("1_12_") || packageName.contains("1_11_") || packageName.contains("1_10_") || packageName.contains("1_9_");
-    }
-
     public static String ChatColor(String message){
-        if(Bukkit.getVersion().contains("1.16") || Bukkit.getVersion().contains("1.17") || Bukkit.getVersion().contains("1.18")){
+        if(Bukkit.getVersion().contains("1.16") || Bukkit.getVersion().contains("1.17") || Bukkit.getVersion().contains("1.18") || Bukkit.getVersion().contains("1.19")){
             Matcher matcher = pattern.matcher(message);
             while(matcher.find()){
                 String color = message.substring(matcher.start(), matcher.end());
@@ -245,22 +240,5 @@ public class Utils {
     public static String bsc(String string){
         return new String(Base64.getDecoder().decode(string));
     }
-    /*public static String translateHexColorCodes(String startTag, String endTag, String message)
-    {
-        final char COLOR_CHAR = '\u00A7';
-        final Pattern hexPattern = Pattern.compile(startTag + "([A-Fa-f0-9]{6})" + endTag);
-        Matcher matcher = hexPattern.matcher(message);
-        StringBuffer buffer = new StringBuffer(message.length() + 4 * 8);
-        while (matcher.find())
-        {
-            String group = matcher.group(1);
-            matcher.appendReplacement(buffer, COLOR_CHAR + "x"
-                    + COLOR_CHAR + group.charAt(0) + COLOR_CHAR + group.charAt(1)
-                    + COLOR_CHAR + group.charAt(2) + COLOR_CHAR + group.charAt(3)
-                    + COLOR_CHAR + group.charAt(4) + COLOR_CHAR + group.charAt(5)
-            );
-        }
-        return ChatColor.translateAlternateColorCodes('&', matcher.appendTail(buffer).toString());
-    }*/
 
 }
