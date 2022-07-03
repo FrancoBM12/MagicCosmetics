@@ -3,6 +3,7 @@ package com.francobm.magicosmetics.api;
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.cache.*;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -73,6 +74,21 @@ public class MagicAPI {
         return cosmetic.getItemColor();
     }
 
+    public static String getCosmeticId(String name, String type){
+        Player player = Bukkit.getPlayerExact(name);
+        if(player == null) return null;
+        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        try{
+            CosmeticType cosmeticType = CosmeticType.valueOf(type.toUpperCase());
+            Cosmetic cosmetic = playerCache.getEquip(cosmeticType);
+            if(cosmetic == null) return null;
+            return cosmetic.getId();
+        }catch (IllegalArgumentException ignored){
+            MagicCosmetics.getInstance().getLogger().warning("Invalid cosmetic type: " + type);
+        }
+        return null;
+    }
+
     public static ItemStack getEquipped(String name, String type){
         Player player = Bukkit.getPlayerExact(name);
         if(player == null) return null;
@@ -86,6 +102,19 @@ public class MagicAPI {
             MagicCosmetics.getInstance().getLogger().warning("Invalid cosmetic type: " + type);
         }
         return null;
+    }
+
+    public static ItemStack getEquipped(OfflinePlayer offlinePlayer, CosmeticType cosmeticType){
+        if(!offlinePlayer.hasPlayedBefore()) return null;
+        PlayerCache playerCache = PlayerCache.getPlayer(offlinePlayer);
+        if(playerCache == null) {
+            return null;
+        }
+        Cosmetic cosmetic = playerCache.getEquip(cosmeticType);
+        if(cosmetic == null) {
+            return null;
+        }
+        return cosmetic.getItemColor().clone();
     }
 
     public static int getPlayerCosmeticsAvailable(Player player, CosmeticType cosmeticType){
