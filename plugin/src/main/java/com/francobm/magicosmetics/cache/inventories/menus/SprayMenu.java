@@ -106,6 +106,7 @@ public class SprayMenu extends PaginatedMenu {
                 Items items = new Items(getPage()+index+"_spray", Items.getItem("spray-template").copyItem(playerCache, cosmetic, cosmetic.getItemStack()));
                 SlotMenu slotMenu;
                 items.addVariable("%equip%", playerCache.getEquip(cosmetic.getId()) != null ? MagicCosmetics.getInstance().getMessages().getString("equip") : MagicCosmetics.getInstance().getMessages().getString("unequip"));
+                items.addPlaceHolder(playerCache.getOfflinePlayer().getPlayer());
                 if(plugin.isPermissions()){
                     items.addVariable("%name%", cosmetic.getName()).addVariable("%available%", cosmetic.hasPermission(playerCache.getOfflinePlayer().getPlayer()) ? MagicCosmetics.getInstance().getMessages().getString("available") : MagicCosmetics.getInstance().getMessages().getString("unavailable")).addVariable("%type%", cosmetic.getCosmeticType());
                     if(cosmetic.hasPermission(playerCache.getOfflinePlayer().getPlayer())){
