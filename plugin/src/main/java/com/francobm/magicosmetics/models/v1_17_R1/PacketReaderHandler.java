@@ -29,8 +29,8 @@ public class PacketReaderHandler extends PacketReader {
         CraftPlayer craftPlayer = (CraftPlayer) player;
         Channel channel = craftPlayer.getHandle().b.a.k;
 
-        if(channel.pipeline().get("PacketInjector") != null) return false;
-        channel.pipeline().addAfter("decoder", "PacketInjector", new MessageToMessageDecoder<PacketPlayInUseEntity>() {
+        if(channel.pipeline().get("PIMagicCosmetics") != null) return false;
+        channel.pipeline().addAfter("decoder", "PIMagicCosmetics", new MessageToMessageDecoder<PacketPlayInUseEntity>() {
             @Override
             protected void decode(ChannelHandlerContext ctx, PacketPlayInUseEntity msg, List<Object> out) throws Exception {
                 out.add(msg);
@@ -43,7 +43,7 @@ public class PacketReaderHandler extends PacketReader {
     public void unject() {
         CraftPlayer craftPlayer = (CraftPlayer) player;
         Channel channel = craftPlayer.getHandle().b.a.k;
-        channel.pipeline().remove("PacketInjector");
+        channel.pipeline().remove("PIMagicCosmetics");
     }
 
     private void read(PacketPlayInUseEntity packetPlayInUseEntity) {
