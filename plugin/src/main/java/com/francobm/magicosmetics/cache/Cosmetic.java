@@ -109,7 +109,7 @@ public abstract class Cosmetic {
                 break;
             case BAG:
                 Bag bag = (Bag) cosmetic;
-                cosmec = new Bag(bag.getId(), bag.getName(), bag.getItemStack().clone(), bag.getModelData(), bag.getModelDataForMe(), bag.isColored(), bag.getSpace(), bag.getCosmeticType(), bag.getColor(), bag.getDistance(), bag.getPermission(), bag.isTexture(), bag.isHideMenu());
+                cosmec = new Bag(bag.getId(), bag.getName(), bag.getItemStack().clone(), bag.getModelData(), bag.getModelDataForMe(), bag.isColored(), bag.getSpace(), bag.getCosmeticType(), bag.getColor(), bag.getDistance(), bag.getPermission(), bag.isTexture(), bag.isHideMenu(), bag.getHeight());
                 break;
             case WALKING_STICK:
                 WStick wStick = (WStick) cosmetic;
@@ -147,7 +147,8 @@ public abstract class Cosmetic {
                 boolean rotation = false;
                 RotationType rotationType = null;
                 int modelData = 0;
-                int modelDataForMe = 0;
+                int modelDataForMe = -1;
+                int height = 0;
                 double distance = 100;
                 String permission = "";
                 BufferedImage image = null;
@@ -223,6 +224,9 @@ public abstract class Cosmetic {
                     if(cosmeticsConf.contains("cosmetics." + key + ".item.modeldata-for-me")){
                         modelDataForMe = cosmeticsConf.getInt("cosmetics." + key + ".item.modeldata-for-me");
                     }
+                    if(cosmeticsConf.contains("cosmetics." + key + ".height")) {
+                        height = cosmeticsConf.getInt("cosmetics." + key + ".height");
+                    }
                     if(cosmeticsConf.contains("cosmetics." + key + ".item.item-adder")){
                         if(!MagicCosmetics.getInstance().isItemsAdder()){
                             MagicCosmetics.getInstance().getLogger().info("Item Adder plugin Not Found skipping cosmetic '" + key + "'");
@@ -272,7 +276,6 @@ public abstract class Cosmetic {
                     if(itemStack.getType() == XMaterial.PLAYER_HEAD.parseMaterial()) {
                         itemStack = Utils.getCustomHead(itemStack, texture);
                     }
-                    //CustomCosmetics.getInstance().getLogger().severe(itemStack.toString());
                 }
                 if(cosmeticsConf.contains("cosmetics." + key + ".item-image")){
                     itemImage = cosmeticsConf.getBoolean("cosmetics." + key + ".item-image");
@@ -351,7 +354,7 @@ public abstract class Cosmetic {
                         cosmetics.put(key, hat);
                         break;
                     case BAG:
-                        Bag bag = new Bag(key, name, itemStack, modelData, modelDataForMe, colored, space, cosmeticType, color, distance, permission, isTexture, hideMenu);
+                        Bag bag = new Bag(key, name, itemStack, modelData, modelDataForMe, colored, space, cosmeticType, color, distance, permission, isTexture, hideMenu, height);
                         if(color != null) {
                             bag.setDefaultColor(true);
                         }
