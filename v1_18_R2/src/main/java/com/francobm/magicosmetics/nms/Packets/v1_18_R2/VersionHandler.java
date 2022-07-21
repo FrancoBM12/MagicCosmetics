@@ -20,12 +20,18 @@ import net.minecraft.network.chat.ChatMessage;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.server.level.EntityPlayer;
 import net.minecraft.server.network.PlayerConnection;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.EntityAreaEffectCloud;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EnumItemSlot;
+import net.minecraft.world.entity.decoration.EntityArmorStand;
+import net.minecraft.world.entity.projectile.EntityWitherSkull;
 import net.minecraft.world.inventory.Containers;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
+import org.bukkit.craftbukkit.v1_18_R2.CraftWorld;
 import org.bukkit.craftbukkit.v1_18_R2.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_18_R2.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_18_R2.inventory.CraftItemStack;
@@ -38,6 +44,7 @@ import org.bukkit.map.MapView;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.List;
 
 public class VersionHandler extends Version {
 
@@ -98,8 +105,8 @@ public class VersionHandler extends Version {
     }
 
     @Override
-    public PlayerBag createPlayerBag(Player player, double distance) {
-        return new PlayerBagHandler(player, distance);
+    public PlayerBag createPlayerBag(Player player, double distance, int height) {
+        return new PlayerBagHandler(player, distance, height);
     }
 
     @Override
@@ -179,6 +186,43 @@ public class VersionHandler extends Version {
         if(packet == null) return;
         entityPlayer.b.a(packet);
         entityPlayer.bV.b();
+    }
+
+    public void testBackPackFake(Player player, int clouds) {
+        EntityPlayer entityPlayer = ((CraftPlayer)player).getHandle();
+        Location location = player.getLocation();
+        List<Integer> list = new ArrayList<>();
+        EntityArmorStand entityArmorStand = new EntityArmorStand(EntityTypes.c, ((CraftWorld)player.getWorld()).getHandle());
+        entityArmorStand.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+        entityPlayer.b.a(new PacketPlayOutSpawnEntity(entityArmorStand));
+        entityPlayer.b.a(new PacketPlayOutEntityMetadata(entityArmorStand.ae(), entityArmorStand.ai(), true));
+
+        for(int i = 0; i < clouds; i++) {
+            EntityAreaEffectCloud entityAreaEffectCloud = new EntityAreaEffectCloud(EntityTypes.b, ((CraftWorld)player.getWorld()).getHandle());
+            entityAreaEffectCloud.a(0f);
+            entityAreaEffectCloud.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+            entityPlayer.b.a(new PacketPlayOutSpawnEntity(entityAreaEffectCloud));
+            entityPlayer.b.a(new PacketPlayOutEntityMetadata(entityAreaEffectCloud.ae(), entityAreaEffectCloud.ai(), true));
+            list.add(entityAreaEffectCloud.ae());
+            Bukkit.getLogger().info("bounding-box: " + entityAreaEffectCloud.cw().e);
+        }
+        for(int i = 0; i < clouds; i++) {
+            if(i == 0){
+                mount(entityPlayer, player.getEntityId(), list.get(i));
+                continue;
+            }
+            mount(entityPlayer, list.get(i - 1), list.get(i));
+        }
+        mount(entityPlayer, list.get(list.size() - 1), entityArmorStand.ae());
+    }
+
+    public void mount(EntityPlayer entityPlayer, int entity, int passenger) {
+        PacketPlayOutMount packetPlayOutMount = this.createDataSerializer(packetDataSerializer -> {
+            packetDataSerializer.d(entity);
+            packetDataSerializer.a(new int[]{passenger});
+            return new PacketPlayOutMount(packetDataSerializer);
+        });
+        entityPlayer.b.a(packetPlayOutMount);
     }
 
     @Override

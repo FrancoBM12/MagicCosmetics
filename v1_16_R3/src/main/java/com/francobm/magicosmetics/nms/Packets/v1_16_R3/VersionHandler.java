@@ -99,8 +99,8 @@ public class VersionHandler extends Version {
     }
 
     @Override
-    public PlayerBag createPlayerBag(Player player, double distance) {
-        return new PlayerBagHandler(player, distance);
+    public PlayerBag createPlayerBag(Player player, double distance, int height) {
+        return new PlayerBagHandler(player, distance, height);
     }
 
     @Override
