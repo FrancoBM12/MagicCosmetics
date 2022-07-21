@@ -11,6 +11,7 @@ import net.minecraft.network.syncher.DataWatcherRegistry;
 import net.minecraft.server.level.EntityPlayer;
 import net.minecraft.server.level.WorldServer;
 import net.minecraft.server.network.PlayerConnection;
+import net.minecraft.world.entity.EntityAreaEffectCloud;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EnumItemSlot;
 import net.minecraft.world.entity.decoration.EntityArmorStand;
@@ -32,10 +33,12 @@ public class PlayerBagHandler extends PlayerBag {
     private final EntityArmorStand armorStand;
     private final double distance;
 
-    public PlayerBagHandler(Player p, double distance){
+    public PlayerBagHandler(Player p, double distance, int height){
         players = new CopyOnWriteArrayList<>(new ArrayList<>());
         this.uuid = p.getUniqueId();
         this.distance = distance;
+        this.height = height;
+        this.ids = new ArrayList<>();
         playerBags.put(uuid, this);
         Player player = getPlayer();
         WorldServer world = ((CraftWorld) player.getWorld()).getHandle();
@@ -78,7 +81,53 @@ public class PlayerBagHandler extends PlayerBag {
         DataWatcher watcher = armorStand.ai();
         watcher.b(new DataWatcherObject<>(0, DataWatcherRegistry.a), (byte)0x20);
         connection.a(new PacketPlayOutEntityMetadata(armorStand.ae(), watcher, true));
-        addPassenger(player, getPlayer(), armorStand.getBukkitEntity());
+        addPassenger(player, getPlayer().getEntityId(), armorStand.ae());
+        players.add(player.getUniqueId());
+    }
+
+    @Override
+    public void spawnSelf(Player player) {
+        if(height == 0) {
+            spawn(player);
+            return;
+        }
+        if(players.contains(player.getUniqueId())) {
+            if(!getPlayer().getWorld().equals(player.getWorld())) {
+                remove(player);
+                return;
+            }
+            if(getPlayer().getLocation().distance(player.getLocation()) > distance) {
+                remove(player);
+            }
+            return;
+        }
+        if(!getPlayer().getWorld().equals(player.getWorld())) return;
+        if(getPlayer().getLocation().distance(player.getLocation()) > distance) return;
+        armorStand.j(true); //Invisible true
+        armorStand.t(true); //Marker
+        Location location = getPlayer().getLocation();
+        armorStand.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
+
+        PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
+        connection.a(new PacketPlayOutSpawnEntityLiving(armorStand));
+        connection.a(new PacketPlayOutEntityMetadata(armorStand.ae(), armorStand.ai(), true));
+        for(int i = 0; i < height; i++) {
+            EntityAreaEffectCloud entityAreaEffectCloud = new EntityAreaEffectCloud(EntityTypes.b, ((CraftWorld)player.getWorld()).getHandle());
+            entityAreaEffectCloud.a(0f);
+            entityAreaEffectCloud.j(true);
+            entityAreaEffectCloud.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+            connection.a(new PacketPlayOutSpawnEntity(entityAreaEffectCloud));
+            connection.a(new PacketPlayOutEntityMetadata(entityAreaEffectCloud.ae(), entityAreaEffectCloud.ai(), true));
+            ids.add(entityAreaEffectCloud.ae());
+        }
+        for(int i = 0; i < height; i++) {
+            if(i == 0){
+                addPassenger(player, player.getEntityId(), ids.get(i));
+                continue;
+            }
+            addPassenger(player, ids.get(i - 1), ids.get(i));
+        }
+        addPassenger(player, ids.get(ids.size() - 1), armorStand.ae());
         players.add(player.getUniqueId());
     }
 
@@ -106,6 +155,12 @@ public class PlayerBagHandler extends PlayerBag {
     @Override
     public void remove(Player player) {
         PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
+        if(player.getUniqueId().equals(uuid)) {
+            for (Integer id : ids) {
+                connection.a(new PacketPlayOutEntityDestroy(id));
+            }
+            ids.clear();
+        }
         connection.a(new PacketPlayOutEntityDestroy(armorStand.ae()));
         players.remove(player.getUniqueId());
     }
@@ -113,12 +168,12 @@ public class PlayerBagHandler extends PlayerBag {
     @Override
     public void addPassenger(boolean exception) {
         for(UUID uuid : players){
+            if(exception && uuid.equals(this.uuid)) continue;
             Player player = Bukkit.getPlayer(uuid);
             if(player == null) {
                 players.remove(uuid);
                 continue;
             }
-            if(exception && player.getUniqueId().equals(this.uuid)) continue;
             addPassenger(player);
         }
     }
@@ -137,14 +192,12 @@ public class PlayerBagHandler extends PlayerBag {
     }
 
     @Override
-    public void addPassenger(Player player, Entity entity, Entity passenger) {
+    public void addPassenger(Player player, int entity, int passenger) {
         EntityPlayer entityPlayer = ((CraftPlayer)player).getHandle();
-        net.minecraft.world.entity.Entity e = ((CraftEntity)entity).getHandle();
-        net.minecraft.world.entity.Entity pass = ((CraftEntity)passenger).getHandle();
 
         PacketPlayOutMount packetPlayOutMount = this.createDataSerializer(packetDataSerializer -> {
-            packetDataSerializer.d(e.ae());
-            packetDataSerializer.a(new int[]{pass.ae()});
+            packetDataSerializer.d(entity);
+            packetDataSerializer.a(new int[]{passenger});
             return new PacketPlayOutMount(packetDataSerializer);
         });
         entityPlayer.b.a(packetPlayOutMount);
@@ -154,6 +207,7 @@ public class PlayerBagHandler extends PlayerBag {
     public void setItemOnHelmet(ItemStack itemStack, boolean all) {
         if(all) {
             for (UUID uuid : players) {
+                if(getPlayer().getUniqueId().equals(uuid)) continue;
                 Player player = Bukkit.getPlayer(uuid);
                 if(player == null) {
                     players.remove(uuid);
