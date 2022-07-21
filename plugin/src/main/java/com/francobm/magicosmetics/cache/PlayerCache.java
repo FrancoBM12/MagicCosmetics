@@ -347,7 +347,7 @@ public class PlayerCache {
                 return;
             case BAG:
                 Bag bag = (Bag) cosmetic;
-                cosmetics.put(cosmetic.getId(), new Bag(bag.getId(), bag.getName(), bag.getItemStack().clone(), bag.getModelData(), bag.getModelDataForMe(), bag.isColored(), bag.getSpace(), bag.getCosmeticType(), bag.getColor(), bag.getDistance(), bag.getPermission(), bag.isTexture(), bag.isHideMenu()));
+                cosmetics.put(cosmetic.getId(), new Bag(bag.getId(), bag.getName(), bag.getItemStack().clone(), bag.getModelData(), bag.getModelDataForMe(), bag.isColored(), bag.getSpace(), bag.getCosmeticType(), bag.getColor(), bag.getDistance(), bag.getPermission(), bag.isTexture(), bag.isHideMenu(), bag.getHeight()));
                 return;
             case WALKING_STICK:
                 WStick wStick = (WStick) cosmetic;

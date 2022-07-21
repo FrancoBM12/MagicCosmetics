@@ -45,7 +45,7 @@ public abstract class Version {
 
     public abstract PacketReader getPacketReader(Player player);
 
-    public abstract PlayerBag createPlayerBag(Player player, double distance);
+    public abstract PlayerBag createPlayerBag(Player player, double distance, int height);
 
     public abstract EntityBag createEntityBag(Entity entity, double distance);
 

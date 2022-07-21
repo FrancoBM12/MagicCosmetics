@@ -9,6 +9,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public abstract class PlayerBag {
     public static Map<UUID, PlayerBag> playerBags = new ConcurrentHashMap<>();
     protected UUID uuid;
+    protected int height;
+    protected List<Integer> ids;
     protected List<UUID> players;
 
 
@@ -29,13 +31,15 @@ public abstract class PlayerBag {
 
     public abstract void spawn(Player player);
 
+    public abstract void spawnSelf(Player player);
+
     public abstract void spawn(boolean exception);
 
     public abstract void remove();
 
     public abstract void remove(Player player);
 
-    public abstract void addPassenger(Player player, Entity entity, Entity passenger);
+    public abstract void addPassenger(Player player, int entity, int passenger);
 
     public abstract void addPassenger(boolean exception);
 
