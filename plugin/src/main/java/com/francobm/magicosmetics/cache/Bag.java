@@ -3,15 +3,12 @@ package com.francobm.magicosmetics.cache;
 import com.francobm.magicosmetics.api.CosmeticType;
 import com.francobm.magicosmetics.nms.bag.EntityBag;
 import com.francobm.magicosmetics.nms.bag.PlayerBag;
-import com.francobm.magicosmetics.utils.XMaterial;
 import com.francobm.magicosmetics.MagicCosmetics;
 import org.bukkit.Color;
 import org.bukkit.GameMode;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.*;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.LeatherArmorMeta;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.EulerAngle;
 
 public class Bag extends Cosmetic {
@@ -22,12 +19,14 @@ public class Bag extends Cosmetic {
     private boolean hide = false;
     private boolean spectator = false;
     private final double distance;
+    private final int height;
 
-    public Bag(String id, String name, ItemStack itemStack, int modelData, int modelDataForMe, boolean colored, double space, CosmeticType cosmeticType, Color color, double distance, String permission, boolean texture, boolean hideMenu) {
+    public Bag(String id, String name, ItemStack itemStack, int modelData, int modelDataForMe, boolean colored, double space, CosmeticType cosmeticType, Color color, double distance, String permission, boolean texture, boolean hideMenu, int height) {
         super(id, name, itemStack, modelData, colored, cosmeticType, color, permission, texture, hideMenu);
         this.modelDataForMe = modelDataForMe;
         this.space = space;
         this.distance = distance;
+        this.height = height;
     }
 
     public double getSpace() {
@@ -61,17 +60,16 @@ public class Bag extends Cosmetic {
             if(player.getGameMode() == GameMode.SPECTATOR) return;
 
             clear(player);
-            bag1 = MagicCosmetics.getInstance().getVersion().createPlayerBag(player, getDistance());
+            bag1 = MagicCosmetics.getInstance().getVersion().createPlayerBag(player, getDistance(), height);
             /*bag1.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 100, false, false));
             MetadataValue metadataValue = new FixedMetadataValue(CustomCosmetics.getInstance(), "balloon");
             bag1.setMetadata("cosmetics", metadataValue);*/
-            bag1.spawn(false);
             if(hide){
                 hideSelf(false);
             }
             //
         }
-        bag1.addPassenger(false);
+        bag1.addPassenger(true);
         bag1.setItemOnHelmet(getItemColor(player), true);
         bag1.lookEntity(player.getLocation().getYaw(), player.getLocation().getPitch(), true);
         bag1.spawn(true);
@@ -82,7 +80,9 @@ public class Bag extends Cosmetic {
             return;
         }
         if(hide) return;
-        bag1.spawn(player);
+        bag1.spawnSelf(player);
+        bag1.setItemOnHelmet(getItemColor(player, modelDataForMe != -1), false);
+        bag1.lookEntity(player.getLocation().getYaw(), player.getLocation().getPitch(), false);
         //armorStand.teleport(behind);
     }
 
@@ -122,33 +122,15 @@ public class Bag extends Cosmetic {
         return modelDataForMe;
     }
 
-    public ItemStack getItemColor(boolean forMe){
-        if(getItemStack() == null) return null;
-        ItemStack itemStack = getItemStack().clone();
-        if(itemStack.getType() == XMaterial.LEATHER_HORSE_ARMOR.parseMaterial()){
-            LeatherArmorMeta itemMeta = (LeatherArmorMeta) itemStack.getItemMeta();
-            itemMeta.setDisplayName(getName());
-            itemMeta.setLore(itemMeta.getLore());
-            if(itemMeta.hasItemFlag(ItemFlag.HIDE_ENCHANTS)){
-                itemStack.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
-                itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-            }
-            if(itemMeta.hasItemFlag(ItemFlag.HIDE_ATTRIBUTES)) {
-                itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            }
-            itemMeta.setUnbreakable(itemMeta.isUnbreakable());
-            if(forMe){
-                itemMeta.setCustomModelData(modelDataForMe);
-            }else{
-                itemMeta.setCustomModelData(getModelData());
-            }
-            if(getColor() != null) {
-                itemMeta.setColor(getColor());
-            }
-            itemStack.setItemMeta(itemMeta);
-            return itemStack;
-        }
-        return getItemStack();
+    public ItemStack getItemColor(Player player, boolean forMe){
+        ItemStack itemStack = getItemColor(player);
+        if(!forMe) return itemStack;
+        if(itemStack == null) return null;
+        itemStack = itemStack.clone();
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        itemMeta.setCustomModelData(modelDataForMe);
+        itemStack.setItemMeta(itemMeta);
+        return itemStack;
     }
 
     public void hideSelf(boolean change){
@@ -188,5 +170,9 @@ public class Bag extends Cosmetic {
 
     public boolean isHide() {
         return hide;
+    }
+
+    public int getHeight() {
+        return height;
     }
 }
