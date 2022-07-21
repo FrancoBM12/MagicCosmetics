@@ -3,11 +3,8 @@ package com.francobm.magicosmetics.cache.renderer;
 import com.francobm.magicosmetics.MagicCosmetics;
 import org.bukkit.entity.Player;
 import org.bukkit.map.*;
-import org.jetbrains.annotations.NotNull;
 
 import javax.imageio.ImageIO;
-import javax.swing.*;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -55,7 +52,7 @@ public class ImageRenderer extends MapRenderer {
     }
 
     @Override
-    public void render(@NotNull MapView mapView, @NotNull MapCanvas mapCanvas, @NotNull Player player) {
+    public void render(MapView mapView, MapCanvas mapCanvas, Player player) {
         if(loaded) return;
         mapCanvas.drawImage(0, 0, image);
         mapView.setTrackingPosition(false);

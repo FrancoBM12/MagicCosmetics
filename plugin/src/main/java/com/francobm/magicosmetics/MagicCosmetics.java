@@ -24,7 +24,6 @@ import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -274,7 +273,7 @@ public final class MagicCosmetics extends JavaPlugin {
         return instance;
     }
 
-    public @NotNull FileCreator getConfig() {
+    public FileCreator getConfig() {
         return this.config;
     }
 

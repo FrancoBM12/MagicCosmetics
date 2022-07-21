@@ -2,7 +2,6 @@ package com.francobm.magicosmetics.commands;
 
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.api.CosmeticType;
-import com.francobm.magicosmetics.api.MagicAPI;
 import com.francobm.magicosmetics.cache.*;
 import com.francobm.magicosmetics.cache.inventories.Menu;
 import com.francobm.magicosmetics.files.FileCreator;
@@ -12,7 +11,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.*;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;

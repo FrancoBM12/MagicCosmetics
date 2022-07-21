@@ -8,7 +8,6 @@ import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Color;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -93,7 +92,7 @@ public class PlaceholderAPI extends PlaceholderExpansion {
      * @return Possibly-null String of the requested identifier.
      */
     @Override
-    public String onRequest(OfflinePlayer player, @NotNull String identifier){
+    public String onRequest(OfflinePlayer player, String identifier){
 
         if(player == null || !player.isOnline() || player.getPlayer() == null){
             return null;
