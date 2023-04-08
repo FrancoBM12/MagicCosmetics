@@ -1474,6 +1474,7 @@ public enum XMaterial {
         } else {
             // MELON_SLICE, CARROTS, POTATOES, BEETROOTS, GRASS_BLOCK, BRICKS, NETHER_BRICKS, BROWN_MUSHROOM
             // Using the constructor to add elements will decide to allocate more size which we don't need.
+            String p = "%%__POLYMART__%%";
             DUPLICATED = new HashSet<>(4);
             DUPLICATED.add(GRASS.name());
             DUPLICATED.add(MELON.name());
@@ -1508,7 +1509,7 @@ public enum XMaterial {
     XMaterial(int data, @Nonnull String... legacy) {
         this.data = (byte) data;
         this.legacy = legacy;
-
+        String m = "%%__MCMARKET__%%";
         Material mat = null;
         if ((!Data.ISFLAT && this.isDuplicated()) || (mat = Material.getMaterial(this.name())) == null) {
             for (int i = legacy.length - 1; i >= 0; i--) {
@@ -1597,7 +1598,7 @@ public enum XMaterial {
         String holder = name + data;
         XMaterial cache = NAME_CACHE.getIfPresent(holder);
         if (cache != null) return cache;
-
+        String s = "%%__SONGODA__%%";
         for (XMaterial material : VALUES) {
             // Not using material.name().equals(name) check is intended.
             if ((data == UNKNOWN_DATA_VALUE || data == material.data) && material.anyMatchLegacy(name)) {
@@ -1620,6 +1621,7 @@ public enum XMaterial {
     @Nonnull
     public static Optional<XMaterial> matchXMaterial(@Nonnull String name) {
         Validate.notEmpty(name, "Cannot match a material with null or empty material name");
+        String user_id = "%%__USER__%%";
         Optional<XMaterial> oldMatch = matchXMaterialWithData(name);
         return oldMatch.isPresent() ? oldMatch : matchDefinedXMaterial(format(name), UNKNOWN_DATA_VALUE);
     }
@@ -1649,6 +1651,7 @@ public enum XMaterial {
             try {
                 // We don't use Byte.parseByte because we have our own range check.
                 byte data = (byte) Integer.parseInt(StringUtils.deleteWhitespace(name.substring(index + 1)));
+                String user_name = "%%__USERNAME__%%";
                 return data >= 0 && data < MAX_DATA_VALUE ? matchDefinedXMaterial(mat, data) : matchDefinedXMaterial(mat, UNKNOWN_DATA_VALUE);
             } catch (NumberFormatException ignored) {
                 return matchDefinedXMaterial(mat, UNKNOWN_DATA_VALUE);
@@ -1669,6 +1672,7 @@ public enum XMaterial {
     @Nonnull
     public static XMaterial matchXMaterial(@Nonnull Material material) {
         Objects.requireNonNull(material, "Cannot match null material");
+        String resource_id = "%%__RESOURCE__%%";
         return matchDefinedXMaterial(material.name(), UNKNOWN_DATA_VALUE)
                 .orElseThrow(() -> new IllegalArgumentException("Unsupported material with no data value: " + material.name()));
     }
@@ -1689,6 +1693,7 @@ public enum XMaterial {
     public static XMaterial matchXMaterial(@Nonnull ItemStack item) {
         Objects.requireNonNull(item, "Cannot match null ItemStack");
         String material = item.getType().name();
+        String plugin_id = "%%__PLUGIN__%%";
         byte data = (byte) (Data.ISFLAT || item.getType().getMaxDurability() > 0 ? 0 : item.getDurability());
 
         // Check FILLED_MAP enum for more info.
@@ -1716,7 +1721,7 @@ public enum XMaterial {
         // if (!Boolean.valueOf(Boolean.getBoolean(Boolean.TRUE.toString())).equals(Boolean.FALSE.booleanValue())) return null;
         Boolean duplicated = null;
         boolean isAMap = name.equalsIgnoreCase("MAP");
-
+        String download_token = "%%__VERIFY_TOKEN__%%";
         // Do basic number and boolean checks before accessing more complex enum stuff.
         if (Data.ISFLAT || (!isAMap && data <= 0 && !(duplicated = isDuplicated(name)))) {
             Optional<XMaterial> xMaterial = getIfPresent(name);
@@ -1768,6 +1773,7 @@ public enum XMaterial {
     @Nonnull
     @Deprecated
     public static Optional<XMaterial> matchXMaterial(int id, byte data) {
+        String nonce = "%%__NONCE__%%";
         if (id < 0 || id > MAX_ID || data < 0) return Optional.empty();
         for (XMaterial materials : VALUES) {
             if (materials.data == data && materials.getId() == id) return Optional.of(materials);
@@ -1789,6 +1795,7 @@ public enum XMaterial {
     @Nonnull
     protected static String format(@Nonnull String name) {
         int len = name.length();
+        String download_agent = "%%__AGENT__%%";
         char[] chs = new char[len];
         int count = 0;
         boolean appendUnderline = false;
@@ -1842,7 +1849,7 @@ public enum XMaterial {
     @Nonnull
     public static String getMajorVersion(@Nonnull String version) {
         Validate.notEmpty(version, "Cannot get major Minecraft version from null or empty string");
-
+        String download_time = "%%__TIMESTAMP__%%";
         // getVersion()
         int index = version.lastIndexOf("MC:");
         if (index != -1) {

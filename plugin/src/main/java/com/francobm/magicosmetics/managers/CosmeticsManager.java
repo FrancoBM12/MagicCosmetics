@@ -1,17 +1,19 @@
 package com.francobm.magicosmetics.managers;
 
-import com.francobm.magicosmetics.api.CosmeticType;
-import com.francobm.magicosmetics.api.SprayKeys;
+import com.francobm.magicosmetics.api.*;
 import com.francobm.magicosmetics.cache.EntityCache;
 import com.francobm.magicosmetics.MagicCosmetics;
-import com.francobm.magicosmetics.api.MagicAPI;
 import com.francobm.magicosmetics.cache.*;
+import com.francobm.magicosmetics.cache.cosmetics.Bag;
 import com.francobm.magicosmetics.cache.inventories.Menu;
 import com.francobm.magicosmetics.cache.inventories.menus.*;
 import com.francobm.magicosmetics.cache.items.Items;
+import com.francobm.magicosmetics.database.MySQL;
+import com.francobm.magicosmetics.database.SQLite;
 import com.francobm.magicosmetics.events.CosmeticChangeEquipEvent;
 import com.francobm.magicosmetics.events.CosmeticEquipEvent;
 import com.francobm.magicosmetics.events.CosmeticUnEquipEvent;
+import com.francobm.magicosmetics.files.FileCreator;
 import com.francobm.magicosmetics.nms.NPC.NPC;
 import com.francobm.magicosmetics.utils.Utils;
 import com.francobm.magicosmetics.utils.XMaterial;
@@ -28,66 +30,114 @@ import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
 
+import java.util.*;
+
 public class CosmeticsManager {
     private final MagicCosmetics plugin = MagicCosmetics.getInstance();
-    private BukkitTask bagTask;
-    private BukkitTask zoneCosmeticTask;
+    private BukkitTask otherCosmetics;
+    private BukkitTask balloons;
+    private BukkitTask saveDataTask;
     private BukkitTask npcTask;
+    int i = 0;
+
+    public CosmeticsManager() {
+        loadNewMessages();
+    }
+
+    public void loadNewMessages() {
+        FileCreator messages = plugin.getMessages();
+        if(!messages.contains("already-all-unlocked")){
+            messages.set("already-all-unlocked", "&cThe player already has all the cosmetics unlocked!");
+        }
+        if(!messages.contains("already-all-locked")) {
+            messages.set("already-all-locked", "&cThe player already has all the cosmetics locked!");
+        }
+        if(!messages.contains("remove-all-cosmetic")){
+            messages.set("remove-all-cosmetic", "&aYou have successfully removed all cosmetics from the player.");
+        }
+        if(!messages.contains("commands.remove-all-usage")) {
+            messages.set("commands.remove-all-usage", "&c/cosmetics removeall <player>");
+        }
+        if(!messages.contains("spray-cooldown")) {
+            messages.set("spray-cooldown", "&cYou must wait &e%time% &cbefore you can spray again!");
+        }
+        if(!messages.contains("exit-color-without-perm")) {
+            messages.set("exit-color-without-perm", "&cOne or more cosmetics have colors that you dont have access to, so they have become unequipped!");
+        }
+        if(!plugin.getConfig().contains("placeholder-api")){
+            plugin.getConfig().set("placeholder-api", false);
+        }
+        if(!plugin.getConfig().contains("main-menu"))
+            plugin.getConfig().set("main-menu", "hat");
+        if(!plugin.getConfig().contains("save-data-delay"))
+            plugin.getConfig().set("save-data-delay", 300);
+        plugin.getConfig().save();
+        messages.save();
+    }
 
     public void runTasks(){
-        bagTask = new BukkitRunnable() {
-            @Override
-            public void run() {
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        for(PlayerCache playerCache : PlayerCache.players.values()){
-                            if(!playerCache.getOfflinePlayer().isOnline()) continue;
-                            playerCache.activeCosmetics();
-                        }
-                        if(!plugin.isCitizens()) return;
-                        for(EntityCache entityCache : EntityCache.entities.values()){
-                            entityCache.activeCosmetics();
-                        }
-                    }
-                }.runTask(plugin);
-            }
-        }.runTaskTimerAsynchronously(plugin, 0L, 1L);
-        zoneCosmeticTask = new BukkitRunnable() {
-            @Override
-            public void run() {
-                for(Player player : Bukkit.getOnlinePlayers()){
-                    PlayerCache playerCache = PlayerCache.getPlayer(player);
-                    playerCache.enterZone();
+        if(otherCosmetics == null){
+            otherCosmetics = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
+                for(PlayerData playerData : PlayerData.players.values()){
+                    if(!playerData.getOfflinePlayer().isOnline()) continue;
+                    playerData.activeCosmetics();
+                    playerData.enterZone();
                 }
-            }
-        }.runTaskTimer(plugin, 0L, 1L);
-        npcTask = new BukkitRunnable() {
-            int i = 0;
-            @Override
-            public void run() {
+                if(EntityCache.entities.values().isEmpty()) return;
+                for(EntityCache entityCache : EntityCache.entities.values()){
+                    entityCache.activeCosmetics();
+                }
+            }, 5L, 2L);
+        }
+        if(balloons == null) {
+            balloons = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
+                for(PlayerData playerData : PlayerData.players.values()){
+                    if(!playerData.getOfflinePlayer().isOnline()) continue;
+                    playerData.activeBalloon();
+                }
+            }, 0L, 1L);
+        }
+        if(saveDataTask == null && plugin.saveDataDelay != -1) {
+            saveDataTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
+                plugin.getSql().savePlayers();
+                if(EntityCache.entities.values().isEmpty()) return;
+                plugin.getSql().saveEntities();
+            }, 20L * plugin.saveDataDelay, 20L * plugin.saveDataDelay);
+        }
+        /*if(zoneCosmeticTask == null) {
+            zoneCosmeticTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
+                for(Player player : Bukkit.getOnlinePlayers()){
+                    PlayerData playerData = PlayerData.getPlayer(player);
+                    playerData.enterZone();
+                }
+            }, 1L, 1L);
+        }*/
+        if(npcTask == null) {
+            npcTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
+                if(NPC.npcs.isEmpty()) {
+                    npcTask.cancel();
+                    npcTask = null;
+                    return;
+                }
                 for(Player player : Bukkit.getOnlinePlayers()){
                     NPC npc = plugin.getVersion().getNPC(player);
                     if(npc == null) continue;
                     npc.lookNPC(player, i);
                 }
                 i = i+10;
-            }
-        }.runTaskTimer(plugin, 0L, plugin.getConfig().getLong("npc-rotation"));
-        /*balloon = new BukkitRunnable() {
-            @Override
-            public void run() {
-                for(Player player : Bukkit.getOnlinePlayers()){
-                    PlayerCache playerCache = PlayerCache.getPlayer(player);
-                    ((Balloon)playerCache.getBalloon()).update(player);
-                    //playerCache.activePB();
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 1L);*/
+            }, 1L, plugin.getConfig().getLong("npc-rotation"));
+        }
+    }
+
+    public boolean npcTaskStopped() {
+        return npcTask == null;
+    }
+
+    public void reRunTasks() {
+        runTasks();
     }
 
     public void sendCheck(Player player){
@@ -104,9 +154,11 @@ public class CosmeticsManager {
     }
 
     public void cancelTasks(){
-        if(bagTask != null) bagTask.cancel();
-        if(zoneCosmeticTask != null) zoneCosmeticTask.cancel();
-        if(npcTask != null) npcTask.cancel();
+        plugin.getServer().getScheduler().cancelTasks(plugin);
+        otherCosmetics = null;
+        balloons = null;
+        saveDataTask = null;
+        npcTask = null;
     }
 
     public void reload(CommandSender sender){
@@ -128,6 +180,11 @@ public class CosmeticsManager {
         plugin.getMenus().reload();
         plugin.getTokens().reload();
         plugin.getZones().reload();
+        if (plugin.getConfig().getBoolean("MySQL.enabled")) {
+            plugin.setSql(new MySQL());
+        } else {
+            plugin.setSql(new SQLite());
+        }
         for(BossBar bar : plugin.getBossBar()){
             bar.removeAll();
         }
@@ -142,6 +199,10 @@ public class CosmeticsManager {
         }
         plugin.createDefaultSpray();
         for(String lines : plugin.getMessages().getStringList("bossbar")){
+            if(plugin.isItemsAdder())
+                lines = plugin.getItemsAdder().replaceFontImages(lines);
+            if(plugin.isOraxen())
+                lines = plugin.getOraxen().replaceFontImages(lines);
             BossBar boss = plugin.getServer().createBossBar(lines, plugin.bossBarColor, BarStyle.SOLID);
             boss.setVisible(true);
             plugin.getBossBar().add(boss);
@@ -178,6 +239,11 @@ public class CosmeticsManager {
         if(plugin.getConfig().contains("spray-cooldown")){
             plugin.setSprayCooldown(plugin.getConfig().getInt("spray-cooldown"));
         }
+        if(plugin.getConfig().contains("placeholder-api")){
+            plugin.setPlaceholders(plugin.getConfig().getBoolean("placeholder-api"));
+        }
+        if(plugin.getConfig().contains("main-menu"))
+            plugin.setMainMenu(plugin.getConfig().getString("main-menu"));
         plugin.prefix = plugin.getMessages().getString("prefix");
         plugin.gameMode = null;
         plugin.balloonRotation = MagicCosmetics.getInstance().getConfig().getDouble("balloons-rotation");
@@ -195,9 +261,9 @@ public class CosmeticsManager {
         if(plugin.getConfig().contains("equip-message")){
             plugin.equipMessage = plugin.getConfig().getBoolean("equip-message");
         }
-        plugin.saveOnQuit = true;
-        if(plugin.getConfig().contains("save-on-quit")){
-            plugin.saveOnQuit = plugin.getConfig().getBoolean("save-on-quit");
+        plugin.saveDataDelay = 300;
+        if(plugin.getConfig().contains("save-data-delay")){
+            plugin.saveDataDelay = plugin.getConfig().getInt("save-data-delay");
         }
         Cosmetic.loadCosmetics();
         Color.loadColors();
@@ -206,7 +272,7 @@ public class CosmeticsManager {
         Sound.loadSounds();
         Menu.loadMenus();
         Zone.loadZones();
-        PlayerCache.reload();
+        PlayerData.reload();
         plugin.getCosmeticsManager().runTasks();
         if(sender == null) return;
         if(sender instanceof Player) {
@@ -440,24 +506,41 @@ public class CosmeticsManager {
     }
 
     public void exitZone(Player player){
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        playerCache.exitZone();
+        PlayerData playerData = PlayerData.getPlayer(player);
+        playerData.exitZone();
     }
 
-    public void changeCosmetic(Player player, String cosmeticId){
-        Cosmetic cosmetic = Cosmetic.getCloneCosmetic(cosmeticId);
-        if(cosmetic == null) return;
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        if(playerCache.getCosmeticById(cosmeticId) != null){
+    public void changeCosmetic(Player player, String cosmeticId, TokenType tokenType){
+        if(tokenType != null) {
+            List<Cosmetic> cosmetics = new ArrayList<>();
+            PlayerData playerData = PlayerData.getPlayer(player);
+            if(tokenType.getCosmeticType() == null){
+                for(Cosmetic cosmetic : Cosmetic.cosmetics.values()){
+                    if(!playerData.hasCosmeticById(cosmetic.getId()))
+                        cosmetics.add(cosmetic);
+                }
+            }else{
+                for(Cosmetic cosmetic : Cosmetic.getCosmeticsByType(tokenType.getCosmeticType())){
+                    if(!playerData.hasCosmeticById(cosmetic.getId()))
+                        cosmetics.add(cosmetic);
+                }
+            }
+            if(cosmetics.isEmpty()) return;
+            Cosmetic newCosmetic = cosmetics.get(new Random().nextInt(cosmetics.size()));
+            playerData.addCosmetic(newCosmetic);
+            for(String msg : plugin.getMessages().getStringList("change-token-to-cosmetic")){
+                sendMessage(player, msg);
+            }
             return;
         }
+        Cosmetic cosmetic = Cosmetic.getCloneCosmetic(cosmeticId);
+        if(cosmetic == null) return;
+        PlayerData playerData = PlayerData.getPlayer(player);
+        if(playerData.hasCosmeticById(cosmeticId)) return;
         if(plugin.getUser() == null) return;
-        playerCache.addCosmetic(cosmetic);
+        playerData.addCosmetic(cosmetic);
         for(String msg : plugin.getMessages().getStringList("change-token-to-cosmetic")){
             sendMessage(player, msg);
-        }
-        if(!plugin.saveOnQuit){
-            plugin.getSql().asyncSavePlayer(playerCache);
         }
     }
 
@@ -466,21 +549,26 @@ public class CosmeticsManager {
             sendMessage(sender, plugin.prefix + plugin.getMessages().getString("no-permission"));
             return;
         }
-        PlayerCache playerCache = PlayerCache.getPlayer(target);
+        PlayerData playerData = PlayerData.getPlayer(target);
         if(plugin.getUser() == null) return;
-        if(playerCache.getCosmetics().size() == Cosmetic.cosmetics.size()){
-            sendMessage(sender, plugin.prefix + plugin.getMessages().getString("already-all-cosmetics"));
-            return;
+        if(plugin.isPermissions()){
+            if(playerData.getCosmeticsPerm().size() == Cosmetic.cosmetics.size()) {
+                sendMessage(sender, plugin.prefix + plugin.getMessages().getString("already-all-unlocked"));
+                return;
+            }
+        }else {
+            if (playerData.getCosmetics().size() == Cosmetic.cosmetics.size()) {
+                sendMessage(sender, plugin.prefix + plugin.getMessages().getString("already-all-unlocked"));
+                return;
+            }
         }
         for(String id : Cosmetic.cosmetics.keySet()){
-            if(playerCache.getCosmeticById(id) != null) continue;
             Cosmetic cosmetic = Cosmetic.getCloneCosmetic(id);
-            playerCache.addCosmetic(cosmetic);
+            if(cosmetic == null) continue;
+            if(playerData.hasCosmeticById(id)) continue;
+            playerData.addCosmetic(cosmetic);
         }
         sendMessage(sender, plugin.prefix + plugin.getMessages().getString("add-all-cosmetic"));
-        if(!plugin.saveOnQuit){
-            plugin.getSql().asyncSavePlayer(playerCache);
-        }
     }
 
     public void addCosmetic(CommandSender sender, Player target, String cosmeticId){
@@ -494,16 +582,13 @@ public class CosmeticsManager {
             return;
         }
         if(plugin.getUser() == null) return;
-        PlayerCache playerCache = PlayerCache.getPlayer(target);
-        if(playerCache.getCosmeticById(cosmetic.getId()) != null){
+        PlayerData playerData = PlayerData.getPlayer(target);
+        if(playerData.hasCosmeticById(cosmeticId)){
             sendMessage(sender, plugin.prefix + plugin.getMessages().getString("already-cosmetic"));
             return;
         }
-        playerCache.addCosmetic(cosmetic);
+        playerData.addCosmetic(cosmetic);
         sendMessage(sender, plugin.prefix + plugin.getMessages().getString("add-cosmetic"));
-        if(!plugin.saveOnQuit){
-            plugin.getSql().asyncSavePlayer(playerCache);
-        }
     }
 
     public void removeCosmetic(CommandSender sender, Player target, String cosmeticId){
@@ -511,22 +596,49 @@ public class CosmeticsManager {
             sendMessage(sender, plugin.prefix + plugin.getMessages().getString("no-permission"));
             return;
         }
-        Cosmetic cosmetic = Cosmetic.getCloneCosmetic(cosmeticId);
+        Cosmetic cosmetic = Cosmetic.getCosmetic(cosmeticId);
         if(cosmetic == null) {
             sendMessage(sender, plugin.prefix + plugin.getMessages().getString("cosmetic-notfound"));
             return;
         }
         if(plugin.getUser() == null) return;
-        PlayerCache playerCache = PlayerCache.getPlayer(target);
-        if(playerCache.getCosmeticById(cosmetic.getId()) == null){
-            sendMessage(sender, plugin.prefix + plugin.getMessages().getString("not-have-cosmetic"));
+        PlayerData playerData = PlayerData.getPlayer(target);
+        if(!playerData.hasCosmeticById(cosmeticId)){
+            for(String msg : plugin.getMessages().getStringList("not-have-cosmetic")) {
+                sender.sendMessage(msg);
+            }
+            //sendMessage(sender, plugin.prefix + plugin.getMessages().getString("not-have-cosmetic"));
             return;
         }
-        playerCache.removeCosmetic(cosmeticId);
+        playerData.removeCosmetic(cosmeticId);
         sendMessage(sender, plugin.prefix + plugin.getMessages().getString("remove-cosmetic"));
-        if(!plugin.saveOnQuit){
-            plugin.getSql().asyncSavePlayer(playerCache);
+    }
+
+    public void removeAllCosmetics(CommandSender sender, Player target){
+        if(!sender.hasPermission("magicosmetics.cosmetics")){
+            sendMessage(sender, plugin.prefix + plugin.getMessages().getString("no-permission"));
+            return;
         }
+        PlayerData playerData = PlayerData.getPlayer(target);
+        if(plugin.getUser() == null) return;
+        if(plugin.isPermissions()){
+            if(playerData.getCosmeticsPerm().size() == 0) {
+                sendMessage(sender, plugin.prefix + plugin.getMessages().getString("already-all-locked"));
+                return;
+            }
+        }else {
+            if (playerData.getCosmetics().size() == 0) {
+                sendMessage(sender, plugin.prefix + plugin.getMessages().getString("already-all-locked"));
+                return;
+            }
+        }
+        for(String id : Cosmetic.cosmetics.keySet()){
+            Cosmetic cosmetic = Cosmetic.getCloneCosmetic(id);
+            if(cosmetic == null) continue;
+            if(!playerData.hasCosmeticById(id)) continue;
+            playerData.removeCosmetic(cosmetic.getId());
+        }
+        sendMessage(sender, plugin.prefix + plugin.getMessages().getString("remove-all-cosmetic"));
     }
 
     public void giveToken(CommandSender sender, Player target, String tokenId){
@@ -580,13 +692,13 @@ public class CosmeticsManager {
     }
 
     public void equipCosmetic(Player player, Cosmetic cosmetic, String colorHex){
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         if(plugin.getUser() == null) return;
         if(plugin.isPermissions()){
             for(Cosmetic cos : Cosmetic.cosmetics.values()){
                 if(!cosmetic.hasPermission(player)) continue;
                 if(!cos.getId().equalsIgnoreCase(cosmetic.getId())) continue;
-                Cosmetic equip = playerCache.getEquip(cosmetic.getCosmeticType());
+                Cosmetic equip = playerData.getEquip(cosmetic.getCosmeticType());
                 if(equip == null){
                     CosmeticEquipEvent event = new CosmeticEquipEvent(player, cosmetic);
                     MagicCosmetics.getInstance().getServer().getPluginManager().callEvent(event);
@@ -600,21 +712,24 @@ public class CosmeticsManager {
                     org.bukkit.Color color = Color.hex2Rgb(colorHex);
                     cosmetic.setColor(color);
                 }
-                playerCache.setCosmetic(cosmetic);
+                playerData.setCosmetic(cosmetic);
                 if(plugin.equipMessage) {
-                    sendMessage(player, plugin.prefix + plugin.getMessages().getString("use-cosmetic").replace("%id%", cosmetic.getId()).replace("%name%", cosmetic.getName()));
-                }
-                if(!plugin.saveOnQuit){
-                    plugin.getSql().asyncSavePlayer(playerCache);
+                    for(String msg : plugin.getMessages().getStringList("use-cosmetic")) {
+                        player.sendMessage(msg.replace("%id%", cosmetic.getId()).replace("%name%", cosmetic.getName()));
+                    }
+                    //sendMessage(player, plugin.prefix + plugin.getMessages().getString("use-cosmetic").replace("%id%", cosmetic.getId()).replace("%name%", cosmetic.getName()));
                 }
                 return;
             }
-            sendMessage(player, plugin.prefix + plugin.getMessages().getString("not-have-cosmetic"));
+            for(String msg : plugin.getMessages().getStringList("not-have-cosmetic")) {
+                player.sendMessage(msg);
+            }
+            //sendMessage(player, plugin.prefix + plugin.getMessages().getString("not-have-cosmetic"));
             return;
         }
-        for(Cosmetic cos : playerCache.getCosmetics().values()){
+        for(Cosmetic cos : playerData.getCosmetics().values()){
             if(!cos.getId().equalsIgnoreCase(cosmetic.getId())) continue;
-            Cosmetic equip = playerCache.getEquip(cosmetic.getCosmeticType());
+            Cosmetic equip = playerData.getEquip(cosmetic.getCosmeticType());
             if(equip == null){
                 CosmeticEquipEvent event = new CosmeticEquipEvent(player, cosmetic);
                 MagicCosmetics.getInstance().getServer().getPluginManager().callEvent(event);
@@ -628,12 +743,9 @@ public class CosmeticsManager {
                 org.bukkit.Color color = Color.hex2Rgb(colorHex);
                 cosmetic.setColor(color);
             }
-            playerCache.setCosmetic(cosmetic);
+            playerData.setCosmetic(cosmetic);
             if(plugin.equipMessage) {
                 sendMessage(player, plugin.prefix + plugin.getMessages().getString("use-cosmetic").replace("%id%", cosmetic.getId()).replace("%name%", cosmetic.getName()));
-            }
-            if(!plugin.saveOnQuit){
-                plugin.getSql().asyncSavePlayer(playerCache);
             }
             return;
         }
@@ -641,11 +753,11 @@ public class CosmeticsManager {
     }
 
     public void equipCosmetic(Player player, String id, String colorHex, boolean force){
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         if(plugin.getUser() == null) return;
         if(force){
             Cosmetic cosmetic = Cosmetic.getCloneCosmetic(id);
-            Cosmetic equip = playerCache.getEquip(cosmetic.getCosmeticType());
+            Cosmetic equip = playerData.getEquip(cosmetic.getCosmeticType());
             if(equip == null){
                 CosmeticEquipEvent event = new CosmeticEquipEvent(player, cosmetic);
                 MagicCosmetics.getInstance().getServer().getPluginManager().callEvent(event);
@@ -659,22 +771,22 @@ public class CosmeticsManager {
                 org.bukkit.Color color = Color.hex2Rgb(colorHex);
                 cosmetic.setColor(color);
             }
-            playerCache.setCosmetic(cosmetic);
+            playerData.setCosmetic(cosmetic);
             if(plugin.equipMessage) {
                 sendMessage(player, plugin.prefix + plugin.getMessages().getString("use-cosmetic").replace("%id%", id).replace("%name%", cosmetic.getName()));
-            }
-            if(!plugin.saveOnQuit){
-                plugin.getSql().asyncSavePlayer(playerCache);
             }
         }
         if(plugin.isPermissions()){
             Cosmetic cosmetic = Cosmetic.getCloneCosmetic(id);
             if(cosmetic == null) {
-                sendMessage(player, plugin.prefix + plugin.getMessages().getString("cosmetic-notfound"));
+                for(String msg : plugin.getMessages().getStringList("cosmetic-notfound")) {
+                    player.sendMessage(msg);
+                }
+                //sendMessage(player, plugin.prefix + plugin.getMessages().getString("cosmetic-notfound"));
                 return;
             }
             if(!cosmetic.hasPermission(player)) return;
-            Cosmetic equip = playerCache.getEquip(cosmetic.getCosmeticType());
+            Cosmetic equip = playerData.getEquip(cosmetic.getCosmeticType());
             if(equip == null){
                 CosmeticEquipEvent event = new CosmeticEquipEvent(player, cosmetic);
                 MagicCosmetics.getInstance().getServer().getPluginManager().callEvent(event);
@@ -688,19 +800,15 @@ public class CosmeticsManager {
                 org.bukkit.Color color = Color.hex2Rgb(colorHex);
                 cosmetic.setColor(color);
             }
-            playerCache.setCosmetic(cosmetic);
+            playerData.setCosmetic(cosmetic);
             if(plugin.equipMessage) {
                 sendMessage(player, plugin.prefix + plugin.getMessages().getString("use-cosmetic").replace("%id%", id).replace("%name%", cosmetic.getName()));
             }
-            if(!plugin.saveOnQuit){
-                plugin.getSql().asyncSavePlayer(playerCache);
-                return;
-            }
             return;
         }
-        for(Cosmetic cosmetic : playerCache.getCosmetics().values()){
+        for(Cosmetic cosmetic : playerData.getCosmetics().values()){
             if(!cosmetic.getId().equalsIgnoreCase(id)) continue;
-            Cosmetic equip = playerCache.getEquip(cosmetic.getCosmeticType());
+            Cosmetic equip = playerData.getEquip(cosmetic.getCosmeticType());
             if(equip == null){
                 CosmeticEquipEvent event = new CosmeticEquipEvent(player, cosmetic);
                 MagicCosmetics.getInstance().getServer().getPluginManager().callEvent(event);
@@ -714,41 +822,47 @@ public class CosmeticsManager {
                 org.bukkit.Color color = Color.hex2Rgb(colorHex);
                 cosmetic.setColor(color);
             }
-            playerCache.setCosmetic(cosmetic);
+            playerData.setCosmetic(cosmetic);
             if(plugin.equipMessage) {
                 sendMessage(player, plugin.prefix + plugin.getMessages().getString("use-cosmetic").replace("%id%", id).replace("%name%", cosmetic.getName()));
             }
-            if(!plugin.saveOnQuit){
-                plugin.getSql().asyncSavePlayer(playerCache);
-            }
             return;
         }
-        sendMessage(player, plugin.prefix + plugin.getMessages().getString("not-have-cosmetic"));
+        for(String msg : plugin.getMessages().getStringList("not-have-cosmetic")) {
+            player.sendMessage(msg);
+        }
+        //sendMessage(player, plugin.prefix + plugin.getMessages().getString("not-have-cosmetic"));
     }
 
     public void previewCosmetic(Player player, String id){
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         Cosmetic cosmetic = Cosmetic.getCosmetic(id);
         if(cosmetic == null){
-            sendMessage(player, plugin.prefix + plugin.getMessages().getString("not-have-cosmetic"));
+            for(String msg : plugin.getMessages().getStringList("not-have-cosmetic")) {
+                player.sendMessage(msg);
+            }
+            //sendMessage(player, plugin.prefix + plugin.getMessages().getString("not-have-cosmetic"));
             return;
         }
         if(plugin.getUser() == null) return;
-        playerCache.setPreviewCosmetic(cosmetic);
+        playerData.setPreviewCosmetic(cosmetic);
     }
 
     public void previewCosmetic(Player player, Cosmetic cosmetic){
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         if(cosmetic == null){
-            sendMessage(player, plugin.prefix + plugin.getMessages().getString("not-have-cosmetic"));
+            for(String msg : plugin.getMessages().getStringList("not-have-cosmetic")) {
+                player.sendMessage(msg);
+            }
+            //sendMessage(player, plugin.prefix + plugin.getMessages().getString("not-have-cosmetic"));
             return;
         }
         if(plugin.getUser() == null) return;
-        playerCache.setPreviewCosmetic(cosmetic);
+        playerData.setPreviewCosmetic(cosmetic);
     }
 
     public void openMenu(Player player, String id){
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         Menu menu = Menu.inventories.get(id);
         if(menu == null){
             sendMessage(player, plugin.prefix + plugin.getMessages().getString("not-exist-menu").replace("%id%", id));
@@ -763,41 +877,42 @@ public class CosmeticsManager {
         }
         switch (menu.getContentMenu().getInventoryType()){
             case HAT:
-                new HatMenu(playerCache, menu).open();
+                new HatMenu(playerData, menu).open();
                 break;
             case BAG:
-                new BagMenu(playerCache, menu).open();
+                new BagMenu(playerData, menu).open();
                 break;
             case WALKING_STICK:
-                new WStickMenu(playerCache, menu).open();
+                new WStickMenu(playerData, menu).open();
                 break;
             case BALLOON:
-                new BalloonMenu(playerCache, menu).open();
+                new BalloonMenu(playerData, menu).open();
                 break;
             case SPRAY:
-                new SprayMenu(playerCache, menu).open();
+                new SprayMenu(playerData, menu).open();
                 break;
             case FREE:
-                new FreeMenu(playerCache, menu).open();
+                new FreeMenu(playerData, menu).open();
                 break;
             case COLORED:
-                break;
             case FREE_COLORED:
-                new FreeColoredMenu(playerCache, menu, Color.getColor("color1")).open();
+                openFreeMenuColor(player, id, Color.getColor("color1"));
                 break;
             case TOKEN:
-                new TokenMenu(playerCache, menu).open();
+                ((TokenMenu)menu).getClone(playerData).open();
                 break;
         }
     }
 
     public void openMenuColor(Player player, String id, Color color, Cosmetic cosmetic){
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         Menu menu = Menu.inventories.get(id);
         if(menu == null){
             sendMessage(player, plugin.prefix + plugin.getMessages().getString("not-exist-menu").replace("%id%", id));
             return;
         }
+        if(!(menu instanceof ColoredMenu)) return;
+        ColoredMenu coloredMenu = (ColoredMenu) menu;
         if(plugin.getUser() == null) return;
         switch (menu.getContentMenu().getInventoryType()){
             case HAT:
@@ -810,18 +925,19 @@ public class CosmeticsManager {
             case FREE_COLORED:
                 break;
             case COLORED:
-                new ColoredMenu(playerCache, menu, color, cosmetic).open();
+                coloredMenu.getClone(playerData, color, cosmetic).open();
                 break;
         }
     }
 
-    public void openFreeMenuColor(Player player, String id, Color color, ItemStack itemStack){
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+    public void openFreeMenuColor(Player player, String id, Color color){
+        PlayerData playerData = PlayerData.getPlayer(player);
         Menu menu = Menu.inventories.get(id);
         if(menu == null){
             sendMessage(player, plugin.prefix + plugin.getMessages().getString("not-exist-menu").replace("%id%", id));
             return;
         }
+        FreeColoredMenu freeColoredMenu = (FreeColoredMenu) menu;
         if(plugin.getUser() == null) return;
         switch (menu.getContentMenu().getInventoryType()){
             case HAT:
@@ -833,39 +949,33 @@ public class CosmeticsManager {
             case COLORED:
                 break;
             case FREE_COLORED:
-                new FreeColoredMenu(playerCache, menu, color, itemStack).open();
+                freeColoredMenu.getClone(playerData, color).open();
                 break;
         }
     }
 
     public void unSetCosmetic(Player player, CosmeticType cosmeticType){
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        Cosmetic equip = playerCache.getEquip(cosmeticType);
+        PlayerData playerData = PlayerData.getPlayer(player);
+        Cosmetic equip = playerData.getEquip(cosmeticType);
         if(equip == null) return;
         if(plugin.getUser() == null) return;
         CosmeticUnEquipEvent event = new CosmeticUnEquipEvent(player, equip);
         MagicCosmetics.getInstance().getServer().getPluginManager().callEvent(event);
         if(event.isCancelled()) return;
-        playerCache.removePreviewEquip(equip.getId());
-        playerCache.removeEquip(equip.getId());
-        if(!plugin.saveOnQuit){
-            plugin.getSql().asyncSavePlayer(playerCache);
-        }
+        playerData.removePreviewEquip(equip.getId());
+        playerData.removeEquip(equip.getId());
     }
 
     public void unSetCosmetic(Player player, String cosmeticId){
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        Cosmetic equip = playerCache.getEquip(cosmeticId);
+        PlayerData playerData = PlayerData.getPlayer(player);
+        Cosmetic equip = playerData.getEquip(cosmeticId);
         if(equip == null) return;
         if(plugin.getUser() == null) return;
         CosmeticUnEquipEvent event = new CosmeticUnEquipEvent(player, equip);
         MagicCosmetics.getInstance().getServer().getPluginManager().callEvent(event);
         if(event.isCancelled()) return;
-        playerCache.removePreviewEquip(cosmeticId);
-        playerCache.removeEquip(cosmeticId);
-        if(!plugin.saveOnQuit){
-            plugin.getSql().asyncSavePlayer(playerCache);
-        }
+        playerData.removePreviewEquip(cosmeticId);
+        playerData.removeEquip(cosmeticId);
     }
 
     public void unEquip(Player player, String type){
@@ -883,18 +993,15 @@ public class CosmeticsManager {
             sendMessage(player, plugin.prefix + plugin.getMessages().getString("no-permission"));
             return;
         }
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         if(plugin.getUser() == null) return;
-        for(Cosmetic cosmetic : playerCache.cosmeticsInUse()){
+        for(Cosmetic cosmetic : playerData.cosmeticsInUse()){
             if(cosmetic == null) continue;
             CosmeticUnEquipEvent event = new CosmeticUnEquipEvent(player, cosmetic);
             MagicCosmetics.getInstance().getServer().getPluginManager().callEvent(event);
             if(event.isCancelled()) continue;
-            playerCache.removePreviewEquip(cosmetic.getId());
-            playerCache.removeEquip(cosmetic.getId());
-        }
-        if(!plugin.saveOnQuit){
-            plugin.getSql().asyncSavePlayer(playerCache);
+            playerData.removePreviewEquip(cosmetic.getId());
+            playerData.removeEquip(cosmetic.getId());
         }
     }
 
@@ -903,50 +1010,45 @@ public class CosmeticsManager {
             sendMessage(player, plugin.prefix + plugin.getMessages().getString("no-permission"));
             return;
         }
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         if(plugin.getUser() == null) return;
-        for(Cosmetic cosmetic : playerCache.cosmeticsInUse()){
+        for(Cosmetic cosmetic : playerData.cosmeticsInUse()){
             if(cosmetic == null) continue;
             CosmeticUnEquipEvent event = new CosmeticUnEquipEvent(player, cosmetic);
             MagicCosmetics.getInstance().getServer().getPluginManager().callEvent(event);
             if(event.isCancelled()) continue;
-            playerCache.removePreviewEquip(cosmetic.getId());
-            playerCache.removeEquip(cosmetic.getId());
-        }
-        if(!plugin.saveOnQuit){
-            plugin.getSql().asyncSavePlayer(playerCache);
+            playerData.removePreviewEquip(cosmetic.getId());
+            playerData.removeEquip(cosmetic.getId());
         }
     }
 
-    public void unUseCosmetic(Player player, String cosmeticId){
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+    public boolean unUseCosmetic(Player player, String cosmeticId){
+        PlayerData playerData = PlayerData.getPlayer(player);
         Token token = Token.getTokenByCosmetic(cosmeticId);
-        if(token == null) return;
-        if(plugin.getUser() == null) return;
+        if(token == null) return false;
+        if(plugin.getUser() == null) return false;
         if(!token.isExchangeable()) {
-            return;
+            return false;
         }
-        if(playerCache.getCosmeticById(cosmeticId) != null) {
-            playerCache.removeCosmetic(cosmeticId);
-            playerCache.removeEquip(cosmeticId);
-            if(!plugin.saveOnQuit){
-                plugin.getSql().asyncSavePlayer(playerCache);
-            }
-            if(playerCache.isZone()) {
-                playerCache.getInventory().put(playerCache.getFreeSlotInventory(), token.getItemStack().clone());
-            }else{
-                player.getInventory().addItem(token.getItemStack().clone());
-            }
-            for(String msg : plugin.getMessages().getStringList("change-cosmetic-to-token")){
-                sendMessage(player, msg);
-            }
+        if(!playerData.hasCosmeticById(cosmeticId)) return false;
+        int freeSlot = playerData.getFreeSlotInventory();
+        if(freeSlot == -1) return false;
+        playerData.removeCosmetic(cosmeticId);
+        if(playerData.isZone()) {
+            playerData.getInventory().put(freeSlot, token.getItemStack().clone());
+        }else{
+            player.getInventory().addItem(token.getItemStack().clone());
         }
+        for(String msg : plugin.getMessages().getStringList("change-cosmetic-to-token")){
+            sendMessage(player, msg);
+        }
+        return true;
     }
 
     public void hideSelfCosmetic(Player player, CosmeticType cosmeticType){
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         if(cosmeticType != CosmeticType.BAG) return;
-        Bag bag = (Bag) playerCache.getEquip(cosmeticType);
+        Bag bag = (Bag) playerData.getEquip(cosmeticType);
         if(bag == null) return;
         bag.hideSelf(true);
         if(bag.isHide()){
@@ -966,10 +1068,6 @@ public class CosmeticsManager {
         }
         if(sender instanceof Player) {
             Player player = (Player) sender;
-            if (MagicCosmetics.getInstance().isMiniMessage()) {
-                MagicCosmetics.getInstance().getMiniMessage().sendMessage(player, string);
-                return;
-            }
             player.sendMessage(string);
         }
     }

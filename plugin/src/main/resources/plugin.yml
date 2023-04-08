@@ -3,6 +3,7 @@ version: '${project.version}'
 main: com.francobm.magicosmetics.MagicCosmetics
 api-version: 1.16
 softdepend:
+  - LuckPerms
   - Multiverse-Core
   - ItemsAdder
   - Oraxen
@@ -11,6 +12,7 @@ softdepend:
   - PlaceholderAPI
   - Citizens
   - MythicMobs
+  - SkinsRestorer
 authors: [FrancoBM]
 description: magic cosmetics for this server.
 website: FrancoBM#2980

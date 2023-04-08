@@ -1,8 +1,10 @@
 package com.francobm.magicosmetics.cache;
 
 import com.francobm.magicosmetics.MagicCosmetics;
+import com.francobm.magicosmetics.api.Cosmetic;
 import com.francobm.magicosmetics.api.CosmeticType;
-import com.francobm.magicosmetics.cache.balloons.Balloon;
+import com.francobm.magicosmetics.cache.cosmetics.Bag;
+import com.francobm.magicosmetics.cache.cosmetics.balloons.Balloon;
 import com.francobm.magicosmetics.nms.NPC.ItemSlot;
 import com.francobm.magicosmetics.utils.XMaterial;
 import org.bukkit.Bukkit;
@@ -28,11 +30,23 @@ public class EntityCache {
         this.entity = Bukkit.getEntity(uniqueId);
     }
 
+    public EntityCache(Entity entity) {
+        this.uniqueId = entity.getUniqueId();
+        this.entity = entity;
+    }
+
     public static EntityCache getOrCreateEntity(UUID uniqueId) {
         if (!entities.containsKey(uniqueId)) {
             entities.put(uniqueId, new EntityCache(uniqueId));
         }
         return entities.get(uniqueId);
+    }
+
+    public static EntityCache getOrCreateEntity(Entity entity) {
+        if (!entities.containsKey(entity.getUniqueId())) {
+            entities.put(entity.getUniqueId(), new EntityCache(entity));
+        }
+        return entities.get(entity.getUniqueId());
     }
 
     public static void removeEntity(UUID uniqueId){
@@ -120,6 +134,12 @@ public class EntityCache {
         activeBag();
         activeWStick();
         activeBalloon();
+    }
+
+    public void activeCosmeticsInInventory() {
+        activeHat();
+        activeBag();
+        activeWStick();
     }
 
     public void clearCosmeticsInUse(){

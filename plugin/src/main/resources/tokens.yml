@@ -12,7 +12,7 @@ tokens:
       hide-attributes: true
       modeldata: 10006
     cosmetic: hat1
-    exchangeable: true #in 1.8.9 this is not required
+    exchangeable: true
   token2:
     item:
       display: '&6Creeper token'
@@ -81,7 +81,7 @@ tokens:
   token7:
     item:
       display: '&6Dino token'
-      item-adder: token
+      material: LEATHER_HORSE_ARMOR
       lore:
         - ''
         - '&9Redeem the Dino spray!'
@@ -94,7 +94,7 @@ tokens:
   token8:
     item:
       display: '&6MagicSpray token'
-      item-adder: token
+      material: LEATHER_HORSE_ARMOR
       lore:
         - ''
         - '&9Redeem the Magic spray!'

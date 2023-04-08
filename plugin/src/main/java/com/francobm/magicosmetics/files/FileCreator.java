@@ -7,7 +7,10 @@ import org.bukkit.plugin.Plugin;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 public class FileCreator extends YamlConfiguration {
@@ -84,7 +87,40 @@ public class FileCreator extends YamlConfiguration {
     @Override
     public String getString(String path) {
         //return ChatColor.translateAlternateColorCodes('&', super.getString(path));
-        return Utils.ChatColor(super.getString(path));
+        String s = super.getString(path);
+        if(s == null) {
+            plugin.getLogger().warning("The path(" + path + ") is null in file '" + getName());
+            return null;
+        }
+        return Utils.ChatColor(s);
+    }
+
+    public List<Integer> getIntegerList(String path) {
+        List<Integer> integers = new ArrayList<>();
+        String list = getString(path);
+        if(list.isEmpty()) return integers;
+        String[] split = list.split(",");
+        for(String s : split){
+            try {
+                integers.add(Integer.parseInt(s));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return integers;
+    }
+
+    public Set<Integer> getIntegerSet(String path) {
+        Set<Integer> integers = new HashSet<>();
+        String list = getString(path);
+        if(list.isEmpty()) return integers;
+        String[] split = list.split(",");
+        for(String s : split){
+            try {
+                integers.add(Integer.parseInt(s));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return integers;
     }
 
     @Override
@@ -107,5 +143,11 @@ public class FileCreator extends YamlConfiguration {
 
     public String getFileName() {
         return fileName;
+    }
+
+    @Override
+    public String getName() {
+        String name = fileName.replace(".yml", "");
+        return name.substring(name.lastIndexOf("/") + 1);
     }
 }

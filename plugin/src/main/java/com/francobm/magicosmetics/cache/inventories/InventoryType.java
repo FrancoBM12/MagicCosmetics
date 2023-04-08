@@ -7,6 +7,7 @@ public enum InventoryType {
     FREE,
     BALLOON,
     SPRAY,
+    ITEM_SKIN,
     COLORED,
     FREE_COLORED,
     TOKEN

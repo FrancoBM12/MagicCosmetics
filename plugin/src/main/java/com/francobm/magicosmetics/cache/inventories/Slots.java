@@ -71,7 +71,7 @@ public class Slots {
             if(!isNum3()) {
                 setNum3(true);
                 if(MagicCosmetics.getInstance().getMessages().contains("edge.row-3")){
-                    String space = MagicCosmetics.getInstance().getMessages().getString("edge.row-5");
+                    String space = MagicCosmetics.getInstance().getMessages().getString("edge.row-3");
                     if(MagicCosmetics.getInstance().isItemsAdder()){
                         space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
                     }
@@ -94,7 +94,7 @@ public class Slots {
             if(!isNum4()) {
                 setNum4(true);
                 if(MagicCosmetics.getInstance().getMessages().contains("edge.row-4")){
-                    String space = MagicCosmetics.getInstance().getMessages().getString("edge.row-5");
+                    String space = MagicCosmetics.getInstance().getMessages().getString("edge.row-4");
                     if(MagicCosmetics.getInstance().isItemsAdder()){
                         space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
                     }

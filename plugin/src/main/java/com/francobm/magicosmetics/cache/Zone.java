@@ -284,7 +284,7 @@ public class Zone {
         lore.add("§eRight click to set second position");
         itemMeta.setLore(lore);
         itemStack.setItemMeta(itemMeta);
-        return itemStack;
+        return MagicCosmetics.getInstance().getVersion().setNBTCosmetic(itemStack, "wand" + getName());
     }
 
     public boolean isInZone(Block block){

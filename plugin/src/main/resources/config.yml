@@ -5,11 +5,15 @@ equip-message: true
 save-on-quit: true
 bossbar-color: YELLOW
 bungeecord: false
-permissions: false
+permissions: true
 zones-hide-items: true
 spray-key: 'SHIFT_F'
 spray-stay-time: 60
 spray-cooldown: 5 #1.8.5 - in seconds
+order-cosmetics: 0 #0 - order as the file is, #1 - alphabetical by id, #2 - random
+placeholder-api: false
+main-menu: 'hat'
+save-data-delay: 300
 MySQL:
   enabled: false
   host: "127.0.0.1"

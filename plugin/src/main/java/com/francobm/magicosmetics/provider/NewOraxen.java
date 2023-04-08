@@ -2,19 +2,18 @@ package com.francobm.magicosmetics.provider;
 
 import com.francobm.magicosmetics.MagicCosmetics;
 import io.th0rgal.oraxen.OraxenPlugin;
+import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.compatibilities.CompatibilitiesManager;
 import io.th0rgal.oraxen.compatibilities.CompatibilityProvider;
-import io.th0rgal.oraxen.font.Font;
 import io.th0rgal.oraxen.font.FontManager;
 import io.th0rgal.oraxen.font.Glyph;
 import io.th0rgal.oraxen.items.ItemBuilder;
-import io.th0rgal.oraxen.items.OraxenItems;
 import org.bukkit.inventory.ItemStack;
 
-public class Oraxen extends CompatibilityProvider<MagicCosmetics> {
+public class NewOraxen extends CompatibilityProvider<MagicCosmetics> implements Oraxen {
 
     public void register(){
-        CompatibilitiesManager.addCompatibility("MagicCosmetics", Oraxen.class);
+        CompatibilitiesManager.addCompatibility("MagicCosmetics", NewOraxen.class);
     }
 
     public ItemStack getItemStackById(String id){

@@ -1,5 +1,6 @@
 package com.francobm.magicosmetics.cache;
 
+import com.francobm.magicosmetics.api.TokenType;
 import com.francobm.magicosmetics.files.FileCreator;
 import com.francobm.magicosmetics.utils.XMaterial;
 import com.francobm.magicosmetics.MagicCosmetics;
@@ -17,18 +18,18 @@ import java.util.Map;
 public class Token {
     public static Map<String, Token> tokens = new HashMap<>();
     private final String id;
+    private String tokenNBT;
     private final ItemStack itemStack;
     private final String cosmetic;
+    private final TokenType tokenType;
     private final boolean exchangeable;
 
-    public Token(boolean log, String id, ItemStack itemStack, String cosmetic, boolean exchangeable) {
+    public Token(String id, ItemStack itemStack, String cosmetic, TokenType tokenType, boolean exchangeable) {
         this.id = id;
         this.itemStack = itemStack;
         this.cosmetic = cosmetic;
         this.exchangeable = exchangeable;
-        if(log) {
-            MagicCosmetics.getInstance().getLogger().info("Token named: '" + id + "' registered.");
-        }
+        this.tokenType = tokenType;
     }
 
     public static Token getToken(String id){
@@ -46,7 +47,15 @@ public class Token {
 
     public static Token getTokenByItem(ItemStack itemStack){
         for(Token token : tokens.values()) {
-            if(!token.isToken(itemStack)) continue;
+            if(!token.isNewToken(itemStack)) continue;
+            return token;
+        }
+        return null;
+    }
+
+    public static Token getOldTokenByItem(ItemStack itemStack) {
+        for(Token token : tokens.values()) {
+            if(!token.isOldToken(itemStack)) continue;
             return token;
         }
         return null;
@@ -55,15 +64,13 @@ public class Token {
     public static boolean removeToken(Player player, ItemStack itemStack){
         MagicCosmetics plugin = MagicCosmetics.getInstance();
         Token token = Token.getTokenByItem(itemStack);
-        if(token == null){
-            return false;
-        }
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        if(token == null) return false;
+        PlayerData playerData = PlayerData.getPlayer(player);
         if(itemStack.getAmount() < token.getItemStack().getAmount()){
             plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("insufficient-tokens"));
             return false;
         }
-        if(playerCache.getCosmeticById(token.getCosmetic()) != null){
+        if(playerData.getCosmeticById(token.getCosmetic()) != null){
             plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
             return false;
         }
@@ -71,8 +78,10 @@ public class Token {
     }
 
     public static void loadTokens(){
+        MagicCosmetics plugin = MagicCosmetics.getInstance();
         tokens.clear();
-        FileCreator token = MagicCosmetics.getInstance().getTokens();
+        FileCreator token = plugin.getTokens();
+        int tokens_count = 0;
         for(String key : token.getConfigurationSection("tokens").getKeys(false)){
             String display = "";
             int amount = 1;
@@ -84,9 +93,14 @@ public class Token {
             boolean hide_attributes = false;
             int modelData = 0;
             String cosmetic = "";
+            TokenType type = null;
             boolean exchangeable = true;
             if(token.contains("tokens." + key + ".item.display")){
                 display = token.getString("tokens." + key + ".item.display");
+                if(plugin.isItemsAdder())
+                    display = plugin.getItemsAdder().replaceFontImages(display);
+                if(plugin.isOraxen())
+                    display = plugin.getOraxen().replaceFontImages(display);
             }
             if(token.contains("tokens." + key + ".item.amount")){
                 amount = token.getInt("tokens." + key + ".item.amount");
@@ -96,11 +110,27 @@ public class Token {
                 try{
                     itemStack = XMaterial.valueOf(material.toUpperCase()).parseItem();
                 }catch (IllegalArgumentException exception){
-                    MagicCosmetics.getInstance().getLogger().info("Item '" + key + "' material: " + material + " Not Found.");
+                    plugin.getLogger().warning("Item '" + key + "' material: " + material + " Not Found.");
                 }
             }
             if(token.contains("tokens." + key + ".item.lore")){
                 lore = token.getStringList("tokens." + key + ".item.lore");
+                if(plugin.isItemsAdder()){
+                    List<String> lore2 = new ArrayList<>();
+                    for(String l : lore) {
+                        lore2.add(plugin.getItemsAdder().replaceFontImages(l));
+                    }
+                    lore.clear();
+                    lore.addAll(lore2);
+                }
+                if(plugin.isOraxen()){
+                    List<String> lore2 = new ArrayList<>();
+                    for(String l : lore) {
+                        lore2.add(plugin.getOraxen().replaceFontImages(l));
+                    }
+                    lore.clear();
+                    lore.addAll(lore2);
+                }
             }
             if(token.contains("tokens." + key + ".item.unbreakable")){
                 unbreakable = token.getBoolean("tokens." + key + ".item.unbreakable");
@@ -115,28 +145,28 @@ public class Token {
                 modelData = token.getInt("tokens." + key + ".item.modeldata");
             }
             if(token.contains("tokens." + key + ".item.item-adder")){
-                if(!MagicCosmetics.getInstance().isItemsAdder()){
-                    MagicCosmetics.getInstance().getLogger().info("Item Adder plugin Not Found skipping Token Item '" + key + "'");
+                if(!plugin.isItemsAdder()){
+                    plugin.getLogger().warning("Item Adder plugin Not Found skipping Token Item '" + key + "'");
                     continue;
                 }
                 String id = token.getString("tokens." + key + ".item.item-adder");
-                ItemStack ia = MagicCosmetics.getInstance().getItemsAdder().getCustomItemStack(id);
+                ItemStack ia = plugin.getItemsAdder().getCustomItemStack(id);
                 if(ia == null){
-                    MagicCosmetics.getInstance().getLogger().info("Item Adder '" + id + "' Not Found skipping...");
+                    plugin.getLogger().warning("Item Adder '" + id + "' Not Found skipping...");
                     continue;
                 }
                 itemStack = ia.clone();
                 modelData = -1;
             }
             if(token.contains("tokens." + key + ".item.oraxen")){
-                if(!MagicCosmetics.getInstance().isOraxen()){
-                    MagicCosmetics.getInstance().getLogger().info("Oraxen plugin Not Found skipping Token Item '" + key + "'");
+                if(!plugin.isOraxen()){
+                    plugin.getLogger().warning("Oraxen plugin Not Found skipping Token Item '" + key + "'");
                     continue;
                 }
                 String id = token.getString("tokens." + key + ".item.oraxen");
-                ItemStack oraxen = MagicCosmetics.getInstance().getOraxen().getItemStackById(id);
+                ItemStack oraxen = plugin.getOraxen().getItemStackById(id);
                 if(oraxen == null){
-                    MagicCosmetics.getInstance().getLogger().info("Oraxen '" + id + "' Not Found skipping...");
+                    plugin.getLogger().warning("Oraxen '" + id + "' Not Found skipping...");
                     continue;
                 }
                 itemStack = oraxen.clone();
@@ -144,6 +174,14 @@ public class Token {
             }
             if(token.contains("tokens." + key + ".cosmetic")){
                 cosmetic = token.getString("tokens." + key + ".cosmetic");
+            }
+            if(token.contains("tokens." + key + ".type")) {
+                String tokenType = token.getString("tokens." + key + ".type");
+                try{
+                    type = TokenType.valueOf(tokenType.toUpperCase());
+                }catch (IllegalArgumentException exception){
+                    plugin.getLogger().warning("The token type you entered does not exist!");
+                }
             }
             if(token.contains("tokens." + key + ".exchangeable")){
                 exchangeable = token.getBoolean("tokens." + key + ".exchangeable");
@@ -159,15 +197,20 @@ public class Token {
                 itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             }
             if(hide_attributes){
-                itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+                itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_DYE, ItemFlag.HIDE_UNBREAKABLE);
             }
             itemMeta.setUnbreakable(unbreakable);
             if(modelData != -1) {
                 itemMeta.setCustomModelData(modelData);
             }
             itemStack.setItemMeta(itemMeta);
-            tokens.put(key, new Token(true, key, itemStack, cosmetic, exchangeable));
+            itemStack = plugin.getVersion().setNBTCosmetic(itemStack, "key:"+key);
+            Token tk = new Token(key, itemStack, cosmetic, type, exchangeable);
+            tk.tokenNBT = "key:" + key;
+            tokens.put(key, tk);
+            tokens_count++;
         }
+        MagicCosmetics.getInstance().getLogger().info("Registered tokens: " + tokens_count);
     }
 
     public String getId() {
@@ -178,11 +221,9 @@ public class Token {
         return itemStack;
     }
 
-    public boolean isToken(ItemStack itemStack){
+    public boolean isNewToken(ItemStack itemStack){
         if(itemStack == null) return false;
-        if(this.itemStack == null) return false;
-        ItemStack token = this.itemStack;
-        if(MagicCosmetics.getInstance().isItemsAdder()) {
+        /*if(MagicCosmetics.getInstance().isItemsAdder()) {
             if (MagicCosmetics.getInstance().getItemsAdder().getCustomStack(itemStack) != null) {
                 if(token.hasItemMeta() && itemStack.hasItemMeta()) {
                     if (token.getItemMeta().hasDisplayName() && itemStack.getItemMeta().hasDisplayName()) {
@@ -191,8 +232,29 @@ public class Token {
                 }
                 return true;
             }
-        }
-        return itemStack.isSimilar(token);
+        }*/
+        String key = MagicCosmetics.getInstance().getVersion().isNBTCosmetic(itemStack);
+        return key != null && !key.isEmpty() && key.equalsIgnoreCase(tokenNBT);
+    }
+
+    public boolean isOldToken(ItemStack itemStack){
+        if(itemStack == null) return false;
+        /*if(MagicCosmetics.getInstance().isItemsAdder()) {
+            if (MagicCosmetics.getInstance().getItemsAdder().getCustomStack(itemStack) != null) {
+                if(token.hasItemMeta() && itemStack.hasItemMeta()) {
+                    if (token.getItemMeta().hasDisplayName() && itemStack.getItemMeta().hasDisplayName()) {
+                        return token.getItemMeta().getDisplayName().equals(itemStack.getItemMeta().getDisplayName());
+                    }
+                }
+                return true;
+            }
+        }*/
+        String key = MagicCosmetics.getInstance().getVersion().isNBTCosmetic(itemStack);
+        return key != null && !key.isEmpty() && key.equalsIgnoreCase(id);
+    }
+
+    public TokenType getTokenType() {
+        return tokenType;
     }
 
     public String getCosmetic() {

@@ -1,22 +1,25 @@
 package com.francobm.magicosmetics.cache.inventories.menus;
 
 import com.francobm.magicosmetics.MagicCosmetics;
-import com.francobm.magicosmetics.cache.Cosmetic;
+import com.francobm.magicosmetics.api.Cosmetic;
 import com.francobm.magicosmetics.api.CosmeticType;
-import com.francobm.magicosmetics.cache.PlayerCache;
+import com.francobm.magicosmetics.cache.PlayerData;
 import com.francobm.magicosmetics.cache.Sound;
+import com.francobm.magicosmetics.cache.Token;
 import com.francobm.magicosmetics.cache.inventories.*;
 import com.francobm.magicosmetics.cache.items.Items;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 public class BagMenu extends PaginatedMenu {
 
-    public BagMenu(String id, ContentMenu contentMenu, int startSlot, int endSlot, int backSlot, int nextSlot, int pagesSlot, List<Integer> slotsUnavailable) {
+    public BagMenu(String id, ContentMenu contentMenu, int startSlot, int endSlot, Set<Integer> backSlot, Set<Integer> nextSlot, int pagesSlot, List<Integer> slotsUnavailable) {
         super(id, contentMenu, startSlot, endSlot, backSlot, nextSlot, pagesSlot, slotsUnavailable);
     }
 
@@ -24,8 +27,8 @@ public class BagMenu extends PaginatedMenu {
         super(id, contentMenu);
     }
 
-    public BagMenu(PlayerCache playerCache, Menu menu) {
-        super(playerCache, menu);
+    public BagMenu(PlayerData playerData, Menu menu) {
+        super(playerData, menu);
     }
 
     @Override
@@ -35,17 +38,20 @@ public class BagMenu extends PaginatedMenu {
         SlotMenu slotMenu = getContentMenu().getSlotMenuBySlot(slot);
         if(slotMenu == null) return;
         if(slotMenu.getItems().getId().endsWith("_bag")) {
-            if (slotMenu.getActionType().size() == 2) {
-                if (event.getClick() == ClickType.SHIFT_LEFT) {
-                    slotMenu.action(player, slotMenu.getActionType().get(1));
-                    setItems();
-                    return;
+            if(slotMenu.isExchangeable()) {
+                Cosmetic cosmetic = slotMenu.getTempCosmetic();
+                if(cosmetic != null && playerData.hasCosmeticById(cosmetic.getId())){
+                    if(event.getClick() == ClickType.SHIFT_LEFT ){
+                        if(!slotMenu.action(player, ActionType.REMOVE_COSMETIC_ADD_TOKEN)) return;
+                        setItems();
+                        return;
+                    }
                 }
-                slotMenu.action(player, slotMenu.getActionType().get(0));
+                slotMenu.action(player);
                 return;
             }
         }
-        if(slotMenu.getSlot() == getBackSlot()){
+        if(getBackSlot().contains(slotMenu.getSlot())){
             slotMenu.playSound(player);
             if(page == 0){
                 //player.sendMessage(CustomCosmetics.getInstance().prefix + CustomCosmetics.getInstance().getMessages().getString("first-page"));
@@ -57,10 +63,10 @@ public class BagMenu extends PaginatedMenu {
             return;
         }
 
-        if(slotMenu.getSlot() == getNextSlot()){
+        if(getNextSlot().contains(slotMenu.getSlot())){
             slotMenu.playSound(player);
-            List<Cosmetic> cosmetics = Cosmetic.getCosmeticsUnHideByType(CosmeticType.BAG);
-            if(((index + 1) >= cosmetics.size())){
+            int cosmetics = Cosmetic.getCosmeticCount(CosmeticType.BAG);
+            if(((index + 1) >= cosmetics)){
                 //player.sendMessage(CustomCosmetics.getInstance().prefix + CustomCosmetics.getInstance().getMessages().getString("last-page"));
                 return;
             }
@@ -79,15 +85,17 @@ public class BagMenu extends PaginatedMenu {
         //title.append(getContentMenu().getTitle() + "                      ");
         title.append(getContentMenu().getTitle());
         List<Cosmetic> cosmetics = Cosmetic.getCosmeticsUnHideByType(CosmeticType.BAG);
-        if(getBackSlot() != -1) {
-            SlotMenu s;
-            if(page == 0){
-                s = new SlotMenu(getBackSlot(), Items.getItem("back-button-cancel-template"), id, ActionType.OPEN_MENU);
-            }else{
-                s = new SlotMenu(getBackSlot(), Items.getItem("back-button-template"), id, ActionType.OPEN_MENU);
+        if(!getBackSlot().isEmpty()) {
+            for(int slot : getBackSlot()) {
+                SlotMenu s;
+                if(page == 0){
+                    s = new SlotMenu(slot, Items.getItem("back-button-cancel-template"), id, ActionType.OPEN_MENU);
+                }else{
+                    s = new SlotMenu(slot, Items.getItem("back-button-template"), id, ActionType.OPEN_MENU);
+                }
+                s.setSound(Sound.getSound("on_click_back_page"));
+                getContentMenu().addSlotMenu(s);
             }
-            s.setSound(Sound.getSound("on_click_back_page"));
-            getContentMenu().addSlotMenu(s);
         }
         if(getPagesSlot() != -1) {
             getContentMenu().addSlotMenu(new SlotMenu(getPagesSlot(), new Items(Items.getItem("pages-template").addVariableItem("%pages%", page + 1)), id, ActionType.CLOSE_MENU));
@@ -105,65 +113,68 @@ public class BagMenu extends PaginatedMenu {
                     a++;
                 }
                 title.append(getContentMenu().getSlots().isSlot(slot));
-                Items items = new Items(getPage()+index+"_bag", Items.getItem("bag-template").copyItem(playerCache, cosmetic, cosmetic.getItemStack()));
+                Items items = new Items(getPage()+index+"_bag", Items.getItem("bag-template").copyItem(playerData, cosmetic, cosmetic.getItemStack()));
                 SlotMenu slotMenu;
-                items.addVariable("%equip%", playerCache.getEquip(cosmetic.getId()) != null ? MagicCosmetics.getInstance().getMessages().getString("equip") : MagicCosmetics.getInstance().getMessages().getString("unequip"));
-                items.addPlaceHolder(playerCache.getOfflinePlayer().getPlayer());
+                items.addVariable("%equip%", playerData.getEquip(cosmetic.getId()) != null ? MagicCosmetics.getInstance().getMessages().getString("equip") : MagicCosmetics.getInstance().getMessages().getString("unequip"));
+                items.addPlaceHolder(playerData.getOfflinePlayer().getPlayer());
                 if(plugin.isPermissions()){
-                    items.addVariable("%name%", cosmetic.getName()).addVariable("%available%", cosmetic.hasPermission(playerCache.getOfflinePlayer().getPlayer()) ? MagicCosmetics.getInstance().getMessages().getString("available") : MagicCosmetics.getInstance().getMessages().getString("unavailable")).addVariable("%type%", cosmetic.getCosmeticType());
-                    if(cosmetic.hasPermission(playerCache.getOfflinePlayer().getPlayer())){
-                        title.append(playerCache.getEquip(cosmetic.getId()) != null ? plugin.equip : plugin.ava);
+                    items.addVariable("%name%", cosmetic.getName()).addVariable("%available%", cosmetic.hasPermission(playerData.getOfflinePlayer().getPlayer()) ? MagicCosmetics.getInstance().getMessages().getString("available") : MagicCosmetics.getInstance().getMessages().getString("unavailable")).addVariable("%type%", cosmetic.getCosmeticType());
+                    if(cosmetic.hasPermission(playerData.getOfflinePlayer().getPlayer())){
+                        title.append(playerData.getEquip(cosmetic.getId()) != null ? plugin.equip : plugin.ava);
                     }else{
                         title.append(plugin.unAva);
                     }
                 }else {
-                    items.addVariable("%name%", cosmetic.getName()).addVariable("%available%", playerCache.getCosmeticById(cosmetic.getId()) != null ? MagicCosmetics.getInstance().getMessages().getString("available") : MagicCosmetics.getInstance().getMessages().getString("unavailable")).addVariable("%type%", cosmetic.getCosmeticType());
-                    if (playerCache.getCosmeticById(cosmetic.getId()) != null) {
-                        title.append(playerCache.getEquip(cosmetic.getId()) != null ? plugin.equip : plugin.ava);
+                    items.addVariable("%name%", cosmetic.getName()).addVariable("%available%", playerData.getCosmeticById(cosmetic.getId()) != null ? MagicCosmetics.getInstance().getMessages().getString("available") : MagicCosmetics.getInstance().getMessages().getString("unavailable")).addVariable("%type%", cosmetic.getCosmeticType());
+                    if (playerData.getCosmeticById(cosmetic.getId()) != null) {
+                        title.append(playerData.getEquip(cosmetic.getId()) != null ? plugin.equip : plugin.ava);
                     } else {
                         title.append(plugin.unAva);
                     }
                 }
                 title.append(getPanel(slot));
-                if(playerCache.getBag() != null){
-                    if(playerCache.getBag().getId().equalsIgnoreCase(cosmetic.getId())){
+                if(playerData.getBag() != null){
+                    if(playerData.getBag().getId().equalsIgnoreCase(cosmetic.getId())){
                         slotMenu = new SlotMenu(slot, items, Collections.singletonList("magiccos unset " + cosmetic.getId()), ActionType.PLAYER_COMMAND);
                     }else{
                         if(cosmetic.isColored()){
-                            slotMenu = new SlotMenu(slot, items, Collections.singletonList("magiccos unuse " + cosmetic.getId()),"colored|color1|"+cosmetic.getId(), ActionType.OPEN_MENU, ActionType.PLAYER_COMMAND);
+                            slotMenu = new SlotMenu(slot, items,"colored|color1|"+cosmetic.getId(), ActionType.OPEN_MENU);
                         }else{
-                            slotMenu = new SlotMenu(slot, items, cosmetic, ActionType.PREVIEW_ITEM, ActionType.PLAYER_COMMAND);
-                            slotMenu.getCommands().add("magiccos unuse " + cosmetic.getId());
+                            slotMenu = new SlotMenu(slot, items, cosmetic, ActionType.PREVIEW_ITEM);
                         }
                     }
                 }else{
                     if(cosmetic.isColored()){
-                        slotMenu = new SlotMenu(slot, items, Collections.singletonList("magiccos unuse " + cosmetic.getId()),"colored|color1|"+cosmetic.getId(), ActionType.OPEN_MENU, ActionType.PLAYER_COMMAND);
+                        slotMenu = new SlotMenu(slot, items,"colored|color1|"+cosmetic.getId(), ActionType.OPEN_MENU);
                     }else{
-                        slotMenu = new SlotMenu(slot, items, cosmetic, ActionType.PREVIEW_ITEM, ActionType.PLAYER_COMMAND);
-                        slotMenu.getCommands().add("magiccos unuse " + cosmetic.getId());
+                        slotMenu = new SlotMenu(slot, items, cosmetic, ActionType.PREVIEW_ITEM);
                     }
                 }
                 slotMenu.setSound(Sound.getSound("on_click_cosmetic"));
+                slotMenu.setTempCosmetic(cosmetic);
+                Token token = Token.getTokenByCosmetic(cosmetic.getId());
+                slotMenu.setExchangeable(token != null && token.isExchangeable());
                 getContentMenu().addSlotMenu(slotMenu);
                 setItemInPaginatedMenu(slotMenu, getPage(), index, "_bag");
             }
         }
-        if(getNextSlot() != -1){
+        if(!getNextSlot().isEmpty()){
             SlotMenu s;
-            if(((index + 1) >= cosmetics.size())){
-                s = new SlotMenu(getNextSlot(), Items.getItem("next-button-cancel-template"), id, ActionType.OPEN_MENU);
-                //player.sendMessage(CustomCosmetics.getInstance().prefix + CustomCosmetics.getInstance().getMessages().getString("last-page"));
-            }else {
-                s = new SlotMenu(getNextSlot(), Items.getItem("next-button-template"), id, ActionType.OPEN_MENU);
+            for(int slot : getNextSlot()) {
+                if (((index + 1) >= cosmetics.size())) {
+                    s = new SlotMenu(slot, Items.getItem("next-button-cancel-template"), id, ActionType.OPEN_MENU);
+                    //player.sendMessage(CustomCosmetics.getInstance().prefix + CustomCosmetics.getInstance().getMessages().getString("last-page"));
+                } else {
+                    s = new SlotMenu(slot, Items.getItem("next-button-template"), id, ActionType.OPEN_MENU);
+                }
+                s.setSound(Sound.getSound("on_click_next_page"));
+                getContentMenu().addSlotMenu(s);
             }
-            s.setSound(Sound.getSound("on_click_next_page"));
-            getContentMenu().addSlotMenu(s);
         }
         for(SlotMenu slotMenu : getContentMenu().getSlotMenu().values()){
             setItemInPaginatedMenu(slotMenu, -1, -1, "_bag");
         }
-        MagicCosmetics.getInstance().getVersion().updateTitle(playerCache.getOfflinePlayer().getPlayer(), title.toString());
+        MagicCosmetics.getInstance().getVersion().updateTitle(playerData.getOfflinePlayer().getPlayer(), title.toString());
     }
 
 }

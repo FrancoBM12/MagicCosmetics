@@ -99,8 +99,8 @@ public class VersionHandler extends Version {
     }
 
     @Override
-    public PlayerBag createPlayerBag(Player player, double distance, int height) {
-        return new PlayerBagHandler(player, distance, height);
+    public PlayerBag createPlayerBag(Player player, double distance, int height, ItemStack backPackItem, ItemStack backPackForMe) {
+        return new PlayerBagHandler(player, distance, height, backPackItem, backPackForMe);
     }
 
     @Override
@@ -136,33 +136,34 @@ public class VersionHandler extends Version {
 
     @Override
     public void equip(LivingEntity livingEntity, ItemSlot itemSlot, ItemStack itemStack) {
+        //for(Player p : Bukkit.getOnlinePlayers()){
+        List<Pair<EnumItemSlot, net.minecraft.server.v1_16_R3.ItemStack>> list = new ArrayList<>();
+        switch (itemSlot){
+            case MAIN_HAND:
+                list.add(new Pair<>(EnumItemSlot.MAINHAND, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+            case OFF_HAND:
+                list.add(new Pair<>(EnumItemSlot.OFFHAND, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+            case BOOTS:
+                list.add(new Pair<>(EnumItemSlot.FEET, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+            case LEGGINGS:
+                list.add(new Pair<>(EnumItemSlot.LEGS, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+            case CHESTPLATE:
+                list.add(new Pair<>(EnumItemSlot.CHEST, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+            case HELMET:
+                list.add(new Pair<>(EnumItemSlot.HEAD, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+        }
         for(Player p : Bukkit.getOnlinePlayers()){
             PlayerConnection connection = ((CraftPlayer)p).getHandle().playerConnection;
-            List<Pair<EnumItemSlot, net.minecraft.server.v1_16_R3.ItemStack>> list = new ArrayList<>();
-            switch (itemSlot){
-                case MAIN_HAND:
-                    list.add(new Pair<>(EnumItemSlot.MAINHAND, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-                case OFF_HAND:
-                    list.add(new Pair<>(EnumItemSlot.OFFHAND, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-                case BOOTS:
-                    list.add(new Pair<>(EnumItemSlot.FEET, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-                case LEGGINGS:
-                    list.add(new Pair<>(EnumItemSlot.LEGS, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-                case CHESTPLATE:
-                    list.add(new Pair<>(EnumItemSlot.CHEST, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-                case HELMET:
-                    list.add(new Pair<>(EnumItemSlot.HEAD, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-            }
             connection.sendPacket(new PacketPlayOutEntityEquipment(livingEntity.getEntityId(), list));
-            if(!(livingEntity instanceof Player)) return;
+            if(!livingEntity.getUniqueId().equals(p.getUniqueId())) continue;
+            if(!(livingEntity instanceof Player)) continue;
             Player player = (Player) livingEntity;
-            if(!p.getUniqueId().equals(player.getUniqueId())) continue;
             org.bukkit.SoundCategory category = SoundCategory.PLAYERS;
             player.stopSound(org.bukkit.Sound.ITEM_ARMOR_EQUIP_CHAIN,category);
             player.stopSound(org.bukkit.Sound.ITEM_ARMOR_EQUIP_LEATHER,category);
@@ -211,4 +212,18 @@ public class VersionHandler extends Version {
         entityPlayer.playerConnection.sendPacket(new PacketPlayOutCamera(e));
     }
 
+    @Override
+    public ItemStack setNBTCosmetic(ItemStack itemStack, String key) {
+        if(itemStack == null) return null;
+        net.minecraft.server.v1_16_R3.ItemStack itemCosmetic = CraftItemStack.asNMSCopy(itemStack);
+        itemCosmetic.getOrCreateTag().setString("magic_cosmetic", key);
+        return CraftItemStack.asBukkitCopy(itemCosmetic);
+    }
+
+    @Override
+    public String isNBTCosmetic(ItemStack itemStack) {
+        if(itemStack == null) return null;
+        net.minecraft.server.v1_16_R3.ItemStack itemCosmetic = CraftItemStack.asNMSCopy(itemStack);
+        return itemCosmetic.getOrCreateTag().getString("magic_cosmetic");
+    }
 }

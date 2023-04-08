@@ -3,18 +3,15 @@ package com.francobm.magicosmetics.listeners;
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.api.SprayKeys;
 import com.francobm.magicosmetics.cache.*;
+import com.francobm.magicosmetics.events.Reason;
 import com.francobm.magicosmetics.nms.NPC.NPC;
-import com.francobm.magicosmetics.nms.bag.EntityBag;
-import com.francobm.magicosmetics.nms.bag.PlayerBag;
 import com.francobm.magicosmetics.events.UnknownEntityInteractEvent;
-import com.francobm.magicosmetics.nms.balloon.EntityBalloon;
-import com.francobm.magicosmetics.nms.balloon.PlayerBalloon;
-import com.francobm.magicosmetics.nms.spray.CustomSpray;
 import com.francobm.magicosmetics.utils.XMaterial;
 import org.bukkit.Location;
 import org.bukkit.entity.*;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -23,13 +20,10 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.PlayerLeashEntityEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
-import org.bukkit.inventory.DoubleChestInventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Iterator;
@@ -47,31 +41,31 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onCommand(PlayerCommandPreprocessEvent event){
         Player player = event.getPlayer();
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        if(!playerCache.isZone()) return;
+        PlayerData playerData = PlayerData.getPlayer(player);
+        if(!playerData.isZone()) return;
         event.setCancelled(true);
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event){
         Player player = event.getPlayer();
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        if(playerCache.isZone()){
-            playerCache.exitZoneSync();
+        PlayerData playerData = PlayerData.getPlayer(player);
+        if(playerData.isZone()){
+            playerData.exitZoneSync();
         }
-        plugin.getSql().savePlayer(playerCache, false);
+        plugin.getSql().asyncSavePlayer(playerData);
     }
 
     @EventHandler
     public void onTeleport(PlayerTeleportEvent event){
         Player player = event.getPlayer();
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        if(playerCache.isZone()){
-            if(!playerCache.isSpectator()) return;
+        PlayerData playerData = PlayerData.getPlayer(player);
+        if(playerData.isZone()){
+            if(!playerData.isSpectator()) return;
             event.setCancelled(true);
         }
         //PlayerBag.refreshPlayerBag(player);
-        playerCache.clearCosmeticsInUse(false);
+        playerData.clearCosmeticsInUse(false);
     }
 
     @EventHandler
@@ -100,13 +94,13 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onDrop(PlayerDropItemEvent event){
         Player player = event.getPlayer();
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        if(playerCache.getSpray() == null) return;
+        PlayerData playerData = PlayerData.getPlayer(player);
+        if(playerData.getSpray() == null) return;
         if(plugin.getSprayKey() == null)  return;
         if (!plugin.getSprayKey().isKey(SprayKeys.SHIFT_Q)) return;
         if (!player.isSneaking()) return;
         event.setCancelled(true);
-        playerCache.draw(plugin.getSprayKey());
+        playerData.draw(plugin.getSprayKey());
     }
 
     @EventHandler
@@ -119,22 +113,18 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onDead(PlayerDeathEvent event){
         Player player = event.getEntity();
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        if(playerCache == null) return;
-        playerCache.clearBalloon(false);
-        playerCache.clearBag();
+        PlayerData playerData = PlayerData.getPlayer(player);
+        if(playerData == null) return;
+        playerData.clearCosmeticsInUse(false);
         Iterator<ItemStack> stackList = event.getDrops().iterator();
         while (stackList.hasNext()){
             ItemStack itemStack = stackList.next();
-            if(playerCache.getHat() != null){
-                if(playerCache.getHat().isCosmetic(itemStack)){
-                    stackList.remove();
-                }
+            if(itemStack == null) break;
+            if(playerData.getHat() != null && playerData.getHat().isCosmetic(itemStack)){
+                stackList.remove();
             }
-            if(playerCache.getWStick() != null){
-                if(playerCache.getWStick().isCosmetic(itemStack)){
-                    stackList.remove();
-                }
+            if(playerData.getWStick() != null && playerData.getWStick().isCosmetic(itemStack)){
+                stackList.remove();
             }
         }
     }
@@ -143,9 +133,10 @@ public class PlayerListener implements Listener {
     public void onItemFrame(PlayerInteractEntityEvent event){
         Player player = event.getPlayer();
         if(!(event.getRightClicked() instanceof ItemFrame)) return;
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         if(event.getHand() != EquipmentSlot.OFF_HAND) return;
-        if(!playerCache.getWStick().isCosmetic(player.getInventory().getItemInOffHand())) return;
+        if(playerData.getWStick() == null) return;
+        if(!playerData.getWStick().isCosmetic(player.getInventory().getItemInOffHand())) return;
         event.setCancelled(true);
     }
 
@@ -153,25 +144,23 @@ public class PlayerListener implements Listener {
     public void onBlock(BlockPlaceEvent event) {
         if(event.getHand() != EquipmentSlot.OFF_HAND) return;
         Player player = event.getPlayer();
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        if(playerCache.getWStick() == null) return;
-        if(!playerCache.getWStick().isCosmetic(event.getItemInHand())) return;
+        PlayerData playerData = PlayerData.getPlayer(player);
+        if(playerData.getWStick() == null) return;
+        if(!playerData.getWStick().isCosmetic(event.getItemInHand())) return;
         event.setCancelled(true);
     }
 
-    @EventHandler
-    public void onRightClick(PlayerInteractEvent event){
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onInteract(PlayerInteractEvent event){
         Player player = event.getPlayer();
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         ItemStack itemStack = event.getItem();
         if(itemStack != null) {
             //plugin.getLogger().info("Material: " + itemStack.getType());
             if(itemStack.getType() == XMaterial.BLAZE_ROD.parseMaterial()){
-                if(!itemStack.hasItemMeta()) return;
-                if(!itemStack.getItemMeta().hasDisplayName()) return;
-                if(itemStack.getItemMeta().getDisplayName().split(" ").length < 6) return;
-                ItemMeta itemMeta = itemStack.getItemMeta();
-                Zone zone = Zone.getZone(itemMeta.getDisplayName().split(" ")[6]);
+                String nbt = plugin.getVersion().isNBTCosmetic(itemStack);
+                if(!nbt.startsWith("wand")) return;
+                Zone zone = Zone.getZone(nbt.substring(4));
                 if(zone == null) return;
                 event.setCancelled(true);
                 if(event.getAction() == Action.LEFT_CLICK_BLOCK){
@@ -190,25 +179,29 @@ public class PlayerListener implements Listener {
             }
             if(itemStack.getType().toString().toUpperCase().endsWith("HELMET")){
                 if(event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-                    if (playerCache.getHat() != null) {
+                    if (playerData.getHat() != null) {
                         if(player.getInventory().getHelmet() == null) return;
-                        if(playerCache.getHat().isCosmetic(player.getInventory().getHelmet())) {
+                        if(playerData.getHat().isCosmetic(player.getInventory().getHelmet())) {
                             player.getInventory().setHelmet(itemStack.clone());
-                            player.getInventory().removeItem(itemStack);
+                            if(event.getHand() == EquipmentSlot.OFF_HAND){
+                                player.getInventory().setItemInOffHand(null);
+                            }else{
+                                player.getInventory().removeItem(itemStack);
+                            }
                         }
                     }
                 }
             }
-            if(playerCache.getHat() != null) {
-                if (playerCache.getHat().isCosmetic(itemStack)) {
+            if(playerData.getHat() != null) {
+                if (playerData.getHat().isCosmetic(itemStack)) {
                     player.getInventory().removeItem(itemStack);
                     event.setCancelled(true);
                     return;
                 }
             }
-            if(playerCache.getWStick() != null) {
+            if(playerData.getWStick() != null) {
                 if(event.getHand() == EquipmentSlot.OFF_HAND) {
-                    if (playerCache.getWStick().isCosmetic(itemStack)) {
+                    if (playerData.getWStick().isCosmetic(itemStack)) {
                         player.getInventory().removeItem(itemStack);
                         event.setUseInteractedBlock(Event.Result.DENY);
                         event.setUseItemInHand(Event.Result.DENY);
@@ -217,18 +210,18 @@ public class PlayerListener implements Listener {
                 }
             }
         }
-        if(playerCache.getSpray() == null) return;
         if(plugin.getSprayKey() == null) return;
+        if(playerData.getSpray() == null) return;
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             if (!plugin.getSprayKey().isKey(SprayKeys.SHIFT_RC)) return;
             if (!player.isSneaking()) return;
-            playerCache.draw(plugin.getSprayKey());
+            playerData.draw(plugin.getSprayKey());
             event.setCancelled(true);
         }
         if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
             if (!plugin.getSprayKey().isKey(SprayKeys.SHIFT_LC)) return;
             if (!player.isSneaking()) return;
-            playerCache.draw(plugin.getSprayKey());
+            playerData.draw(plugin.getSprayKey());
             event.setCancelled(true);
         }
     }
@@ -236,39 +229,36 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onPlayerChange(PlayerSwapHandItemsEvent event){
         Player player = event.getPlayer();
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         ItemStack mainHand = event.getMainHandItem();
         ItemStack offHand = event.getOffHandItem();
 
         if(mainHand != null){
-            if(playerCache.getWStick() != null){
-                if(playerCache.getWStick().isCosmetic(mainHand)){
+            if(playerData.getWStick() != null){
+                if(playerData.getWStick().isCosmetic(mainHand)){
                     mainHand.setType(XMaterial.AIR.parseMaterial());
                 }
                 if(offHand == null){
-                    playerCache.getWStick().active(player);
-                    return;
+                    playerData.getWStick().active(player);
                 }
-                if(offHand.getType() == XMaterial.AIR.parseMaterial()){
-                    playerCache.getWStick().active(player);
-                    return;
+                if(offHand != null && offHand.getType() == XMaterial.AIR.parseMaterial()){
+                    playerData.getWStick().active(player);
                 }
-                return;
             }
         }
         if(offHand != null) {
-            if (playerCache.getWStick() != null) {
-                if(playerCache.getWStick().isCosmetic(offHand)){
+            if (playerData.getWStick() != null) {
+                if(playerData.getWStick().isCosmetic(offHand)){
                     offHand.setType(XMaterial.AIR.parseMaterial());
                 }
             }
         }
 
-        if(playerCache.getSpray() == null) return;
+        if(playerData.getSpray() == null) return;
         if(plugin.getSprayKey() == null) return;
         if (!plugin.getSprayKey().isKey(SprayKeys.SHIFT_F)) return;
         if (!player.isSneaking()) return;
-        playerCache.draw(plugin.getSprayKey());
+        playerData.draw(plugin.getSprayKey());
         event.setCancelled(true);
     }
 
@@ -286,27 +276,27 @@ public class PlayerListener implements Listener {
         ItemStack newItem = player.getInventory().getItem(event.getNewSlot());
         ItemStack oldItem = player.getInventory().getItem(event.getPreviousSlot());
         if (oldItem != null) {
-            PlayerCache playerCache = PlayerCache.getPlayer(player);
-            if (playerCache.getHat() != null) {
-                if (playerCache.getHat().isCosmetic(oldItem)) {
+            PlayerData playerData = PlayerData.getPlayer(player);
+            if (playerData.getHat() != null) {
+                if (playerData.getHat().isCosmetic(oldItem)) {
                     player.getInventory().removeItem(oldItem);
                 }
             }
-            if (playerCache.getWStick() != null) {
-                if (playerCache.getWStick().isCosmetic(oldItem)) {
+            if (playerData.getWStick() != null) {
+                if (playerData.getWStick().isCosmetic(oldItem)) {
                     player.getInventory().removeItem(oldItem);
                 }
             }
         }
         if(newItem != null) {
-            PlayerCache playerCache = PlayerCache.getPlayer(player);
-            if (playerCache.getHat() != null) {
-                if (playerCache.getHat().isCosmetic(newItem)) {
+            PlayerData playerData = PlayerData.getPlayer(player);
+            if (playerData.getHat() != null) {
+                if (playerData.getHat().isCosmetic(newItem)) {
                     player.getInventory().removeItem(newItem);
                 }
             }
-            if(playerCache.getWStick() != null){
-                if (playerCache.getWStick().isCosmetic(newItem)) {
+            if(playerData.getWStick() != null){
+                if (playerData.getWStick().isCosmetic(newItem)) {
                     player.getInventory().removeItem(newItem);
                 }
             }
@@ -320,14 +310,14 @@ public class PlayerListener implements Listener {
     public void playerDrop(PlayerDropItemEvent event){
         Player player = event.getPlayer();
         Item item = event.getItemDrop();
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        if(playerCache.getHat() != null) {
-            if (playerCache.getHat().isCosmetic(item.getItemStack())){
+        PlayerData playerData = PlayerData.getPlayer(player);
+        if(playerData.getHat() != null) {
+            if (playerData.getHat().isCosmetic(item.getItemStack())){
                 item.remove();
             }
         }
-        if(playerCache.getWStick() != null){
-            if (playerCache.getWStick().isCosmetic(item.getItemStack())) {
+        if(playerData.getWStick() != null){
+            if (playerData.getWStick().isCosmetic(item.getItemStack())) {
                 item.remove();
             }
         }
@@ -336,16 +326,16 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onInventory(InventoryClickEvent event){
         Player player = (Player) event.getWhoClicked();
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        if(playerCache == null) return;
+        PlayerData playerData = PlayerData.getPlayer(player);
+        if(playerData == null) return;
         if(event.getClickedInventory() == null) return;
         if(event.getClickedInventory().getType() == InventoryType.PLAYER) {
-            if(playerCache.getWStick() != null) {
+            if(playerData.getWStick() != null) {
                 if (event.getClick() == ClickType.SWAP_OFFHAND) {
                     event.setCancelled(true);
                     return;
                 }
-                if (playerCache.getWStick().isCosmetic(player.getInventory().getItemInOffHand())) {
+                if (playerData.getWStick().isCosmetic(player.getInventory().getItemInOffHand())) {
                     if(event.getSlotType() == InventoryType.SlotType.QUICKBAR && event.getSlot() == 40){
                         event.setCancelled(true);
                         if(player.getItemOnCursor().getType() == XMaterial.AIR.parseMaterial()) return;
@@ -355,20 +345,20 @@ public class PlayerListener implements Listener {
                     }
                 }
                 if(event.getCurrentItem() == null) return;
-                if(playerCache.getWStick().isCosmetic(event.getCurrentItem())){
+                if(playerData.getWStick().isCosmetic(event.getCurrentItem())){
                     event.setCancelled(true);
                     event.setCurrentItem(XMaterial.AIR.parseItem());
                     return;
                 }
             }
-            if (playerCache.getHat() != null) {
+            if (playerData.getHat() != null) {
                 if (event.getCurrentItem() == null) {
                     return;
                 }
-                if(playerCache.getHat().isCosmetic(event.getCursor())){
+                if(playerData.getHat().isCosmetic(event.getCursor())){
                     player.setItemOnCursor(XMaterial.AIR.parseItem());
                 }
-                if (playerCache.getHat().isCosmetic(player.getInventory().getHelmet())) {
+                if (playerData.getHat().isCosmetic(player.getInventory().getHelmet())) {
                     if(event.getSlotType() == InventoryType.SlotType.ARMOR && event.getSlot() == 39){
                         event.setCancelled(true);
                         if(player.getItemOnCursor().getType() == XMaterial.AIR.parseMaterial()) return;
@@ -379,14 +369,14 @@ public class PlayerListener implements Listener {
                         return;
                     }
 
-                    if (playerCache.getHat().isCosmetic(event.getCurrentItem())) {
+                    if (playerData.getHat().isCosmetic(event.getCurrentItem())) {
                         event.setCurrentItem(XMaterial.AIR.parseItem());
                         event.setCancelled(true);
                         return;
                     }
                 }
 
-                if (playerCache.getHat().isCosmetic(event.getCurrentItem())) {
+                if (playerData.getHat().isCosmetic(event.getCurrentItem())) {
                     event.setCurrentItem(XMaterial.AIR.parseItem());
                     event.setCancelled(true);
                 }
@@ -394,21 +384,21 @@ public class PlayerListener implements Listener {
             }
             return;
         }
-        if(playerCache.getWStick() != null) {
-            if (playerCache.getWStick().isCosmetic(player.getInventory().getItemInOffHand())) {
+        if(playerData.getWStick() != null) {
+            if (playerData.getWStick().isCosmetic(player.getInventory().getItemInOffHand())) {
                 if (event.getClick() == ClickType.SWAP_OFFHAND) {
                     event.setCancelled(true);
                     return;
                 }
             }}
-        if (playerCache.getHat() != null) {
+        if (playerData.getHat() != null) {
             if (event.getCurrentItem() == null) {
                 return;
             }
-            if(playerCache.getHat().isCosmetic(event.getCursor())){
+            if(playerData.getHat().isCosmetic(event.getCursor())){
                 player.setItemOnCursor(XMaterial.AIR.parseItem());
             }
-            if (playerCache.getHat().isCosmetic(player.getInventory().getHelmet())) {
+            if (playerData.getHat().isCosmetic(player.getInventory().getHelmet())) {
                 if(event.getSlotType() == InventoryType.SlotType.ARMOR && event.getSlot() == 39){
                     event.setCancelled(true);
                     if(player.getItemOnCursor().getType() == XMaterial.AIR.parseMaterial()) return;

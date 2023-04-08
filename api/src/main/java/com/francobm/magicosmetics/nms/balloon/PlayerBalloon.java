@@ -2,6 +2,7 @@ package com.francobm.magicosmetics.nms.balloon;
 
 import com.francobm.magicosmetics.cache.RotationType;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +52,11 @@ public abstract class PlayerBalloon {
 
     public abstract void lookEntity(float yaw, float pitch);
 
-    public abstract void update();
+    protected abstract void teleport(Location location);
+
+    protected abstract void instantUpdate();
+
+    public abstract void update(boolean instantFollow);
 
     public abstract void update(Player player);
 

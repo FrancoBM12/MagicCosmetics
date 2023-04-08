@@ -4,10 +4,12 @@ import com.francobm.magicosmetics.files.FileCreator;
 import com.francobm.magicosmetics.utils.XMaterial;
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.cache.Color;
-import com.francobm.magicosmetics.cache.Cosmetic;
+import com.francobm.magicosmetics.api.Cosmetic;
 import com.francobm.magicosmetics.api.CosmeticType;
-import com.francobm.magicosmetics.cache.PlayerCache;
+import com.francobm.magicosmetics.cache.PlayerData;
+import org.bukkit.FireworkEffect;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -23,14 +25,11 @@ public class Items {
     private final ItemStack itemStack;
     private org.bukkit.Color dyeColor;
 
-    public Items(boolean log, String id, ItemStack itemStack, List<String> loreAvailable, List<String> loreUnavailable){
+    public Items(String id, ItemStack itemStack, List<String> loreAvailable, List<String> loreUnavailable){
         this.id = id;
         this.itemStack = itemStack;
         this.loreAvailable = loreAvailable;
         this.loreUnavailable = loreUnavailable;
-        if(log) {
-            MagicCosmetics.getInstance().getLogger().info("Item named: '" + id + "' registered.");
-        }
     }
 
     public Items(ItemStack itemStack){
@@ -54,6 +53,7 @@ public class Items {
     public static void loadItems(){
         items.clear();
         FileCreator menu = MagicCosmetics.getInstance().getMenus();
+        int items_count = 0;
         for(String key : menu.getConfigurationSection("items").getKeys(false)){
             String display = "";
             String material = "";
@@ -71,7 +71,7 @@ public class Items {
                 try{
                     itemStack = XMaterial.valueOf(material.toUpperCase()).parseItem();
                 }catch (IllegalArgumentException exception){
-                    MagicCosmetics.getInstance().getLogger().info("Item '" + key + "' material: " + material + " Not Found.");
+                    MagicCosmetics.getInstance().getLogger().warning("Item '" + key + "' material: " + material + " Not Found.");
                 }
             }
             List<String> lore = null;
@@ -109,12 +109,12 @@ public class Items {
             }
             if(menu.contains("items." + key + ".item.item-adder")){
                 if(!MagicCosmetics.getInstance().isItemsAdder()){
-                    MagicCosmetics.getInstance().getLogger().info("Item Adder plugin Not Found skipping Menu Item '" + key + "'");
+                    MagicCosmetics.getInstance().getLogger().warning("Item Adder plugin Not Found skipping Menu Item '" + key + "'");
                     continue;
                 }
                 String id = menu.getString("items." + key + ".item.item-adder");
                 if(MagicCosmetics.getInstance().getItemsAdder().getCustomStack(id) == null){
-                    MagicCosmetics.getInstance().getLogger().info("IA Item: '" + id + "' Not Found skipping...");
+                    MagicCosmetics.getInstance().getLogger().warning("IA Item: '" + id + "' Not Found skipping...");
                     continue;
                 }
                 itemStack = MagicCosmetics.getInstance().getItemsAdder().getCustomItemStack(id).clone();
@@ -122,13 +122,13 @@ public class Items {
             }
             if(menu.contains("items." + key + ".item.oraxen")){
                 if(!MagicCosmetics.getInstance().isOraxen()){
-                    MagicCosmetics.getInstance().getLogger().info("Oraxen plugin Not Found skipping Menu Item '" + key + "'");
+                    MagicCosmetics.getInstance().getLogger().warning("Oraxen plugin Not Found skipping Menu Item '" + key + "'");
                     continue;
                 }
                 String id = menu.getString("items." + key + ".item.oraxen");
                 ItemStack oraxen = MagicCosmetics.getInstance().getOraxen().getItemStackById(id);
                 if(oraxen == null){
-                    MagicCosmetics.getInstance().getLogger().info("Oraxen item:  '" + id + "' Not Found skipping...");
+                    MagicCosmetics.getInstance().getLogger().warning("Oraxen item:  '" + id + "' Not Found skipping...");
                     continue;
                 }
                 itemStack = oraxen.clone();
@@ -146,8 +146,10 @@ public class Items {
                 itemMeta.setCustomModelData(modelData);
             }
             itemStack.setItemMeta(itemMeta);
-            items.put(key, new Items(true, key, itemStack, loreAvailable, loreUnavailable));
+            items.put(key, new Items(key, itemStack, loreAvailable, loreUnavailable));
+            items_count++;
         }
+        MagicCosmetics.getInstance().getLogger().info("Registered items: " + items_count);
     }
 
     public ItemStack addLore(){
@@ -304,25 +306,34 @@ public class Items {
         return itemStack.getType() == XMaterial.PLAYER_HEAD.parseMaterial();
     }
 
-    public ItemStack copyItem(ItemStack head){
+    public ItemStack copyItem(Color color, Color compare){
         if(this.itemStack == null) return null;
-        ItemStack itemStack = head.clone();
-        if(!isHead()) return itemStack;
+        ItemStack itemStack = color.getPrimaryItem().clone();
         itemStack.setAmount(this.itemStack.getAmount());
         ItemMeta itemMeta = itemStack.getItemMeta();
         if(itemMeta == null) return itemStack;
-        itemMeta.setDisplayName(this.itemStack.getItemMeta().getDisplayName());
-        itemMeta.setLore(this.itemStack.getItemMeta().getLore());
-        if(this.itemStack.getItemMeta().hasItemFlag(ItemFlag.HIDE_ENCHANTS)){
-            itemMeta.addEnchant(Enchantment.DURABILITY, 1, true);
-            itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        if(itemMeta.hasLore()){
+            List<String> lore = new ArrayList<>();
+            if(color.getId().equalsIgnoreCase(compare.getId())){
+                if(getLoreAvailable() != null || !getLoreAvailable().isEmpty()) {
+                    lore.addAll(getLoreAvailable());
+                    if(itemMeta.hasLore())
+                        lore.addAll(itemMeta.getLore());
+                }
+            }else {
+                if (getLoreUnavailable() != null || !getLoreUnavailable().isEmpty()) {
+                    lore.addAll(getLoreUnavailable());
+                    if(itemMeta.hasLore())
+                        lore.addAll(itemMeta.getLore());
+                }
+            }
+            itemMeta.setLore(lore);
         }
-        itemMeta.addItemFlags(ItemFlag.HIDE_DYE);
         itemStack.setItemMeta(itemMeta);
         return itemStack;
     }
 
-    public ItemStack copyItem(PlayerCache playerCache, Cosmetic cosmetic, ItemStack head){
+    public ItemStack copyItem(PlayerData playerData, Cosmetic cosmetic, ItemStack head){
         if(this.itemStack == null) return null;
         ItemStack itemStack = head.clone();
         if(!isHead()) return itemStack;
@@ -332,7 +343,7 @@ public class Items {
         if(this.itemStack.getItemMeta() == null) return itemStack;
         itemMeta.setDisplayName(this.itemStack.getItemMeta().getDisplayName());
         if(MagicCosmetics.getInstance().isPermissions()){
-            if(!cosmetic.hasPermission(playerCache.getOfflinePlayer().getPlayer())){
+            if(!cosmetic.hasPermission(playerData.getOfflinePlayer().getPlayer())){
                 if(itemMeta.getLore() != null){
                     List<String> lore = itemMeta.getLore();
                     lore.addAll(loreUnavailable);
@@ -350,7 +361,7 @@ public class Items {
                 }
             }
         }else{
-            if(playerCache.getCosmeticById(cosmetic.getId()) == null) {
+            if(playerData.getCosmeticById(cosmetic.getId()) == null) {
                 if(itemMeta.getLore() != null){
                     List<String> lore = itemMeta.getLore();
                     lore.addAll(loreUnavailable);
@@ -380,7 +391,7 @@ public class Items {
         if(!cosmetic.isTexture()) {
             if (itemStack.getType() == XMaterial.PLAYER_HEAD.parseMaterial()) {
                 SkullMeta skullMeta = (SkullMeta) itemMeta;
-                skullMeta.setOwningPlayer(playerCache.getOfflinePlayer());
+                skullMeta.setOwningPlayer(playerData.getOfflinePlayer());
                 itemStack.setItemMeta(skullMeta);
                 return itemStack;
             }
@@ -467,6 +478,41 @@ public class Items {
             MapMeta meta = (MapMeta) itemStack.getItemMeta();
             if(meta == null) return itemStack;
             meta.setColor(color.getPrimaryColor());
+            if(this.itemStack.getItemMeta() != null) {
+                if(this.itemStack.getItemMeta().hasDisplayName()) {
+                    meta.setDisplayName(this.itemStack.getItemMeta().getDisplayName());
+                }
+                if(this.itemStack.getItemMeta().getLore() != null) {
+                    List<String> lore = this.itemStack.getItemMeta().getLore();
+                    if(color.getId().equalsIgnoreCase(compare.getId())){
+                        if(getLoreAvailable() != null || !getLoreAvailable().isEmpty()) {
+                            lore.addAll(getLoreAvailable());
+                        }
+                    }else {
+                        if (getLoreUnavailable() != null || !getLoreUnavailable().isEmpty()) {
+                            lore.addAll(getLoreUnavailable());
+                        }
+                    }
+                    meta.setLore(lore);
+                }else{
+                    if(color.getId().equalsIgnoreCase(compare.getId())){
+                        meta.setLore(getLoreAvailable());
+                    }else{
+                        meta.setLore(getLoreUnavailable());
+                    }
+                }
+                if(this.itemStack.getItemMeta().hasItemFlag(ItemFlag.HIDE_ENCHANTS)){
+                    meta.addEnchant(Enchantment.DURABILITY, 1, true);
+                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                }
+            }
+            meta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_POTION_EFFECTS);
+            itemStack.setItemMeta(meta);
+        }
+        if(itemStack.getItemMeta() instanceof FireworkEffectMeta) {
+            FireworkEffectMeta meta = (FireworkEffectMeta) itemStack.getItemMeta();
+            if(meta == null) return itemStack;
+            meta.setEffect(FireworkEffect.builder().withColor(color.getPrimaryColor()).build());
             if(this.itemStack.getItemMeta() != null) {
                 if(this.itemStack.getItemMeta().hasDisplayName()) {
                     meta.setDisplayName(this.itemStack.getItemMeta().getDisplayName());
@@ -610,6 +656,41 @@ public class Items {
             meta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_POTION_EFFECTS);
             itemStack.setItemMeta(meta);
         }
+        if(itemStack.getItemMeta() instanceof FireworkEffectMeta) {
+            FireworkEffectMeta meta = (FireworkEffectMeta) itemStack.getItemMeta();
+            if(meta == null) return itemStack;
+            meta.setEffect(FireworkEffect.builder().withColor(color).build());
+            if(this.itemStack.getItemMeta() != null) {
+                if(this.itemStack.getItemMeta().hasDisplayName()) {
+                    meta.setDisplayName(this.itemStack.getItemMeta().getDisplayName());
+                }
+                if(this.itemStack.getItemMeta().getLore() != null) {
+                    List<String> lore = this.itemStack.getItemMeta().getLore();
+                    if(color.asRGB() == compare.asRGB()){
+                        if(getLoreAvailable() != null || !getLoreAvailable().isEmpty()) {
+                            lore.addAll(getLoreAvailable());
+                        }
+                    }else {
+                        if (getLoreUnavailable() != null || !getLoreUnavailable().isEmpty()) {
+                            lore.addAll(getLoreUnavailable());
+                        }
+                    }
+                    meta.setLore(lore);
+                }else{
+                    if(color.asRGB() == compare.asRGB()){
+                        meta.setLore(getLoreAvailable());
+                    }else{
+                        meta.setLore(getLoreUnavailable());
+                    }
+                }
+                if(this.itemStack.getItemMeta().hasItemFlag(ItemFlag.HIDE_ENCHANTS)){
+                    meta.addEnchant(Enchantment.DURABILITY, 1, true);
+                    meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+                }
+            }
+            meta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_POTION_EFFECTS);
+            itemStack.setItemMeta(meta);
+        }
         return itemStack;
     }
 
@@ -634,6 +715,13 @@ public class Items {
             MapMeta meta = (MapMeta) itemStack.getItemMeta();
             if(meta == null) return this;
             meta.setColor(color);
+            meta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_POTION_EFFECTS);
+            itemStack.setItemMeta(meta);
+        }
+        if(itemStack.getItemMeta() instanceof FireworkEffectMeta){
+            FireworkEffectMeta meta = (FireworkEffectMeta) itemStack.getItemMeta();
+            if(meta == null) return this;
+            meta.setEffect(FireworkEffect.builder().withColor(color).build());
             meta.addItemFlags(ItemFlag.HIDE_DYE, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_POTION_EFFECTS);
             itemStack.setItemMeta(meta);
         }
@@ -671,6 +759,9 @@ public class Items {
         }
         if(itemStack.getItemMeta() instanceof MapMeta){
             return ((MapMeta) meta).getColor();
+        }
+        if(itemStack.getItemMeta() instanceof FireworkEffectMeta){
+            return ((FireworkEffectMeta) meta).getEffect().getColors().get(0);
         }
         return null;
     }

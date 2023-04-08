@@ -49,6 +49,11 @@ public class ContentMenu {
         this.slots = new Slots();
     }
 
+    public ContentMenu getClone() {
+        Map<Integer, SlotMenu> slotMenus = new HashMap<>(slotMenu);
+        return new ContentMenu(title, size, inventoryType, slotMenus, previewSlot, resultSlot);
+    }
+
     public void createInventory(InventoryHolder inventoryHolder){
         this.inventory = Bukkit.createInventory(inventoryHolder, 9*size, title);
     }

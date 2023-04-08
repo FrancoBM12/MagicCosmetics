@@ -1,6 +1,6 @@
 package com.francobm.magicosmetics.events;
 
-import com.francobm.magicosmetics.cache.Cosmetic;
+import com.francobm.magicosmetics.api.Cosmetic;
 import com.francobm.magicosmetics.api.CosmeticType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;

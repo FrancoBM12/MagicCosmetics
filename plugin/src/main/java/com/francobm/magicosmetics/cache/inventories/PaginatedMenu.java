@@ -1,22 +1,24 @@
 package com.francobm.magicosmetics.cache.inventories;
 
-import com.francobm.magicosmetics.cache.PlayerCache;
+import com.francobm.magicosmetics.cache.PlayerData;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public abstract class PaginatedMenu extends Menu {
 
     protected int page = 0;
     //9 * size
-    protected int maxItemsPerPage;
+    protected List<Integer> maxItemsPerPage;
     protected int startSlot;
     protected int endSlot;
 
     protected int pagesSlot;
 
-    protected int backSlot;
-    protected int nextSlot;
+    protected Set<Integer> backSlot;
+    protected Set<Integer> nextSlot;
     //9 * size
     //slots no available
     protected List<Integer> slotsUnavailable;
@@ -28,33 +30,37 @@ public abstract class PaginatedMenu extends Menu {
         this.startSlot = 0;
         this.endSlot = 0;
         this.pagesSlot = 0;
-        this.backSlot = 0;
-        this.nextSlot = 0;
-        this.maxItemsPerPage = 0;
+        this.backSlot = new HashSet<>();
+        this.nextSlot = new HashSet<>();
+        this.maxItemsPerPage = new ArrayList<>();
         this.slotsUnavailable = new ArrayList<>();
     }
 
-    public PaginatedMenu(PlayerCache playerCache, Menu menu) {
-        super(playerCache, menu);
+    public PaginatedMenu(PlayerData playerData, Menu menu) {
+        super(playerData, menu);
         PaginatedMenu paginatedMenu = (PaginatedMenu) menu;
         this.startSlot = paginatedMenu.getStartSlot();
         this.endSlot = paginatedMenu.getEndSlot();
         this.pagesSlot = paginatedMenu.getPagesSlot();
         this.backSlot = paginatedMenu.getBackSlot();
         this.nextSlot = paginatedMenu.getNextSlot();
-        this.maxItemsPerPage = paginatedMenu.getMaxItemsPerPage();
+        this.maxItemsPerPage = paginatedMenu.getMaxItemsPerPageList();
         this.slotsUnavailable = paginatedMenu.getSlotsUnavailable();
     }
 
-    public PaginatedMenu(String id, ContentMenu contentMenu, int startSlot, int endSlot, int backSlot, int nextSlot, int pagesSlot, List<Integer> slotsUnavailable){
+    public PaginatedMenu(String id, ContentMenu contentMenu, int startSlot, int endSlot, Set<Integer> backSlot, Set<Integer> nextSlot, int pagesSlot, List<Integer> slotsUnavailable){
         super(id, contentMenu);
         this.startSlot = startSlot;
         this.endSlot = endSlot;
         this.pagesSlot = pagesSlot;
         this.backSlot = backSlot;
         this.nextSlot = nextSlot;
-        this.maxItemsPerPage = ((endSlot - startSlot) + 1);
         this.slotsUnavailable = slotsUnavailable;
+        this.maxItemsPerPage = new ArrayList<>();
+        for(int i = startSlot; i <= endSlot; i++) {
+            if(slotsUnavailable.contains(i)) continue;
+            maxItemsPerPage.add(i);
+        }
     }
 
     public List<Integer> getSlotsUnavailable() {
@@ -74,6 +80,9 @@ public abstract class PaginatedMenu extends Menu {
     }
 
     public int getMaxItemsPerPage() {
+        return maxItemsPerPage.size();
+    }
+    public List<Integer> getMaxItemsPerPageList() {
         return maxItemsPerPage;
     }
 
@@ -85,11 +94,11 @@ public abstract class PaginatedMenu extends Menu {
         return endSlot;
     }
 
-    public int getBackSlot() {
+    public Set<Integer> getBackSlot() {
         return backSlot;
     }
 
-    public int getNextSlot() {
+    public Set<Integer> getNextSlot() {
         return nextSlot;
     }
 
@@ -101,7 +110,7 @@ public abstract class PaginatedMenu extends Menu {
     public String toString() {
         return "PaginatedMenu{" +
                 "id='" + id + '\'' +
-                ", playerCache=" + playerCache +
+                ", playerCache=" + playerData +
                 ", contentMenu=" + contentMenu +
                 ", page=" + page +
                 ", maxItemsPerPage=" + maxItemsPerPage +

@@ -2,11 +2,8 @@ package com.francobm.magicosmetics.utils;
 
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.cache.Sound;
-import com.francobm.magicosmetics.cache.Spray;
-import com.francobm.magicosmetics.cache.User;
+import com.francobm.magicosmetics.cache.cosmetics.Spray;
 import com.francobm.magicosmetics.cache.renderer.ImageRenderer;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import net.md_5.bungee.api.ChatColor;
@@ -24,15 +21,11 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
 import java.awt.image.WritableRaster;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.Field;
-import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Base64;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,6 +35,15 @@ public class Utils {
 
     public static String getVersion(){
         return Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
+    }
+
+    public static boolean existPluginClass(String className) {
+        try {
+            Class.forName(className);
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+        return true;
     }
 
     public static String getTime(int time){
@@ -95,6 +97,7 @@ public class Utils {
             return itemStack;
         }
         SkullMeta skullMeta = (SkullMeta) itemStack.getItemMeta();
+        if(skullMeta == null) return itemStack;
         GameProfile gameProfile = new GameProfile(UUID.randomUUID(), null);
         gameProfile.getProperties().put("textures", new Property("textures", texture));
         try{
@@ -146,7 +149,9 @@ public class Utils {
         if(!imageRenderer.load(image)) return null;
         mapView.addRenderer(imageRenderer);
         ItemStack map = XMaterial.FILLED_MAP.parseItem();
+        if(map == null) return null;
         MapMeta meta = (MapMeta) map.getItemMeta();
+        if(meta == null) return null;
         meta.setMapView(mapView);
         map.setItemMeta(meta);
         return map;
@@ -181,7 +186,7 @@ public class Utils {
     public static boolean isDyeable(ItemStack itemStack){
         if(itemStack == null) return false;
         ItemMeta itemMeta = itemStack.getItemMeta();
-        return (itemMeta instanceof LeatherArmorMeta || itemMeta instanceof PotionMeta || itemMeta instanceof MapMeta);
+        return (itemMeta instanceof LeatherArmorMeta || itemMeta instanceof PotionMeta || itemMeta instanceof MapMeta || itemMeta instanceof FireworkEffectMeta);
     }
 
     public static void hidePlayer(Player player){

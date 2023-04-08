@@ -45,7 +45,7 @@ public abstract class Version {
 
     public abstract PacketReader getPacketReader(Player player);
 
-    public abstract PlayerBag createPlayerBag(Player player, double distance, int height);
+    public abstract PlayerBag createPlayerBag(Player player, double distance, int height, ItemStack backPackItem, ItemStack backPackItemForMe);
 
     public abstract EntityBag createEntityBag(Entity entity, double distance);
 
@@ -56,4 +56,8 @@ public abstract class Version {
     public abstract CustomSpray createCustomSpray(Player player, Location location, BlockFace blockFace, ItemStack itemStack, MapView mapView, int rotation);
 
     public abstract void updateTitle(Player player, String title);
+
+    public abstract ItemStack setNBTCosmetic(ItemStack itemStack, String key);
+
+    public abstract String isNBTCosmetic(ItemStack itemStack);
 }

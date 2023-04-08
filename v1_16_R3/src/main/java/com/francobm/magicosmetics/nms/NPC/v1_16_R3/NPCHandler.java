@@ -43,11 +43,13 @@ public class NPCHandler extends NPC {
         EntityPlayer entityPlayer = ((CraftPlayer)player).getHandle();
         EntityLiving entityPunch = ((CraftLivingEntity)this.punch).getHandle();
         entityPunch.setPositionRotation(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+        float yaw = location.getYaw() * 256.0F / 360.0F;
+        float pitch = location.getPitch() * 256.0F / 360.0F;
         entityPlayer.playerConnection.sendPacket(new PacketPlayOutSpawnEntityLiving(entityPunch));
+        entityPlayer.playerConnection.sendPacket(new PacketPlayOutEntityHeadRotation(entityPunch, (byte) yaw));
         entityPlayer.playerConnection.sendPacket(new PacketPlayOutEntityMetadata(entityPunch.getId(), entityPunch.getDataWatcher(), true));
         EntityArmorStand passenger = new EntityArmorStand(EntityTypes.ARMOR_STAND, entityPlayer.world);
         passenger.setInvisible(true);
-        passenger.setInvulnerable(true);
         passenger.setPositionRotation(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
         entityPlayer.playerConnection.sendPacket(new PacketPlayOutSpawnEntityLiving(passenger));
         entityPlayer.playerConnection.sendPacket(new PacketPlayOutEntityMetadata(passenger.getId(), passenger.getDataWatcher(), true));

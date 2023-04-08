@@ -96,8 +96,8 @@ public class VersionHandler extends Version {
     }
 
     @Override
-    public PlayerBag createPlayerBag(Player player, double distance, int height) {
-        return new PlayerBagHandler(player, distance, height);
+    public PlayerBag createPlayerBag(Player player, double distance, int height, ItemStack backPackItem, ItemStack backPackItemForMe) {
+        return new PlayerBagHandler(player, distance, height, backPackItem, backPackItemForMe);
     }
 
     @Override
@@ -122,29 +122,30 @@ public class VersionHandler extends Version {
 
     @Override
     public void equip(LivingEntity livingEntity, ItemSlot itemSlot, ItemStack itemStack) {
+        //for(Player p : Bukkit.getOnlinePlayers()){
+        ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
+        switch (itemSlot){
+            case MAIN_HAND:
+                list.add(new Pair<>(EnumItemSlot.a, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+            case OFF_HAND:
+                list.add(new Pair<>(EnumItemSlot.b, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+            case BOOTS:
+                list.add(new Pair<>(EnumItemSlot.c, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+            case LEGGINGS:
+                list.add(new Pair<>(EnumItemSlot.d, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+            case CHESTPLATE:
+                list.add(new Pair<>(EnumItemSlot.e, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+            case HELMET:
+                list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+        }
         for(Player p : Bukkit.getOnlinePlayers()){
             PlayerConnection connection = ((CraftPlayer)p).getHandle().b;
-            ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
-            switch (itemSlot){
-                case MAIN_HAND:
-                    list.add(new Pair<>(EnumItemSlot.a, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-                case OFF_HAND:
-                    list.add(new Pair<>(EnumItemSlot.b, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-                case BOOTS:
-                    list.add(new Pair<>(EnumItemSlot.c, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-                case LEGGINGS:
-                    list.add(new Pair<>(EnumItemSlot.d, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-                case CHESTPLATE:
-                    list.add(new Pair<>(EnumItemSlot.e, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-                case HELMET:
-                    list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-            }
             connection.a(new PacketPlayOutEntityEquipment(livingEntity.getEntityId(), list));
         }
     }
@@ -184,5 +185,20 @@ public class VersionHandler extends Version {
         net.minecraft.world.entity.Entity e = ((CraftEntity)entity).getHandle();
         EntityPlayer entityPlayer = ((CraftPlayer)player).getHandle();
         entityPlayer.b.a(new PacketPlayOutCamera(e));
+    }
+
+    @Override
+    public ItemStack setNBTCosmetic(ItemStack itemStack, String key) {
+        if(itemStack == null) return null;
+        net.minecraft.world.item.ItemStack itemCosmetic = CraftItemStack.asNMSCopy(itemStack);
+        itemCosmetic.v().a("magic_cosmetic", key);
+        return CraftItemStack.asBukkitCopy(itemCosmetic);
+    }
+
+    @Override
+    public String isNBTCosmetic(ItemStack itemStack) {
+        if(itemStack == null) return null;
+        net.minecraft.world.item.ItemStack itemCosmetic = CraftItemStack.asNMSCopy(itemStack);
+        return itemCosmetic.v().l("magic_cosmetic");
     }
 }

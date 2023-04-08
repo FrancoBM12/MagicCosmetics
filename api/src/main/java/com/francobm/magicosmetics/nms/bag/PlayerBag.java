@@ -3,11 +3,15 @@ package com.francobm.magicosmetics.nms.bag;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class PlayerBag {
     public static Map<UUID, PlayerBag> playerBags = new ConcurrentHashMap<>();
+    protected ItemStack backPackItem;
+    protected ItemStack backPackItemForMe;
     protected UUID uuid;
     protected int height;
     protected List<Integer> ids;
@@ -17,7 +21,6 @@ public abstract class PlayerBag {
     public static void updatePlayerBag(Player player){
         for(PlayerBag playerBag : playerBags.values()){
             playerBag.remove(player);
-            playerBag.spawn(player);
         }
     }
 
@@ -45,7 +48,9 @@ public abstract class PlayerBag {
 
     public abstract void addPassenger(Player player);
 
-    public abstract void setItemOnHelmet(org.bukkit.inventory.ItemStack itemStack, boolean all);
+    public abstract void setItemOnHelmet(ItemStack itemStack, boolean all);
+
+    public abstract void setItemOnHelmet(Player player, ItemStack itemStack);
 
     public abstract void lookEntity(float yaw, float pitch, boolean all);
 

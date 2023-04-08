@@ -33,8 +33,10 @@ import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.craftbukkit.v1_18_R2.CraftWorld;
 import org.bukkit.craftbukkit.v1_18_R2.entity.CraftEntity;
+import org.bukkit.craftbukkit.v1_18_R2.entity.CraftItem;
 import org.bukkit.craftbukkit.v1_18_R2.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_18_R2.inventory.CraftItemStack;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -105,8 +107,8 @@ public class VersionHandler extends Version {
     }
 
     @Override
-    public PlayerBag createPlayerBag(Player player, double distance, int height) {
-        return new PlayerBagHandler(player, distance, height);
+    public PlayerBag createPlayerBag(Player player, double distance, int height, ItemStack backPackItem, ItemStack backPackItemForMe) {
+        return new PlayerBagHandler(player, distance, height, backPackItem, backPackItemForMe);
     }
 
     @Override
@@ -131,30 +133,34 @@ public class VersionHandler extends Version {
 
     @Override
     public void equip(LivingEntity livingEntity, ItemSlot itemSlot, ItemStack itemStack) {
+        //for(Player p : Bukkit.getOnlinePlayers()){
+        ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
+        switch (itemSlot){
+            case MAIN_HAND:
+                list.add(new Pair<>(EnumItemSlot.a, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+            case OFF_HAND:
+                list.add(new Pair<>(EnumItemSlot.b, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+            case BOOTS:
+                list.add(new Pair<>(EnumItemSlot.c, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+            case LEGGINGS:
+                list.add(new Pair<>(EnumItemSlot.d, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+            case CHESTPLATE:
+                list.add(new Pair<>(EnumItemSlot.e, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+            case HELMET:
+                list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(itemStack)));
+                break;
+        }
         for(Player p : Bukkit.getOnlinePlayers()){
             PlayerConnection connection = ((CraftPlayer)p).getHandle().b;
-            ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
-            switch (itemSlot){
-                case MAIN_HAND:
-                    list.add(new Pair<>(EnumItemSlot.a, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-                case OFF_HAND:
-                    list.add(new Pair<>(EnumItemSlot.b, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-                case BOOTS:
-                    list.add(new Pair<>(EnumItemSlot.c, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-                case LEGGINGS:
-                    list.add(new Pair<>(EnumItemSlot.d, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-                case CHESTPLATE:
-                    list.add(new Pair<>(EnumItemSlot.e, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-                case HELMET:
-                    list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(itemStack)));
-                    break;
-            }
             connection.a(new PacketPlayOutEntityEquipment(livingEntity.getEntityId(), list));
+            /*Bukkit.getScheduler().runTaskAsynchronously(Bukkit.getPluginManager().getPlugin("MagicCosmetics"), () -> {
+                connection.a(new PacketPlayOutEntityEquipment(livingEntity.getEntityId(), list));
+            });*/
         }
     }
 
@@ -248,5 +254,28 @@ public class VersionHandler extends Version {
     @FunctionalInterface
     private interface UnsafeFunction<K, T> {
         T apply(K k) throws Exception;
+    }
+
+    public ArmorStand createArmor(Player player) {
+        EntityArmorStand entityArmorStand = new EntityArmorStand(EntityTypes.c, ((CraftWorld)player.getWorld()).getHandle());
+        entityArmorStand.b(player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), player.getLocation().getYaw(), player.getLocation().getPitch());
+        ((CraftPlayer)player).getHandle().b.a(new PacketPlayOutSpawnEntity(entityArmorStand));
+        ((CraftPlayer)player).getHandle().b.a(new PacketPlayOutEntityMetadata(entityArmorStand.ae(), entityArmorStand.ai(), true));
+        return (ArmorStand) entityArmorStand.getBukkitEntity();
+    }
+
+    @Override
+    public ItemStack setNBTCosmetic(ItemStack itemStack, String key) {
+        if(itemStack == null) return null;
+        net.minecraft.world.item.ItemStack itemCosmetic = CraftItemStack.asNMSCopy(itemStack);
+        itemCosmetic.u().a("magic_cosmetic", key);
+        return CraftItemStack.asBukkitCopy(itemCosmetic);
+    }
+
+    @Override
+    public String isNBTCosmetic(ItemStack itemStack) {
+        if(itemStack == null) return null;
+        net.minecraft.world.item.ItemStack itemCosmetic = CraftItemStack.asNMSCopy(itemStack);
+        return itemCosmetic.u().l("magic_cosmetic");
     }
 }

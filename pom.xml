@@ -14,6 +14,7 @@
         <module>v1_16_R3</module>
         <module>v1_18_R2</module>
         <module>v1_19_R1</module>
+        <module>v1_19_R2</module>
     </modules>
     <packaging>pom</packaging>
 
@@ -23,6 +24,8 @@
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
     </properties>
     <url>FrancoBM#2980</url>
 

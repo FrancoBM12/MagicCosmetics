@@ -1,17 +1,16 @@
 package com.francobm.magicosmetics.cache.inventories;
 
 import com.francobm.magicosmetics.MagicCosmetics;
-import com.francobm.magicosmetics.api.MagicAPI;
+import com.francobm.magicosmetics.api.Cosmetic;
 import com.francobm.magicosmetics.cache.*;
-import com.francobm.magicosmetics.cache.inventories.menus.ColoredMenu;
 import com.francobm.magicosmetics.cache.inventories.menus.FreeColoredMenu;
 import com.francobm.magicosmetics.cache.items.Items;
 import com.francobm.magicosmetics.utils.Utils;
+import com.francobm.magicosmetics.utils.XMaterial;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,6 +27,9 @@ public class SlotMenu {
     private final Token token;
     private Sound sound;
     private String permission;
+    private boolean exchangeable;
+    private Cosmetic tempCosmetic;
+    private ItemStack oldToken;
 
     public SlotMenu(int slot, Items items, List<String> commands, String menu, SlotMenu slotMenu, Cosmetic cosmetic, Token token, Sound sound, ActionType... actionType) {
         this.slot = slot;
@@ -119,7 +121,7 @@ public class SlotMenu {
         this.permission = "";
     }
 
-    public SlotMenu(int slot, Items items, Token token, ActionType... actionType) {
+    public SlotMenu(int slot, Items items, Token token, ItemStack oldToken, ActionType... actionType) {
         this.slot = slot;
         this.items = items;
         this.actionType = Arrays.asList(actionType);
@@ -127,6 +129,7 @@ public class SlotMenu {
         this.menu = "";
         this.slotMenu = null;
         this.cosmetic = null;
+        this.oldToken = oldToken;
         this.token = token;
         this.sound = null;
         this.permission = "";
@@ -179,21 +182,23 @@ public class SlotMenu {
                 case REMOVE_TOKEN_ADD_COSMETIC:
                     removeTokenAddCosmetic(player);
                     break;
+                case UPDATE_OLD_TOKEN:
+                    updateOldToken(player);
+                    break;
                 case DRAG_AND_DROP:
                     break;
             }
         }
     }
 
-    public void action(Player player, ActionType actionType){
+    public boolean action(Player player, ActionType actionType){
         MagicCosmetics plugin = MagicCosmetics.getInstance();
-        if(!permission.isEmpty()){
-            if(!player.hasPermission(permission)){
+        if(!permission.isEmpty()) {
+            if (!player.hasPermission(permission)) {
                 player.sendMessage(plugin.prefix + plugin.getMessages().getString("no-permission"));
-                return;
+                return false;
             }
         }
-        playSound(player);
         switch (actionType){
             case OPEN_MENU:
                 openMenu(player);
@@ -218,7 +223,17 @@ public class SlotMenu {
             case REMOVE_TOKEN_ADD_COSMETIC:
                 removeTokenAddCosmetic(player);
                 break;
+            case REMOVE_COSMETIC_ADD_TOKEN:
+                boolean allow = removeCosmeticAddToken(player);
+                if(allow)
+                    playSound(player);
+                return allow;
+            case UPDATE_OLD_TOKEN:
+                updateOldToken(player);
+                break;
         }
+        playSound(player);
+        return true;
     }
 
     private void runCommands(Player player){
@@ -247,42 +262,57 @@ public class SlotMenu {
     }
 
     private void removeTokenAddCosmetic(Player player){
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        if(playerCache.removeTokenInPlayer()){
-            MagicCosmetics.getInstance().getCosmeticsManager().changeCosmetic(player, token.getCosmetic());
+        PlayerData playerData = PlayerData.getPlayer(player);
+        if(playerData.removeTokenInPlayer()){
+            MagicCosmetics.getInstance().getCosmeticsManager().changeCosmetic(player, token.getCosmetic(), token.getTokenType());
         }
         closeMenu(player);
     }
 
+    private void updateOldToken(Player player) {
+        for(int i = 0; i < oldToken.getAmount(); i++){
+            player.getInventory().addItem(token.getItemStack());
+        }
+        player.getInventory().removeItem(oldToken);
+        closeMenu(player);
+    }
+
+    private boolean removeCosmeticAddToken(Player player){
+        if(tempCosmetic == null) return false;
+        PlayerData playerData = PlayerData.getPlayer(player);
+        if(!playerData.hasCosmeticById(tempCosmetic.getId())) return false;
+        return MagicCosmetics.getInstance().getCosmeticsManager().unUseCosmetic(player, tempCosmetic.getId());
+    }
+
     private void previewItem(Player player){
         MagicCosmetics plugin = MagicCosmetics.getInstance();
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         if(plugin.isPermissions()){
             if(!cosmetic.hasPermission(player)) {
-                if(playerCache.isZone()) {
+                if(playerData.isZone()) {
                     MagicCosmetics.getInstance().getCosmeticsManager().previewCosmetic(player, cosmetic);
                 }
                 closeMenu(player);
                 return;
             }
-            if(playerCache.isZone()) {
+            if(playerData.isZone()) {
                 MagicCosmetics.getInstance().getCosmeticsManager().previewCosmetic(player, cosmetic);
             }
             MagicCosmetics.getInstance().getCosmeticsManager().equipCosmetic(player, cosmetic, null);
             closeMenu(player);
             return;
         }
-        if(playerCache.getCosmeticById(cosmetic.getId()) == null){
-            if(playerCache.isZone()) {
+        if(playerData.getCosmeticById(cosmetic.getId()) == null){
+            if(playerData.isZone()) {
                 MagicCosmetics.getInstance().getCosmeticsManager().previewCosmetic(player, cosmetic);
             }
             closeMenu(player);
             return;
         }
-        playerCache.removeCosmetic(cosmetic.getId());
-        playerCache.addCosmetic(cosmetic);
+        playerData.removeCosmetic(cosmetic.getId());
+        playerData.addCosmetic(cosmetic);
         MagicCosmetics.getInstance().getCosmeticsManager().equipCosmetic(player, cosmetic.getId(), null, false);
-        if(playerCache.isZone()) {
+        if(playerData.isZone()) {
             MagicCosmetics.getInstance().getCosmeticsManager().previewCosmetic(player, cosmetic);
         }
         closeMenu(player);
@@ -384,5 +414,25 @@ public class SlotMenu {
 
     public Token getToken() {
         return token;
+    }
+
+    public ItemStack getOldToken() {
+        return oldToken;
+    }
+
+    public void setExchangeable(boolean exchangeable) {
+        this.exchangeable = exchangeable;
+    }
+
+    public boolean isExchangeable() {
+        return exchangeable;
+    }
+
+    public void setTempCosmetic(Cosmetic tempCosmetic) {
+        this.tempCosmetic = tempCosmetic;
+    }
+
+    public Cosmetic getTempCosmetic() {
+        return tempCosmetic;
     }
 }

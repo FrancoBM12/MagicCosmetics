@@ -1,6 +1,7 @@
 package com.francobm.magicosmetics.commands;
 
 import com.francobm.magicosmetics.MagicCosmetics;
+import com.francobm.magicosmetics.api.Cosmetic;
 import com.francobm.magicosmetics.api.CosmeticType;
 import com.francobm.magicosmetics.cache.*;
 import com.francobm.magicosmetics.cache.inventories.Menu;
@@ -25,6 +26,15 @@ public class Command implements CommandExecutor, TabCompleter {
             if(args.length >= 1){
                 Player target;
                 switch (args[0].toLowerCase()){
+                    case "test":
+                        for(EntityCache entityCache : EntityCache.entities.values()) {
+                            if(entityCache.getEntity() == null) {
+                                plugin.getLogger().warning("Entity null");
+                                continue;
+                            }
+                            sender.sendMessage(entityCache.getUniqueId() + " " + entityCache.getEntity().getType());
+                        }
+                        return true;
                     case "addall":
                         if(args.length < 2){
                             plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("commands.add-all-usage"));
@@ -63,6 +73,18 @@ public class Command implements CommandExecutor, TabCompleter {
                             return true;
                         }
                         plugin.getCosmeticsManager().removeCosmetic(sender, target, args[2]);
+                        return true;
+                    case "removeall":
+                        if(args.length < 2){
+                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("commands.remove-all-usage"));
+                            return true;
+                        }
+                        target = Bukkit.getPlayer(args[1]);
+                        if(target == null){
+                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
+                            return true;
+                        }
+                        plugin.getCosmeticsManager().removeAllCosmetics(sender, target);
                         return true;
                     case "reload":
                         plugin.getCosmeticsManager().reload(sender);
@@ -154,8 +176,8 @@ public class Command implements CommandExecutor, TabCompleter {
                         }
                         Player p = Bukkit.getPlayer(args[1]);
                         if(p == null) return true;
-                        PlayerCache playerCache = PlayerCache.getPlayer(p);
-                        playerCache.setZone(false);
+                        PlayerData playerData = PlayerData.getPlayer(p);
+                        playerData.setZone(false);
                         return true;
                     case "addall":
                         if(args.length < 2){
@@ -195,6 +217,18 @@ public class Command implements CommandExecutor, TabCompleter {
                             return true;
                         }
                         plugin.getCosmeticsManager().removeCosmetic(player, target, args[2]);
+                        return true;
+                    case "removeall":
+                        if(args.length < 2){
+                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("commands.remove-all-usage"));
+                            return true;
+                        }
+                        target = Bukkit.getPlayer(args[1]);
+                        if(target == null){
+                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("offline-player"));
+                            return true;
+                        }
+                        plugin.getCosmeticsManager().removeAllCosmetics(player, target);
                         return true;
                     case "reload":
                         plugin.getCosmeticsManager().reload(sender);
@@ -262,6 +296,10 @@ public class Command implements CommandExecutor, TabCompleter {
                         return true;
                     case "hide":
                         plugin.getCosmeticsManager().hideSelfCosmetic(player, CosmeticType.BAG);
+                        return true;
+                    case "hideall":
+                        playerData = PlayerData.getPlayer(player);
+                        playerData.toggleHiddeCosmetics();
                         return true;
                     case "zones":
                         //cosmetics zones add <name>
@@ -425,13 +463,17 @@ public class Command implements CommandExecutor, TabCompleter {
                         }
                         plugin.getCosmeticsManager().tintItem(player, args[1]);
                         return true;
+                    case "test":
+                        plugin.getItemsAdder().balloonEmote(player);
+                        plugin.getItemsAdder().backPackEmote(player);
+                        return true;
                     default:
                         plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + plugin.getMessages().getString("commands.not-found"));
                         return true;
                 }
             }
             if(player.hasPermission("magicosmetics.cosmetics.use")) {
-                plugin.getCosmeticsManager().openMenu(player, "hat");
+                plugin.getCosmeticsManager().openMenu(player, plugin.getMainMenu());
             }
             return true;
         }
@@ -461,8 +503,11 @@ public class Command implements CommandExecutor, TabCompleter {
         if(sender.hasPermission("magicosmetics.reload")) {
             arguments.add("reload");
         }
-        if(sender.hasPermission("magicosmetics.hide")){
+        if(sender.hasPermission("magicosmetics.hide")) {
             arguments.add("hide");
+        }
+        if(sender.hasPermission("magicosmetics.hide.all")){
+            arguments.add("hideAll");
         }
         if(sender.hasPermission("magicosmetics.equip")){
             arguments.add("use");
@@ -484,6 +529,7 @@ public class Command implements CommandExecutor, TabCompleter {
             case 2:
                 switch (args[0].toLowerCase()){
                     case "hide":
+                    case "hideall":
                     case "add":
                     case "addall":
                     case "remove":

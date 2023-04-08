@@ -8,23 +8,40 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 public class MagicAPI {
 
     public static boolean hasCosmetic(Player player, String cosmeticId){
         MagicCosmetics plugin = MagicCosmetics.getInstance();
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         if(plugin.isPermissions()){
             return Cosmetic.getCosmetic(cosmeticId).hasPermission(player);
         }
-        Cosmetic cosmetic = playerCache.getCosmeticById(cosmeticId);
+        Cosmetic cosmetic = playerData.getCosmeticById(cosmeticId);
         return cosmetic != null;
     }
 
     public static boolean spray(Player player) {
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        if(playerCache.getSpray() == null) return false;
-        playerCache.draw(SprayKeys.API);
+        PlayerData playerData = PlayerData.getPlayer(player);
+        if(playerData.getSpray() == null) return false;
+        playerData.draw(SprayKeys.API);
         return true;
+    }
+
+    public static Set<Cosmetic> getCosmetics() {
+        return new HashSet<>(Cosmetic.cosmetics.values());
+    }
+
+    public static Set<Cosmetic> getCosmeticsByType(CosmeticType cosmeticType) {
+        return Cosmetic.getCosmeticsByType(cosmeticType);
+    }
+
+    public static Set<Cosmetic> getCosmeticsHideByType(CosmeticType cosmeticType){
+        return Cosmetic.getSetCosmeticsHideByType(cosmeticType);
     }
 
     public static boolean tintItem(ItemStack item, String colorHex){
@@ -37,8 +54,8 @@ public class MagicAPI {
     }
 
     public static boolean hasEquipCosmetic(Player player, CosmeticType cosmeticType){
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        Cosmetic cosmetic = playerCache.getEquip(cosmeticType);
+        PlayerData playerData = PlayerData.getPlayer(player);
+        Cosmetic cosmetic = playerData.getEquip(cosmeticType);
         return cosmetic != null;
     }
 
@@ -48,11 +65,21 @@ public class MagicAPI {
     }
 
     public static void EquipCosmetic(Entity entity, String cosmeticId, String colorHex){
-        EntityCache entityCache = EntityCache.getOrCreateEntity(entity.getUniqueId());
+        EntityCache entityCache = EntityCache.getOrCreateEntity(entity);
         Cosmetic cosmetic = Cosmetic.getCloneCosmetic(cosmeticId);
         if(cosmetic == null) return;
         if(colorHex != null){
             org.bukkit.Color color = Color.hex2Rgb(colorHex);
+            cosmetic.setColor(color);
+        }
+        entityCache.setCosmetic(cosmetic);
+    }
+
+    public static void EquipCosmetic(Entity entity, String cosmeticId, org.bukkit.Color color){
+        EntityCache entityCache = EntityCache.getOrCreateEntity(entity);
+        Cosmetic cosmetic = Cosmetic.getCloneCosmetic(cosmeticId);
+        if(cosmetic == null) return;
+        if(color != null){
             cosmetic.setColor(color);
         }
         entityCache.setCosmetic(cosmetic);
@@ -68,6 +95,14 @@ public class MagicAPI {
         entityCache.unSetCosmetic(cosmeticType);
     }
 
+    public static void RemoveEntityCosmetics(UUID entityUniqueId) {
+        if(!EntityCache.entities.containsKey(entityUniqueId)) return;
+        EntityCache entityCache = EntityCache.getOrCreateEntity(entityUniqueId);
+        if(entityCache == null) return;
+        entityCache.clearCosmeticsInUse();
+        EntityCache.removeEntity(entityUniqueId);
+    }
+
     public static ItemStack getCosmeticItem(String id){
         Cosmetic cosmetic = Cosmetic.getCosmetic(id);
         if(cosmetic == null) return null;
@@ -77,10 +112,10 @@ public class MagicAPI {
     public static String getCosmeticId(String name, String type){
         Player player = Bukkit.getPlayerExact(name);
         if(player == null) return null;
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         try{
             CosmeticType cosmeticType = CosmeticType.valueOf(type.toUpperCase());
-            Cosmetic cosmetic = playerCache.getEquip(cosmeticType);
+            Cosmetic cosmetic = playerData.getEquip(cosmeticType);
             if(cosmetic == null) return null;
             return cosmetic.getId();
         }catch (IllegalArgumentException ignored){
@@ -92,10 +127,10 @@ public class MagicAPI {
     public static ItemStack getEquipped(String name, String type){
         Player player = Bukkit.getPlayerExact(name);
         if(player == null) return null;
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         try{
             CosmeticType cosmeticType = CosmeticType.valueOf(type.toUpperCase());
-            Cosmetic cosmetic = playerCache.getEquip(cosmeticType);
+            Cosmetic cosmetic = playerData.getEquip(cosmeticType);
             if(cosmetic == null) return null;
             return cosmetic.getItemColor().clone();
         }catch (IllegalArgumentException ignored){
@@ -106,11 +141,11 @@ public class MagicAPI {
 
     public static ItemStack getEquipped(OfflinePlayer offlinePlayer, CosmeticType cosmeticType){
         if(!offlinePlayer.hasPlayedBefore()) return null;
-        PlayerCache playerCache = PlayerCache.getPlayer(offlinePlayer);
-        if(playerCache == null) {
+        PlayerData playerData = PlayerData.getPlayer(offlinePlayer);
+        if(playerData == null) {
             return null;
         }
-        Cosmetic cosmetic = playerCache.getEquip(cosmeticType);
+        Cosmetic cosmetic = playerData.getEquip(cosmeticType);
         if(cosmetic == null) {
             return null;
         }
@@ -118,17 +153,17 @@ public class MagicAPI {
     }
 
     public static int getPlayerCosmeticsAvailable(Player player, CosmeticType cosmeticType){
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
-        return playerCache.getCosmeticCount(cosmeticType);
+        PlayerData playerData = PlayerData.getPlayer(player);
+        return playerData.getCosmeticCount(cosmeticType);
     }
 
     public static int getPlayerAllCosmeticsAvailable(Player player){
         MagicCosmetics plugin = MagicCosmetics.getInstance();
-        PlayerCache playerCache = PlayerCache.getPlayer(player);
+        PlayerData playerData = PlayerData.getPlayer(player);
         if(plugin.isPermissions()){
-            return playerCache.getCosmeticsPerm().size();
+            return playerData.getCosmeticsPerm().size();
         }
-        return playerCache.getCosmetics().size();
+        return playerData.getCosmetics().size();
     }
 
     public static int getServerCosmeticsAvailable(CosmeticType cosmeticType){

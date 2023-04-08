@@ -9,7 +9,6 @@ import org.bukkit.event.player.PlayerEvent;
 public class ZoneEnterEvent extends PlayerEvent implements Cancellable {
 
     private final Zone zone;
-
     private static final HandlerList HANDLER_LIST = new HandlerList();
     private boolean isCancelled;
 

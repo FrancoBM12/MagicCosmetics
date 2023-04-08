@@ -2,13 +2,11 @@ package com.francobm.magicosmetics.provider;
 
 import com.francobm.magicosmetics.cache.EntityCache;
 import com.francobm.magicosmetics.MagicCosmetics;
-import com.francobm.magicosmetics.cache.Cosmetic;
+import com.francobm.magicosmetics.api.Cosmetic;
 import com.francobm.magicosmetics.nms.NPC.ItemSlot;
 import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.event.CitizensEnableEvent;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.api.trait.trait.Equipment;
-import net.minecraft.world.entity.Entity;
 import org.bukkit.Color;
 import org.bukkit.command.CommandSender;
 import org.bukkit.inventory.ItemStack;
@@ -106,9 +104,6 @@ public class Citizens {
             entityCache.setCosmetic(cosmetic);
             if (plugin.equipMessage) {
                 plugin.getCosmeticsManager().sendMessage(sender, plugin.prefix + plugin.getMessages().getString("use-cosmetic").replace("%id%", id).replace("%name%", cosmetic.getName()));
-            }
-            if (!plugin.saveOnQuit) {
-                plugin.getSql().asyncSaveEntity(entityCache);
             }
         }catch (NumberFormatException exception){
             plugin.getCosmeticsManager().sendMessage(sender, plugin.prefix + plugin.getMessages().getString("invalid-npc-id"));

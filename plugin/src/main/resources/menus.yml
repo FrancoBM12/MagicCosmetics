@@ -250,7 +250,21 @@ items:
       amount: 1
       glow: false
       modeldata: 10000
-  spray-template: #in 1.8.0
+  spray-template:
+    item:
+      display: '%name%'
+      material: PLAYER_HEAD
+      lore-available:
+        - '&6Type: &7%type%'
+        - '&eCondition: %available%'
+        - '&cEquip: %equip%'
+      lore-unavailable:
+        - '&cYou do not have this cosmetic available!'
+        - '&9See in -> https://spigotmc.org'
+      amount: 1
+      glow: false
+      modeldata: 10000
+  itemSkin-template: #in
     item:
       display: '%name%'
       material: PLAYER_HEAD
@@ -339,7 +353,7 @@ menus:
     size: 6
     type: HAT
     start-slot: 19
-    end-slot: 39
+    end-slot: 43 #39
     pages-slot: -1
     back-button-slot: 46
     next-button-slot: 52
@@ -379,7 +393,7 @@ menus:
     size: 6
     type: BAG
     start-slot: 19
-    end-slot: 39
+    end-slot: 43
     pages-slot: -1
     back-button-slot: 46
     next-button-slot: 52
@@ -419,7 +433,7 @@ menus:
     size: 6
     type: WALKING_STICK
     start-slot: 19
-    end-slot: 39
+    end-slot: 43
     pages-slot: -1
     back-button-slot: 46
     next-button-slot: 52
@@ -459,7 +473,7 @@ menus:
     size: 6
     type: BALLOON
     start-slot: 19
-    end-slot: 39
+    end-slot: 43
     pages-slot: -1
     back-button-slot: 46
     next-button-slot: 52
@@ -499,7 +513,7 @@ menus:
     size: 6
     type: SPRAY
     start-slot: 19
-    end-slot: 39
+    end-slot: 43
     pages-slot: -1
     back-button-slot: 46
     next-button-slot: 52

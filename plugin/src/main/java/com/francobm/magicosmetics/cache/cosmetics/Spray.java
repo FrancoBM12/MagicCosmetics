@@ -1,14 +1,13 @@
-package com.francobm.magicosmetics.cache;
+package com.francobm.magicosmetics.cache.cosmetics;
 
 import com.francobm.magicosmetics.MagicCosmetics;
+import com.francobm.magicosmetics.api.Cosmetic;
 import com.francobm.magicosmetics.api.CosmeticType;
 import com.francobm.magicosmetics.api.SprayKeys;
-import com.francobm.magicosmetics.cache.renderer.ImageRenderer;
+import com.francobm.magicosmetics.cache.Sound;
 import com.francobm.magicosmetics.events.SprayDrawingEvent;
 import com.francobm.magicosmetics.nms.spray.CustomSpray;
-import com.francobm.magicosmetics.utils.MathUtils;
 import com.francobm.magicosmetics.utils.Utils;
-import com.francobm.magicosmetics.utils.XMaterial;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.FluidCollisionMode;
@@ -35,8 +34,8 @@ public class Spray extends Cosmetic {
     private boolean paint = false;
     private long coolDown;
 
-    public Spray(String id, String name, ItemStack itemStack, int modelData, boolean colored, CosmeticType cosmeticType, Color color, String permission, boolean texture, BufferedImage image, boolean itemImage, boolean hideMenu) {
-        super(id, name, itemStack, modelData, colored, cosmeticType, color, permission, texture, hideMenu);
+    public Spray(String id, String name, ItemStack itemStack, int modelData, boolean colored, CosmeticType cosmeticType, Color color, String permission, boolean texture, BufferedImage image, boolean itemImage, boolean hideMenu, boolean useEmote) {
+        super(id, name, itemStack, modelData, colored, cosmeticType, color, permission, texture, hideMenu, useEmote);
         this.itemImage = itemImage;
         if(image == null) {
             this.image = null;
@@ -57,16 +56,13 @@ public class Spray extends Cosmetic {
             customSpray = plugin.getVersion().createCustomSpray(player, location, blockFace, item, null, rotation);
             customSpray.spawn(player);
             customSpray.setPreview(true);
-            bukkitTask = new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if(customSpray == null) {
-                        cancel();
-                        return;
-                    }
-                    clear(player);
+            bukkitTask = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                if(customSpray == null) {
+                    bukkitTask.cancel();
+                    return;
                 }
-            }.runTaskLater(plugin, plugin.getSprayStayTime());
+                clear(player);
+            }, plugin.getSprayStayTime());
             return;
         }
 
@@ -79,16 +75,13 @@ public class Spray extends Cosmetic {
             customSpray.setPreview(true);
         }
 
-        bukkitTask = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if(customSpray == null) {
-                    cancel();
-                    return;
-                }
-                clear(player);
+        bukkitTask = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if(customSpray == null) {
+                bukkitTask.cancel();
+                return;
             }
-        }.runTaskLater(plugin, plugin.getSprayStayTime());
+            clear(player);
+        }, plugin.getSprayStayTime());
     }
 
     public void draw(Player player, SprayKeys key){
@@ -124,16 +117,14 @@ public class Spray extends Cosmetic {
             Location frameLoc = result.getHitBlock().getRelative(result.getHitBlockFace()).getLocation();
             Utils.sendAllSound(frameLoc, Sound.getSound("spray"));
             customSpray = plugin.getVersion().createCustomSpray(player, frameLoc, result.getHitBlockFace(), item, null, rotation);
-            bukkitTask = new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if(customSpray == null) {
-                        cancel();
-                        return;
-                    }
-                    clear(player);
+            active(player);
+            bukkitTask = plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
+                if(customSpray == null) {
+                    bukkitTask.cancel();
+                    return;
                 }
-            }.runTaskLater(plugin, plugin.getSprayStayTime());
+                clear(player);
+            }, plugin.getSprayStayTime());
             return;
         }
         if(image != null) {
@@ -155,18 +146,16 @@ public class Spray extends Cosmetic {
             Location frameLoc = result.getHitBlock().getRelative(result.getHitBlockFace()).getLocation();
             Utils.sendAllSound(frameLoc, Sound.getSound("spray"));
             customSpray = plugin.getVersion().createCustomSpray(player, frameLoc, result.getHitBlockFace(), map.clone(), mapView, rotation);
+            active(player);
         }
 
-        bukkitTask = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if(customSpray == null) {
-                    cancel();
-                    return;
-                }
-                clear(player);
+        bukkitTask = plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
+            if(customSpray == null) {
+                bukkitTask.cancel();
+                return;
             }
-        }.runTaskLater(plugin, plugin.getSprayStayTime());
+            clear(player);
+        }, plugin.getSprayStayTime());
     }
 
     @Override

@@ -3,7 +3,7 @@ package com.francobm.magicosmetics.cache.inventories;
 import com.francobm.magicosmetics.cache.Panel;
 import com.francobm.magicosmetics.files.FileCreator;
 import com.francobm.magicosmetics.MagicCosmetics;
-import com.francobm.magicosmetics.cache.PlayerCache;
+import com.francobm.magicosmetics.cache.PlayerData;
 import com.francobm.magicosmetics.cache.Sound;
 import com.francobm.magicosmetics.cache.inventories.menus.*;
 import com.francobm.magicosmetics.cache.items.Items;
@@ -11,7 +11,6 @@ import com.francobm.magicosmetics.utils.XMaterial;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
 
@@ -19,23 +18,22 @@ public abstract class Menu implements InventoryHolder {
     public static Map<String, Menu> inventories = new HashMap<>();
     private static final Map<String, Panel> panels = new HashMap<>();
     protected final String id;
-    protected final PlayerCache playerCache;
+    protected PlayerData playerData;
     protected final ContentMenu contentMenu;
     private String permission;
 
     public Menu(String id, ContentMenu contentMenu){
         this.id = id;
         this.contentMenu = contentMenu;
-        this.playerCache = null;
+        this.playerData = null;
         this.permission = "";
-        MagicCosmetics.getInstance().getLogger().info("Menu named: '" + id + "' registered.");
     }
 
-    public Menu(PlayerCache playerCache, Menu menu) {
+    public Menu(PlayerData playerData, Menu menu) {
         this.id = menu.id;
         this.contentMenu = new ContentMenu(menu.getContentMenu().getTitle(), menu.getContentMenu().getSize(), menu.getContentMenu().getInventoryType(), menu.getContentMenu().getSlotMenu(), menu.getContentMenu().getPreviewSlot(), menu.getContentMenu().getResultSlot());
         this.permission = menu.permission;
-        this.playerCache = playerCache;
+        this.playerData = playerData;
     }
 
     public static Panel getPanel(String id){
@@ -44,12 +42,12 @@ public abstract class Menu implements InventoryHolder {
 
     public void open(){
         if(MagicCosmetics.getInstance().isPlaceholderAPI()){
-            getContentMenu().createInventory(this, MagicCosmetics.getInstance().getPlaceholderAPI().setPlaceholders(playerCache.getOfflinePlayer().getPlayer(), getContentMenu().getTitle()));
+            getContentMenu().createInventory(this, MagicCosmetics.getInstance().getPlaceholderAPI().setPlaceholders(playerData.getOfflinePlayer().getPlayer(), getContentMenu().getTitle()));
         }else {
             getContentMenu().createInventory(this);
         }
-        if(playerCache == null) return;
-        playerCache.getOfflinePlayer().getPlayer().openInventory(getInventory());
+        if(playerData == null) return;
+        playerData.getOfflinePlayer().getPlayer().openInventory(getInventory());
         setItems();
     }
 
@@ -58,6 +56,7 @@ public abstract class Menu implements InventoryHolder {
         panels.clear();
         MagicCosmetics plugin = MagicCosmetics.getInstance();
         FileCreator menu = plugin.getMenus();
+        int menus_count = 0;
         for(String key : menu.getConfigurationSection("menus.panels").getKeys(false)){
             String character = menu.getString("menus.panels." + key);
             if(plugin.isItemsAdder()){
@@ -79,8 +78,8 @@ public abstract class Menu implements InventoryHolder {
             int startSlot = 0;
             int endSlot = 0;
             int pagesSlot = 0;
-            int backButtonSlot = 0;
-            int nextButtonSlot = 0;
+            Set<Integer> backButton = new HashSet<>();
+            Set<Integer> nextButton = new HashSet<>();
             int previewSlot = 0;
             int resultSlot = 0;
             List<Integer> slotsUnavailable = new ArrayList<>();
@@ -106,7 +105,7 @@ public abstract class Menu implements InventoryHolder {
                 try {
                     inventoryType = InventoryType.valueOf(type);
                 }catch (IllegalArgumentException exception){
-                    plugin.getLogger().info("Menu id '" + key + "' type: " + type + " Not Found.");
+                    plugin.getLogger().warning("Menu id '" + key + "' type: " + type + " Not Found.");
                 }
             }
             if(inventoryType == null) continue;
@@ -121,21 +120,13 @@ public abstract class Menu implements InventoryHolder {
                 pagesSlot = menu.getInt("menus." + key + ".pages-slot");
             }
             if(menu.contains("menus." + key + ".back-button-slot")){
-                backButtonSlot = menu.getInt("menus." + key + ".back-button-slot");
+                backButton = menu.getIntegerSet("menus." + key + ".back-button-slot");
             }
             if(menu.contains("menus." + key + ".next-button-slot")){
-                nextButtonSlot = menu.getInt("menus." + key + ".next-button-slot");
+                nextButton = menu.getIntegerSet("menus." + key + ".next-button-slot");
             }
             if(menu.contains("menus." + key + ".unavailable-slots")){
-                String format = menu.getString("menus." + key + ".unavailable-slots");
-                String[] slots = format.split(",");
-                for(String slot : slots){
-                    try{
-                        slotsUnavailable.add(Integer.parseInt(slot));
-                    }catch (NumberFormatException exception){
-                        plugin.getLogger().info("Menu id '" + key + "' with Unavailable slot '" + slot + "' Not Number");
-                    }
-                }
+                slotsUnavailable = menu.getIntegerList("menus." + key + ".unavailable-slots");
             }
             if(menu.contains("menus." + key + ".preview-slot")){
                 previewSlot = menu.getInt("menus." + key + ".preview-slot");
@@ -174,7 +165,7 @@ public abstract class Menu implements InventoryHolder {
                     try{
                         actionType.add(ActionType.valueOf(type.toUpperCase()));
                     }catch (IllegalArgumentException exception){
-                        plugin.getLogger().info("Menu id '" + key + "' with slot '" + slot + "' Action " + type + " Not Found");
+                        plugin.getLogger().warning("Menu id '" + key + "' with slot '" + slot + "' Action " + type + " Not Found");
                     }
                 }
                 if(menu.contains("menus." + key + "." + slot + ".action.types")) {
@@ -183,7 +174,7 @@ public abstract class Menu implements InventoryHolder {
                         try{
                             actionType.add(ActionType.valueOf(type.toUpperCase()));
                         }catch (IllegalArgumentException exception){
-                            plugin.getLogger().info("Menu id '" + key + "' with slot '" + slot + "' Action " + type + " Not Found");
+                            plugin.getLogger().warning("Menu id '" + key + "' with slot '" + slot + "' Action " + type + " Not Found");
                         }
                     }
                 }
@@ -205,27 +196,27 @@ public abstract class Menu implements InventoryHolder {
             ContentMenu contentMenu = new ContentMenu(title, size, inventoryType, slotMenus, previewSlot, resultSlot);
             switch (inventoryType){
                 case HAT:
-                    HatMenu hatMenu = new HatMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable);
+                    HatMenu hatMenu = new HatMenu(key, contentMenu, startSlot, endSlot, backButton, nextButton, pagesSlot, slotsUnavailable);
                     hatMenu.setPermission(perm);
                     inventories.put(key, hatMenu);
                     break;
                 case BAG:
-                    BagMenu bagMenu = new BagMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable);
+                    BagMenu bagMenu = new BagMenu(key, contentMenu, startSlot, endSlot, backButton, nextButton, pagesSlot, slotsUnavailable);
                     bagMenu.setPermission(perm);
                     inventories.put(key, bagMenu);
                     break;
                 case WALKING_STICK:
-                    WStickMenu wStickMenu = new WStickMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable);
+                    WStickMenu wStickMenu = new WStickMenu(key, contentMenu, startSlot, endSlot, backButton, nextButton, pagesSlot, slotsUnavailable);
                     wStickMenu.setPermission(perm);
                     inventories.put(key, wStickMenu);
                     break;
                 case BALLOON:
-                    BalloonMenu balloonMenu = new BalloonMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable);
+                    BalloonMenu balloonMenu = new BalloonMenu(key, contentMenu, startSlot, endSlot, backButton, nextButton, pagesSlot, slotsUnavailable);
                     balloonMenu.setPermission(perm);
                     inventories.put(key, balloonMenu);
                     break;
                 case SPRAY:
-                    SprayMenu sprayMenu = new SprayMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable);
+                    SprayMenu sprayMenu = new SprayMenu(key, contentMenu, startSlot, endSlot, backButton, nextButton, pagesSlot, slotsUnavailable);
                     sprayMenu.setPermission(perm);
                     inventories.put(key, sprayMenu);
                     break;
@@ -235,12 +226,12 @@ public abstract class Menu implements InventoryHolder {
                     inventories.put(key, freeMenu);
                     break;
                 case COLORED:
-                    ColoredMenu coloredMenu = new ColoredMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable);
+                    ColoredMenu coloredMenu = new ColoredMenu(key, contentMenu, startSlot, endSlot, backButton, nextButton, pagesSlot, slotsUnavailable);
                     coloredMenu.setPermission(perm);
                     inventories.put(key, coloredMenu);
                     break;
                 case FREE_COLORED:
-                    FreeColoredMenu freeColoredMenu = new FreeColoredMenu(key, contentMenu, startSlot, endSlot, backButtonSlot, nextButtonSlot, pagesSlot, slotsUnavailable, containItem);
+                    FreeColoredMenu freeColoredMenu = new FreeColoredMenu(key, contentMenu, startSlot, endSlot, backButton, nextButton, pagesSlot, slotsUnavailable, containItem);
                     freeColoredMenu.setPermission(perm);
                     inventories.put(key, freeColoredMenu);
                     break;
@@ -250,7 +241,9 @@ public abstract class Menu implements InventoryHolder {
                     inventories.put(key, tokenMenu);
                     break;
             }
+            menus_count++;
         }
+        MagicCosmetics.getInstance().getLogger().info("Registered menus: " + menus_count);
     }
 
     public String getId() {
@@ -272,7 +265,7 @@ public abstract class Menu implements InventoryHolder {
             return;
         }
         Items items = slotMenu.getItems();
-        items.addPlaceHolder(playerCache.getOfflinePlayer().getPlayer());
+        items.addPlaceHolder(playerData.getOfflinePlayer().getPlayer());
         slotMenu.setItems(items);
         contentMenu.getInventory().setItem(slotMenu.getSlot(), slotMenu.getItems().getItemStack());
     }
@@ -313,7 +306,7 @@ public abstract class Menu implements InventoryHolder {
     public String toString() {
         return "Menu{" +
                 "id='" + id + '\'' +
-                ", playerCache=" + playerCache +
+                ", playerCache=" + playerData +
                 ", contentMenu=" + contentMenu +
                 '}';
     }

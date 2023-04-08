@@ -7,7 +7,7 @@
         <groupId>com.francobm</groupId>
         <version>1.4-SNAPSHOT</version>
     </parent>
-    <version>1.9.4-SNAPSHOT</version>
+    <version>2.2.8</version>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>MagicCosmetics</artifactId>
@@ -64,6 +64,10 @@
             <url>https://jitpack.io</url>
         </repository>
         <repository>
+            <id>codemc-snapshots</id>
+            <url>https://repo.codemc.org/repository/maven-releases/</url>
+        </repository>
+        <repository>
             <id>placeholderapi</id>
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
         </repository>
@@ -76,8 +80,12 @@
             <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
         </repository>
         <repository>
-            <id>everything</id>
-            <url>https://repo.citizensnpcs.co/</url>
+            <id>citizens-repo</id>
+            <url>https://maven.citizensnpcs.co/repo</url>
+        </repository>
+        <repository>
+            <id>opencollab-snapshot</id>
+            <url>https://repo.opencollab.dev/maven-snapshots/</url>
         </repository>
     </repositories>
 
@@ -89,46 +97,51 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.francobm</groupId>
+            <groupId>com.francobm.magicosmetics.versions</groupId>
             <artifactId>api</artifactId>
             <version>1.4-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>com.francobm</groupId>
+            <groupId>com.francobm.magicosmetics.versions</groupId>
+            <artifactId>v1_19_R2</artifactId>
+            <version>1.4-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.francobm.magicosmetics.versions</groupId>
             <artifactId>v1_19_R1</artifactId>
             <version>1.4-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>com.francobm</groupId>
+            <groupId>com.francobm.magicosmetics.versions</groupId>
             <artifactId>v1_18_R2</artifactId>
             <version>1.4-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>com.francobm</groupId>
+            <groupId>com.francobm.magicosmetics.versions</groupId>
             <artifactId>v1_18_R1</artifactId>
             <version>1.4-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>com.francobm</groupId>
+            <groupId>com.francobm.magicosmetics.versions</groupId>
             <artifactId>v1_16_R3</artifactId>
             <version>1.4-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.ticxo.modelengine</groupId>
             <artifactId>api</artifactId>
-            <version>R2.5.0</version>
+            <version>R3.0.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.github.LoneDev6</groupId>
             <artifactId>api-itemsadder</artifactId>
-            <version>3.2.1b</version>
+            <version>3.2.3-beta5</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.github.Th0rgal</groupId>
-            <artifactId>Oraxen</artifactId>
-            <version>-bdc9438fd8-1</version>
+            <groupId>com.github.oraxen</groupId>
+            <artifactId>oraxen</artifactId>
+            <version>597c4a4727</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -138,29 +151,47 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>net.luckperms</groupId>
+            <artifactId>api</artifactId>
+            <version>5.4</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>me.arasple</groupId>
             <artifactId>TrMenu</artifactId>
             <version>3.0-RC-2</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>net.kyori</groupId>
-            <artifactId>adventure-text-minimessage</artifactId>
-            <version>4.11.0</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>net.kyori</groupId>
-            <artifactId>adventure-platform-bukkit</artifactId>
-            <version>4.1.1</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>net.citizensnpcs</groupId>
             <artifactId>citizens-main</artifactId>
-            <version>2.0.29-SNAPSHOT</version>
+            <version>2.0.30-SNAPSHOT</version>
             <type>jar</type>
             <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- SkinsRestorer API -->
+        <dependency>
+            <groupId>net.skinsrestorer</groupId>
+            <artifactId>skinsrestorer-api</artifactId>
+            <version>14.1.10</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.geysermc.floodgate</groupId>
+            <artifactId>api</artifactId>
+            <version>2.2.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.0.1</version>
         </dependency>
     </dependencies>
 

@@ -1,5 +1,6 @@
 cosmetics:
   hat1:
+    permission: 'cosmetics.hat1'
     item:
       display: '&bMexican Hat'
       material: LEATHER_HORSE_ARMOR
@@ -15,6 +16,7 @@ cosmetics:
     type: HAT
     overlaps: true
   hat2:
+    permission: 'cosmetics.hat2'
     item:
       display: '&bHot Dog'
       material: LEATHER_HORSE_ARMOR
@@ -29,6 +31,7 @@ cosmetics:
     type: HAT
     overlaps: false
   bag1:
+    permission: 'cosmetics.bag1'
     item:
       display: '&bCreeper backpack'
       material: LEATHER_HORSE_ARMOR
@@ -42,8 +45,8 @@ cosmetics:
     colored: true
     type: BAG
     space: 30
-
   bag2:
+    permission: 'cosmetics.bag2'
     item:
       display: '&bBanner backpack'
       material: LEATHER_HORSE_ARMOR
@@ -57,6 +60,7 @@ cosmetics:
     colored: true
     type: BAG
   wstick1:
+    permission: 'cosmetics.wstick1'
     item:
       display: '&bMagic wand'
       material: LEATHER_HORSE_ARMOR
@@ -70,6 +74,7 @@ cosmetics:
     colored: true
     type: WALKING_STICK
   wstick2:
+    permission: 'cosmetics.wstick2'
     item:
       display: '&bBig Head'
       material: PLAYER_HEAD
@@ -82,6 +87,7 @@ cosmetics:
       modeldata: 10003
     type: WALKING_STICK
   balloon1:
+    permission: 'cosmetics.balloon1'
     item:
       display: '&bHot air balloon'
       material: LEATHER_HORSE_ARMOR
@@ -99,6 +105,7 @@ cosmetics:
       enabled: false
       type: RIGHT
   balloon2:
+    permission: 'cosmetics.balloon2'
     item:
       display: '&bHot air balloon'
       material: LEATHER_HORSE_ARMOR
@@ -116,6 +123,7 @@ cosmetics:
       enabled: true
       type: RIGHT
   balloon3:
+    permission: 'cosmetics.balloon3'
     item:
       display: '&bBig balloon'
       material: PLAYER_HEAD
@@ -131,6 +139,7 @@ cosmetics:
     space: 3
     big-head: true
   spray1:
+    permission: 'cosmetics.spray1'
     item:
       display: '&bDino Spray'
       material: FEATHER
@@ -145,6 +154,7 @@ cosmetics:
     type: SPRAY
     url: first.png
   spray2:
+    permission: 'cosmetics.spray2'
     item:
       display: '&bMagic Spray'
       material: PAPER

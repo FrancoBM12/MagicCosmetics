@@ -1,5 +1,7 @@
 package com.francobm.magicosmetics.cache.nms.v1_18_R2;
 
+import com.francobm.magicosmetics.MagicCosmetics;
+import com.francobm.magicosmetics.nms.Packets.v1_18_R2.VersionHandler;
 import com.francobm.magicosmetics.nms.bag.PlayerBag;
 import com.mojang.datafixers.util.Pair;
 import io.netty.buffer.Unpooled;
@@ -33,9 +35,11 @@ public class PlayerBagHandler extends PlayerBag {
     private final EntityArmorStand armorStand;
     private final double distance;
 
-    public PlayerBagHandler(Player p, double distance, int height){
+    public PlayerBagHandler(Player p, double distance, int height, ItemStack backPackItem, ItemStack backPackItemForMe){
         players = new CopyOnWriteArrayList<>(new ArrayList<>());
         this.uuid = p.getUniqueId();
+        this.backPackItem = backPackItem;
+        this.backPackItemForMe = backPackItemForMe;
         this.distance = distance;
         this.height = height;
         this.ids = new ArrayList<>();
@@ -47,7 +51,7 @@ public class PlayerBagHandler extends PlayerBag {
         armorStand.b(player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), player.getLocation().getYaw(), 0);
         armorStand.j(true); //Invisible
         armorStand.m(true); //Invulnerable
-        //armorStand.t(true); //Marker
+        armorStand.t(true); //Marker
 
         DataWatcher watcher = armorStand.ai();
         watcher.b(new DataWatcherObject<>(0, DataWatcherRegistry.a), (byte)0x20);
@@ -57,78 +61,76 @@ public class PlayerBagHandler extends PlayerBag {
 
     @Override
     public void spawn(Player player) {
+        Player owner = getPlayer();
+        if(owner == null) return;
         if(players.contains(player.getUniqueId())) {
-            if(!getPlayer().getWorld().equals(player.getWorld())) {
+            if(!owner.getWorld().equals(player.getWorld())) {
                 remove(player);
                 return;
             }
-            if(getPlayer().getLocation().distance(player.getLocation()) > distance) {
+            if(owner.getLocation().distanceSquared(player.getLocation()) > distance) {
                 remove(player);
             }
             return;
         }
-        if(!getPlayer().getWorld().equals(player.getWorld())) return;
-        if(getPlayer().getLocation().distance(player.getLocation()) > distance) return;
-        armorStand.m(true); //invulnerable true
-        armorStand.j(true); //Invisible true
-        armorStand.t(true); //Marker
-        Location location = getPlayer().getLocation();
-        armorStand.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
+        if(!owner.getWorld().equals(player.getWorld())) return;
+        if(owner.getLocation().distanceSquared(player.getLocation()) > distance) return;
+        armorStand.b(owner.getLocation().getX(), owner.getLocation().getY(), owner.getLocation().getZ(), owner.getLocation().getYaw(), 0);
 
         PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
         connection.a(new PacketPlayOutSpawnEntityLiving(armorStand));
         //client settings
-        DataWatcher watcher = armorStand.ai();
-        watcher.b(new DataWatcherObject<>(0, DataWatcherRegistry.a), (byte)0x20);
-        PacketPlayOutEntityMetadata packet = new PacketPlayOutEntityMetadata(armorStand.ae(), watcher, true);
-        connection.a(packet);
-        addPassenger(player, getPlayer().getEntityId(), armorStand.ae());
+        connection.a(new PacketPlayOutEntityMetadata(armorStand.ae(), armorStand.ai(), true));
+        //Bukkit.getScheduler().runTaskLaterAsynchronously(MagicCosmetics.getPlugin(MagicCosmetics.class), () -> addPassenger(player, ownerPlayer.getEntityId(), armorStand.ae()), 20L);
+        addPassenger(player, owner.getEntityId(), armorStand.ae());
+        setItemOnHelmet(player, backPackItem);
         players.add(player.getUniqueId());
     }
 
     @Override
     public void spawnSelf(Player player) {
-        if(height == 0) {
-            spawn(player);
-            return;
-        }
+        Player owner = getPlayer();
+        if(owner == null) return;
         if(players.contains(player.getUniqueId())) {
-            if(!getPlayer().getWorld().equals(player.getWorld())) {
+            if(!owner.getWorld().equals(player.getWorld())) {
                 remove(player);
                 return;
             }
-            if(getPlayer().getLocation().distance(player.getLocation()) > distance) {
+            if(owner.getLocation().distanceSquared(player.getLocation()) > distance) {
                 remove(player);
             }
             return;
         }
-        if(!getPlayer().getWorld().equals(player.getWorld())) return;
-        if(getPlayer().getLocation().distance(player.getLocation()) > distance) return;
-        armorStand.j(true); //Invisible true
-        armorStand.t(true); //Marker
-        Location location = getPlayer().getLocation();
+        if(!owner.getWorld().equals(player.getWorld())) return;
+        if(owner.getLocation().distanceSquared(player.getLocation()) > distance) return;
+        Location location = owner.getLocation();
         armorStand.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
 
         PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
         connection.a(new PacketPlayOutSpawnEntityLiving(armorStand));
         connection.a(new PacketPlayOutEntityMetadata(armorStand.ae(), armorStand.ai(), true));
-        for(int i = 0; i < height; i++) {
-            EntityAreaEffectCloud entityAreaEffectCloud = new EntityAreaEffectCloud(EntityTypes.b, ((CraftWorld)player.getWorld()).getHandle());
-            entityAreaEffectCloud.a(0f);
-            entityAreaEffectCloud.j(true);
-            entityAreaEffectCloud.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
-            connection.a(new PacketPlayOutSpawnEntity(entityAreaEffectCloud));
-            connection.a(new PacketPlayOutEntityMetadata(entityAreaEffectCloud.ae(), entityAreaEffectCloud.ai(), true));
-            ids.add(entityAreaEffectCloud.ae());
-        }
-        for(int i = 0; i < height; i++) {
-            if(i == 0){
-                addPassenger(player, player.getEntityId(), ids.get(i));
-                continue;
+        if(height > 0){
+            for(int i = 0; i < height; i++) {
+                EntityAreaEffectCloud entityAreaEffectCloud = new EntityAreaEffectCloud(EntityTypes.b, ((CraftWorld)player.getWorld()).getHandle());
+                entityAreaEffectCloud.a(0f);
+                entityAreaEffectCloud.j(true);
+                entityAreaEffectCloud.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+                connection.a(new PacketPlayOutSpawnEntity(entityAreaEffectCloud));
+                connection.a(new PacketPlayOutEntityMetadata(entityAreaEffectCloud.ae(), entityAreaEffectCloud.ai(), true));
+                ids.add(entityAreaEffectCloud.ae());
             }
-            addPassenger(player, ids.get(i - 1), ids.get(i));
+            for(int i = 0; i < height; i++) {
+                if(i == 0){
+                    addPassenger(player, player.getEntityId(), ids.get(i));
+                    continue;
+                }
+                addPassenger(player, ids.get(i - 1), ids.get(i));
+            }
+            addPassenger(player, ids.get(ids.size() - 1), armorStand.ae());
+        }else{
+            addPassenger(player, owner.getEntityId(), armorStand.ae());
         }
-        addPassenger(player, ids.get(ids.size() - 1), armorStand.ae());
+        setItemOnHelmet(player, backPackItemForMe == null ? backPackItem : backPackItemForMe);
         players.add(player.getUniqueId());
     }
 
@@ -181,9 +183,13 @@ public class PlayerBagHandler extends PlayerBag {
 
     @Override
     public void addPassenger(Player player) {
+        Player owner = getPlayer();
+        if(owner == null) return;
         EntityPlayer entityPlayer = ((CraftPlayer)player).getHandle();
-        net.minecraft.world.entity.Entity e = ((CraftEntity)getPlayer()).getHandle();
-
+        net.minecraft.world.entity.Entity e = ((CraftEntity)owner).getHandle();
+        for (net.minecraft.world.entity.Entity entity1 : entityPlayer.cF()) {
+            Bukkit.getLogger().warning("EntityID: " + entity1.ad().toString());
+        }
         PacketPlayOutMount packetPlayOutMount = this.createDataSerializer(packetDataSerializer -> {
             packetDataSerializer.d(e.ae());
             packetDataSerializer.a(new int[]{armorStand.ae()});
@@ -206,6 +212,10 @@ public class PlayerBagHandler extends PlayerBag {
 
     @Override
     public void setItemOnHelmet(ItemStack itemStack, boolean all) {
+        Player owner = getPlayer();
+        if(owner == null) return;
+        ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
+        list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(itemStack)));
         if(all) {
             for (UUID uuid : players) {
                 if(this.uuid.equals(uuid)) continue;
@@ -215,13 +225,17 @@ public class PlayerBagHandler extends PlayerBag {
                     continue;
                 }
                 PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
-                ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
-                list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(itemStack)));
                 connection.a(new PacketPlayOutEntityEquipment(armorStand.ae(), list));
             }
             return;
         }
-        PlayerConnection connection = ((CraftPlayer)getPlayer()).getHandle().b;
+        PlayerConnection connection = ((CraftPlayer)owner).getHandle().b;
+        connection.a(new PacketPlayOutEntityEquipment(armorStand.ae(), list));
+    }
+
+    @Override
+    public void setItemOnHelmet(Player player, ItemStack itemStack) {
+        PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
         ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
         list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(itemStack)));
         connection.a(new PacketPlayOutEntityEquipment(armorStand.ae(), list));
@@ -229,6 +243,8 @@ public class PlayerBagHandler extends PlayerBag {
 
     @Override
     public void lookEntity(float yaw, float pitch, boolean all) {
+        Player owner = getPlayer();
+        if(owner == null) return;
         if(all) {
             for (UUID uuid : players) {
                 if(this.uuid.equals(uuid)) continue;
@@ -243,7 +259,7 @@ public class PlayerBagHandler extends PlayerBag {
             }
             return;
         }
-        PlayerConnection connection = ((CraftPlayer) getPlayer()).getHandle().b;
+        PlayerConnection connection = ((CraftPlayer) owner).getHandle().b;
         if(ids.size() > 0) {
             for (Integer id : ids) {
                 connection.a(new PacketPlayOutEntity.PacketPlayOutEntityLook(id, (byte) (yaw * 256 / 360), /*(byte) (pitch * 256 / 360)*/(byte) 0, true));

@@ -55,13 +55,13 @@ public class EntityBagHandler extends EntityBag {
                 remove(player);
                 return;
             }
-            if(getEntity().getLocation().distance(player.getLocation()) > distance) {
+            if(getEntity().getLocation().distanceSquared(player.getLocation()) > distance) {
                 remove(player);
             }
             return;
         }
         if(!getEntity().getWorld().equals(player.getWorld())) return;
-        if(getEntity().getLocation().distance(player.getLocation()) > distance) return;
+        if(getEntity().getLocation().distanceSquared(player.getLocation()) > distance) return;
         armorStand.m(true); //invulnerable true
         armorStand.j(true); //Invisible true
         armorStand.t(true); //Marker

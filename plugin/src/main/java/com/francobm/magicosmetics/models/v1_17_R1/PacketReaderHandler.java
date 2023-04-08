@@ -9,6 +9,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import net.minecraft.network.protocol.game.PacketPlayInUseEntity;
+import net.minecraft.network.protocol.game.PacketPlayInVehicleMove;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.v1_17_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;

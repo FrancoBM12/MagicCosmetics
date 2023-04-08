@@ -1,5 +1,6 @@
 package com.francobm.magicosmetics;
 
+import com.francobm.magicosmetics.api.Cosmetic;
 import com.francobm.magicosmetics.api.SprayKeys;
 import com.francobm.magicosmetics.cache.*;
 import com.francobm.magicosmetics.cache.inventories.Menu;
@@ -22,6 +23,7 @@ import org.bukkit.GameMode;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -52,12 +54,10 @@ public final class MagicCosmetics extends JavaPlugin {
     private PlaceholderAPI placeholderAPI;
     public GameMode gameMode = null;
     public boolean equipMessage;
-    private MiniMessage miniMessage;
     private Citizens citizens;
     public String ava = "";
     public String unAva = "";
     public String equip = "";
-    public boolean saveOnQuit = true;
     public BarColor bossBarColor = BarColor.YELLOW;
     public double balloonRotation = 0;
     private boolean bungee = false;
@@ -66,6 +66,13 @@ public final class MagicCosmetics extends JavaPlugin {
     private SprayKeys sprayKey;
     private int sprayStayTime = 60;
     private int sprayCooldown = 5;
+    private LuckPerms luckPerms;
+
+    private Floodgate floodgate;
+
+    private boolean placeholders;
+    private String mainMenu = "hat";
+    public int saveDataDelay;
 
     @Override
     public void onEnable() {
@@ -87,6 +94,9 @@ public final class MagicCosmetics extends JavaPlugin {
             case "v1_19_R1":
                 version = new com.francobm.magicosmetics.nms.Packets.v1_19_R1.VersionHandler();
                 break;
+            case "v1_19_R2":
+                version = new com.francobm.magicosmetics.nms.Packets.v1_19_R2.VersionHandler();
+                break;
         }
         Version.setVersion(version);
         if(version == null){
@@ -104,6 +114,90 @@ public final class MagicCosmetics extends JavaPlugin {
         this.tokens = new FileCreator(this, "tokens");
         this.sounds = new FileCreator(this, "sounds");
         createDefaultSpray();
+        if (config.getBoolean("MySQL.enabled")) {
+            sql = new MySQL();
+        } else {
+            sql = new SQLite();
+        }
+        if(getCosmetic()) return;
+
+        if (getServer().getPluginManager().getPlugin("ItemsAdder") != null && Utils.existPluginClass("dev.lone.itemsadder.api.FontImages.FontImageWrapper")) {
+            itemsAdder = new ItemsAdder();
+        }
+
+        if (getServer().getPluginManager().getPlugin("Oraxen") != null) {
+            if(Utils.existPluginClass("io.th0rgal.oraxen.api.OraxenItems")){
+                oraxen = new NewOraxen();
+            }else{
+                oraxen = new OldOraxen();
+            }
+            oraxen.register();
+        }
+
+        if(getServer().getPluginManager().isPluginEnabled("ModelEngine")) {
+            String version = getServer().getPluginManager().getPlugin("ModelEngine").getDescription().getVersion().split("\\.")[0];
+            if(version.equalsIgnoreCase("R3")){
+                modelEngine = new NewModelEngine();
+                getLogger().info("ModelEngine 3.0.0 found, using new model engine");
+            }else{
+                modelEngine = new OldModelEngine();
+                getLogger().info("ModelEngine 2.5.X found, using old model engine");
+            }
+        }
+
+        if(getServer().getPluginManager().getPlugin("Citizens") != null){
+            citizens = new Citizens();
+        }
+
+        if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            placeholderAPI = new PlaceholderAPI();
+        }
+        if(getServer().getPluginManager().isPluginEnabled("LuckPerms")){
+            luckPerms = new LuckPerms();
+        }
+
+        if(Utils.existPluginClass("org.geysermc.floodgate.api.FloodgateApi")){
+            floodgate = new Floodgate();
+        }
+
+        ava = MagicCosmetics.getInstance().getMessages().getString("edge.available");
+        unAva = MagicCosmetics.getInstance().getMessages().getString("edge.unavailable");
+        equip = MagicCosmetics.getInstance().getMessages().getString("edge.equip");
+        if(isOraxen()){
+            ava = getOraxen().replaceFontImages(ava);
+            unAva = getOraxen().replaceFontImages(unAva);
+            equip = getOraxen().replaceFontImages(equip);
+        }
+
+        if (!isItemsAdder()) {
+            for(String lines : messages.getStringList("bossbar")){
+                if(isOraxen())
+                    lines = getOraxen().replaceFontImages(lines);
+                BossBar boss = getServer().createBossBar(lines, bossBarColor, BarStyle.SOLID);
+                boss.setVisible(true);
+                bossBar.add(boss);
+            }
+            Cosmetic.loadCosmetics();
+            Color.loadColors();
+            Items.loadItems();
+            Zone.loadZones();
+            Token.loadTokens();
+            Sound.loadSounds();
+            Menu.loadMenus();
+        }
+
+        cosmeticsManager = new CosmeticsManager();
+        registerData();
+        cosmeticsManager.runTasks();
+        registerCommands();
+        registerListeners();
+        for(Player player : Bukkit.getOnlinePlayers()){
+            if(player == null || !player.isOnline()) continue;
+            sql.loadPlayer(player, true);
+        }
+    }
+
+    private void registerData(){
         this.prefix = messages.getString("prefix");
         if(config.contains("leave-wardrobe-gamemode")) {
             try {
@@ -112,15 +206,17 @@ public final class MagicCosmetics extends JavaPlugin {
                 getLogger().severe("Gamemode in config path: leave-wardrobe-gamemode Not Found!");
             }
         }
+        if(config.contains("main-menu"))
+            mainMenu = config.getString("main-menu");
+        if(config.contains("placeholder-api")){
+            placeholders = config.getBoolean("placeholder-api");
+        }
         equipMessage = false;
         if(config.contains("permissions")){
             setPermissions(config.getBoolean("permissions"));
         }
         if(config.contains("equip-message")){
             equipMessage = config.getBoolean("equip-message");
-        }
-        if(config.contains("save-on-quit")){
-            saveOnQuit = config.getBoolean("save-on-quit");
         }
         if(config.contains("zones-hide-items")){
             zoneHideItems = config.getBoolean("zones-hide-items");
@@ -148,69 +244,10 @@ public final class MagicCosmetics extends JavaPlugin {
         if(config.contains("spray-cooldown")){
             sprayCooldown = config.getInt("spray-cooldown");
         }
-        balloonRotation = MagicCosmetics.getInstance().getConfig().getDouble("balloons-rotation");
-        if (config.getBoolean("MySQL.enabled")) {
-            sql = new MySQL();
-        } else {
-            sql = new SQLite();
+        if(config.contains("save-data-delay")) {
+            saveDataDelay = config.getInt("save-data-delay");
         }
-        if(!sql.isConnected()) return;
-        if(getCosmetic()) return;
-
-        if (getServer().getPluginManager().getPlugin("ItemsAdder") != null) {
-            itemsAdder = new ItemsAdder();
-        }
-
-        if (getServer().getPluginManager().getPlugin("Oraxen") != null) {
-            oraxen = new Oraxen();
-            oraxen.register();
-        }
-
-        if (getServer().getPluginManager().getPlugin("ModelEngine") != null) {
-            modelEngine = new ModelEngine();
-        }
-
-        if(getServer().getPluginManager().getPlugin("Citizens") != null){
-            citizens = new Citizens();
-        }
-
-        if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            placeholderAPI = new PlaceholderAPI();
-        }
-
-        for(String lines : messages.getStringList("bossbar")){
-            BossBar boss = getServer().createBossBar(lines, bossBarColor, BarStyle.SOLID);
-            boss.setVisible(true);
-            bossBar.add(boss);
-        }
-
-        ava = MagicCosmetics.getInstance().getMessages().getString("edge.available");
-        unAva = MagicCosmetics.getInstance().getMessages().getString("edge.unavailable");
-        equip = MagicCosmetics.getInstance().getMessages().getString("edge.equip");
-        if(isOraxen()){
-            ava = getOraxen().replaceFontImages(ava);
-            unAva = getOraxen().replaceFontImages(unAva);
-            equip = getOraxen().replaceFontImages(equip);
-        }
-
-        if (!isItemsAdder()) {
-            Cosmetic.loadCosmetics();
-            Color.loadColors();
-            Items.loadItems();
-            Zone.loadZones();
-            Token.loadTokens();
-            Sound.loadSounds();
-            Menu.loadMenus();
-        }
-
-        cosmeticsManager = new CosmeticsManager();
-        cosmeticsManager.runTasks();
-        registerCommands();
-        registerListeners();
-        for(Player player : Bukkit.getOnlinePlayers()){
-            if(player == null || !player.isOnline()) continue;
-            sql.loadPlayer(player, true);
-        }
+        balloonRotation = config.getDouble("balloons-rotation");
     }
 
     public void registerListeners(){
@@ -222,6 +259,9 @@ public final class MagicCosmetics extends JavaPlugin {
         }
         if(isCitizens()){
             getServer().getPluginManager().registerEvents(new CitizensListener(), this);
+        }
+        if(getServer().getPluginManager().getPlugin("SkinsRestorer") != null) {
+            getServer().getPluginManager().registerEvents(new SkinListener(), this);
         }
     }
 
@@ -238,28 +278,22 @@ public final class MagicCosmetics extends JavaPlugin {
         }
         for(Player player : Bukkit.getOnlinePlayers()){
             if(player == null || !player.isOnline()) continue;
-            PlayerCache playerCache = PlayerCache.getPlayer(player);
-            if(playerCache.isZone()){
-                playerCache.exitZoneSync();
+            PlayerData playerData = PlayerData.getPlayer(player);
+            if(playerData.isZone()){
+                playerData.exitZoneSync();
             }
-            sql.savePlayer(playerCache, true);
+            sql.savePlayer(playerData, true);
         }
+        PlayerData.players.clear();
         if(isCitizens()) {
-            Iterator<EntityCache> iterator = EntityCache.entities.values().iterator();
-            while (iterator.hasNext()) {
-                EntityCache entityCache = iterator.next();
+            for(EntityCache entityCache : EntityCache.entities.values()){
                 if(!entityCache.isCosmeticUse()) {
                     sql.removeEntity(entityCache.getUniqueId());
-                    iterator.remove();
                     continue;
                 }
                 sql.saveEntity(entityCache);
-                iterator.remove();
             }
-        }
-
-        if(sql != null){
-            sql.disconnect();
+            EntityCache.entities.clear();
         }
         if(bossBar != null) {
             for (BossBar bar : bossBar) {
@@ -299,6 +333,10 @@ public final class MagicCosmetics extends JavaPlugin {
 
     public SQL getSql() {
         return this.sql;
+    }
+
+    public void setSql(SQL sql) {
+        this.sql = sql;
     }
 
     public CosmeticsManager getCosmeticsManager() {
@@ -363,18 +401,9 @@ public final class MagicCosmetics extends JavaPlugin {
         return this.placeholderAPI != null;
     }
 
-    public MiniMessage getMiniMessage() {
-        return miniMessage;
-    }
-
-    public boolean isMiniMessage(){
-        return this.miniMessage != null;
-    }
-
     public User getUser() {
         return new User();
     }
-
     public void setUser(User user) {
         this.user = user;
     }
@@ -439,5 +468,33 @@ public final class MagicCosmetics extends JavaPlugin {
 
     public void setZoneHideItems(boolean zoneHideItems) {
         this.zoneHideItems = zoneHideItems;
+    }
+
+    public LuckPerms getLuckPerms() {
+        return luckPerms;
+    }
+
+    public boolean isLuckPerms() {
+        return luckPerms != null;
+    }
+
+    public Floodgate getFloodgate() {
+        return floodgate;
+    }
+
+    public void setPlaceholders(boolean placeholders) {
+        this.placeholders = placeholders;
+    }
+
+    public boolean isPlaceholders() {
+        return placeholders;
+    }
+
+    public String getMainMenu() {
+        return mainMenu;
+    }
+
+    public void setMainMenu(String mainMenu) {
+        this.mainMenu = mainMenu;
     }
 }
