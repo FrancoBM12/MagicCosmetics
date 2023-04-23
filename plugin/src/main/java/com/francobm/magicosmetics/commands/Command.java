@@ -27,13 +27,6 @@ public class Command implements CommandExecutor, TabCompleter {
                 Player target;
                 switch (args[0].toLowerCase()){
                     case "test":
-                        for(EntityCache entityCache : EntityCache.entities.values()) {
-                            if(entityCache.getEntity() == null) {
-                                plugin.getLogger().warning("Entity null");
-                                continue;
-                            }
-                            sender.sendMessage(entityCache.getUniqueId() + " " + entityCache.getEntity().getType());
-                        }
                         return true;
                     case "addall":
                         if(args.length < 2){
