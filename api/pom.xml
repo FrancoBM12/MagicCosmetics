@@ -50,12 +50,6 @@
             <version>R2.5.0</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>com.github.Th0rgal</groupId>
-            <artifactId>Oraxen</artifactId>
-            <version>-bdc9438fd8-1</version>
-            <scope>provided</scope>
-        </dependency>
     </dependencies>
 
 </project>
