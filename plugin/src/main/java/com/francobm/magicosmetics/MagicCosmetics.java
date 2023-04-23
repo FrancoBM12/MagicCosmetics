@@ -23,13 +23,11 @@ import org.bukkit.GameMode;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public final class MagicCosmetics extends JavaPlugin {
@@ -97,6 +95,9 @@ public final class MagicCosmetics extends JavaPlugin {
             case "v1_19_R2":
                 version = new com.francobm.magicosmetics.nms.Packets.v1_19_R2.VersionHandler();
                 break;
+            case "v1_19_R3":
+                version = new com.francobm.magicosmetics.nms.Packets.v1_19_R3.VersionHandler();
+                break;
         }
         Version.setVersion(version);
         if(version == null){
@@ -128,10 +129,10 @@ public final class MagicCosmetics extends JavaPlugin {
         if (getServer().getPluginManager().getPlugin("Oraxen") != null) {
             if(Utils.existPluginClass("io.th0rgal.oraxen.api.OraxenItems")){
                 oraxen = new NewOraxen();
+                oraxen.register();
             }else{
-                oraxen = new OldOraxen();
+                getLogger().warning("This version of Oraxen lacks classes needed to use the api.");
             }
-            oraxen.register();
         }
 
         if(getServer().getPluginManager().isPluginEnabled("ModelEngine")) {
@@ -402,7 +403,7 @@ public final class MagicCosmetics extends JavaPlugin {
     }
 
     public User getUser() {
-        return new User();
+        return this.user;
     }
     public void setUser(User user) {
         this.user = user;
