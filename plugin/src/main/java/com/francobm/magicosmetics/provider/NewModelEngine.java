@@ -45,7 +45,7 @@ public class NewModelEngine extends ModelEngine{
     @Override
     public void stopAnimationExcept(ActiveModel activeModel, String animationId) {
         activeModel.getAnimationHandler().getAnimations().forEach(animationProperty -> {
-            if(!animationProperty.getBlueprintAnimation().getName().equalsIgnoreCase(animationId))
+            if(!animationProperty.getName().equalsIgnoreCase(animationId))
                 animationProperty.stop();
         });
     }
