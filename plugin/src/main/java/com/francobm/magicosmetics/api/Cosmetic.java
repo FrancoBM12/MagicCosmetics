@@ -404,7 +404,7 @@ public abstract class Cosmetic {
                     List<String> colorableParts = cosmeticsConf.getStringListWF("cosmetics." + key + ".meg.colorable-parts");
                     String walk_animation = cosmeticsConf.getString("cosmetics." + key + ".meg.animations.walk");
                     String idle_animation = cosmeticsConf.getString("cosmetics." + key + ".meg.animations.idle");
-                    balloonEngine = new BalloonEngine(modelId, colorableParts, walk_animation, idle_animation);
+                    balloonEngine = new BalloonEngine(modelId, colorableParts, walk_animation, idle_animation, distance);
                 }
                 if(cosmeticsConf.contains("cosmetics." + key + ".ia.model")){
                     if(!plugin.isItemsAdder()){
