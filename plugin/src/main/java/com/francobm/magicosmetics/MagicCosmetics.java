@@ -9,6 +9,7 @@ import com.francobm.magicosmetics.commands.Command;
 import com.francobm.magicosmetics.database.MySQL;
 import com.francobm.magicosmetics.database.SQL;
 import com.francobm.magicosmetics.database.SQLite;
+import com.francobm.magicosmetics.events.ZoneExitEvent;
 import com.francobm.magicosmetics.files.FileCosmetics;
 import com.francobm.magicosmetics.files.FileCreator;
 import com.francobm.magicosmetics.listeners.*;
@@ -24,6 +25,8 @@ import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
+import org.bukkit.event.HandlerList;
+import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -71,6 +74,7 @@ public final class MagicCosmetics extends JavaPlugin {
     private boolean placeholders;
     private String mainMenu = "hat";
     public int saveDataDelay;
+    private ZoneActions zoneActions;
 
     @Override
     public void onEnable() {
@@ -249,6 +253,14 @@ public final class MagicCosmetics extends JavaPlugin {
             saveDataDelay = config.getInt("save-data-delay");
         }
         balloonRotation = config.getDouble("balloons-rotation");
+        ZoneAction onEnter = null;
+        ZoneAction onExit = null;
+        if(zones.contains("on_enter.commands"))
+            onEnter = new ZoneAction("onEnter", zones.getStringList("on_enter.commands"));
+        if(zones.contains("on_exit.commands"))
+            onExit = new ZoneAction("onEnter", zones.getStringList("on_exit.commands"));
+        zoneActions = new ZoneActions(onEnter, onExit);
+        zoneActions.setEnabled(getConfig().getBoolean("zones-actions"));
     }
 
     public void registerListeners(){
@@ -264,6 +276,16 @@ public final class MagicCosmetics extends JavaPlugin {
         if(getServer().getPluginManager().getPlugin("SkinsRestorer") != null) {
             getServer().getPluginManager().registerEvents(new SkinListener(), this);
         }
+        zoneActionsListener();
+    }
+
+    public void zoneActionsListener(){
+        if(zoneActions.isEnabled()){
+            if(HandlerList.getRegisteredListeners(this).stream().anyMatch(registeredListener -> registeredListener.getListener().equals(getZoneActions().getZoneListener()))) return;
+            getServer().getPluginManager().registerEvents(getZoneActions().getZoneListener(), this);
+            return;
+        }
+        HandlerList.unregisterAll(getZoneActions().getZoneListener());
     }
 
     public void registerCommands(){
@@ -497,5 +519,13 @@ public final class MagicCosmetics extends JavaPlugin {
 
     public void setMainMenu(String mainMenu) {
         this.mainMenu = mainMenu;
+    }
+
+    public ZoneActions getZoneActions() {
+        return zoneActions;
+    }
+
+    public void setZoneActions(ZoneActions zoneActions) {
+        this.zoneActions = zoneActions;
     }
 }

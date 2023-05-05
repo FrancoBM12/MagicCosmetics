@@ -14,6 +14,7 @@ order-cosmetics: 0 #0 - order as the file is, #1 - alphabetical by id, #2 - rand
 placeholder-api: false
 main-menu: 'hat'
 save-data-delay: 300
+zones-actions: false
 MySQL:
   enabled: false
   host: "127.0.0.1"
