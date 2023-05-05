@@ -2,17 +2,22 @@ package com.francobm.magicosmetics.provider;
 
 import com.ticxo.modelengine.api.ModelEngineAPI;
 import com.ticxo.modelengine.api.animation.state.ModelState;
+import com.ticxo.modelengine.api.entity.Dummy;
 import com.ticxo.modelengine.api.generator.model.ModelBlueprint;
 import com.ticxo.modelengine.api.model.ActiveModel;
 import com.ticxo.modelengine.api.model.ModeledEntity;
 import com.ticxo.modelengine.api.nms.entity.fake.BoneRenderer;
+import com.ticxo.modelengine.api.nms.entity.impl.ManualRangeManager;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 public class NewModelEngine extends ModelEngine{
 
@@ -62,29 +67,43 @@ public class NewModelEngine extends ModelEngine{
 
     @Override
     public void removeModeledEntity(ModeledEntity modeledEntity, ActiveModel activeModel) {
+        activeModel.destroy();
         modeledEntity.destroy();
-        for(Player p : modeledEntity.getRangeManager().getPlayerInRange()) {
-            modeledEntity.getRangeManager().removePlayer(p);
-        }
         ModelEngineAPI.removeModeledEntity(modeledEntity.getBase().getUniqueId());
     }
 
     @Override
-    public ModeledEntity spawnModel(LivingEntity entity, String modelId, ActiveModel activeModel) {
+    public ModeledEntity spawnModel(String modelId, Location location) {
+        Dummy dummy = ModelEngineAPI.createDummy();
+        dummy.setMoving(true);
+        dummy.setLocation(location);
+        dummy.wrapMoveControl();
+        dummy.wrapLookControl();
+        dummy.wrapBodyRotationControl();
+        dummy.wrapNavigation();
+        dummy.setYBodyRot(location.getYaw());
+        dummy.setYHeadRot(location.getYaw());
+        dummy.setXHeadRot(location.getPitch());
+        ModeledEntity modeledEntity = ModelEngineAPI.createModeledEntity(dummy);
+        dummy.setRangeManager(new ManualRangeManager(dummy, modeledEntity));
+        ActiveModel activeModel = ModelEngineAPI.createActiveModel(modelId);
         activeModel.setHurt(false);
         activeModel.setCanHurt(false);
-        ModeledEntity modeledEntity = ModelEngineAPI.createModeledEntity(entity);
         modeledEntity.addModel(activeModel, false);
-        modeledEntity.setRenderRadius(100);
         modeledEntity.setState(ModelState.IDLE);
-        modeledEntity.getRangeManager().setRenderDistance(100);
+        modeledEntity.setRenderRadius(50);
+        modeledEntity.getRangeManager().setRenderDistance(50);
         //modeledEntity.getBodyRotationController().setBodyClampUneven(false);
         return modeledEntity;
     }
 
     @Override
-    public void detectPlayers(ModeledEntity modeledEntity) {
-
+    public void detectPlayers(ModeledEntity modeledEntity, List<UUID> playerList) {
+        for(UUID uniqueId : playerList) {
+            Player player = Bukkit.getPlayer(uniqueId);
+            if(player == null) continue;
+            modeledEntity.getRangeManager().forceSpawn(player);
+        }
     }
 
     @Override
@@ -99,5 +118,12 @@ public class NewModelEngine extends ModelEngine{
             boneRenderer.getValue().setColor(color);
             boneRenderer.getValue().updateModel();
         }
+    }
+
+
+    @Override
+    public void movementModel(ModeledEntity modeledEntity, Location location) {
+        Dummy dummy = (Dummy) modeledEntity.getBase();
+        dummy.setLocation(location);
     }
 }

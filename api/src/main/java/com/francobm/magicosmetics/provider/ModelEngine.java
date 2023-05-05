@@ -4,10 +4,14 @@ import com.ticxo.modelengine.api.ModelEngineAPI;
 import com.ticxo.modelengine.api.model.ActiveModel;
 import com.ticxo.modelengine.api.model.ModeledEntity;
 import org.bukkit.Color;
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 
+import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public abstract class ModelEngine {
 
@@ -19,7 +23,7 @@ public abstract class ModelEngine {
 
     public abstract ActiveModel createActiveModel(String modelId);
 
-    public abstract ModeledEntity spawnModel(LivingEntity entity, String modelId, ActiveModel activeModel);
+    public abstract ModeledEntity spawnModel(String modelId, Location location);
 
     public abstract void stopAnimations(ActiveModel activeModel);
 
@@ -31,9 +35,11 @@ public abstract class ModelEngine {
 
     public abstract void removeModeledEntity(ModeledEntity modeledEntity, ActiveModel activeModel);
 
-    public abstract void detectPlayers(ModeledEntity modeledEntity);
+    public abstract void detectPlayers(ModeledEntity modeledEntity, List<UUID> playerList);
 
     public abstract Set<String> getAllBonesIds(ActiveModel activeModel);
 
     public abstract void tint(ActiveModel activeModel, Color color, String boneId);
+
+    public abstract void movementModel(ModeledEntity modeledEntity, Location location);
 }

@@ -3,12 +3,15 @@ package com.francobm.magicosmetics.provider;
 import com.ticxo.modelengine.api.ModelEngineAPI;
 import com.ticxo.modelengine.api.model.ActiveModel;
 import com.ticxo.modelengine.api.model.ModeledEntity;
+import com.ticxo.modelengine.api.model.base.BukkitEntity;
 import org.bukkit.Color;
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public class OldModelEngine extends  ModelEngine {
     private final ModelEngineAPI modelEngineAPI;
@@ -64,8 +67,9 @@ public class OldModelEngine extends  ModelEngine {
     }
 
     @Override
-    public ModeledEntity spawnModel(LivingEntity entity, String modelId, ActiveModel activeModel) {
-        ModeledEntity modeledEntity = ModelEngineAPI.api.getModelManager().createModeledEntity(entity);
+    public ModeledEntity spawnModel(String modelId, Location location) {
+        ModeledEntity modeledEntity = ModelEngineAPI.api.getModelManager().createModeledEntity(new BukkitEntity(null));
+        ActiveModel activeModel = ModelEngineAPI.api.getModelManager().createActiveModel(modelId);
         activeModel.setClamp(0);
         activeModel.getStates().clear();
         activeModel.setDamageTint(false);
@@ -75,7 +79,7 @@ public class OldModelEngine extends  ModelEngine {
     }
 
     @Override
-    public void detectPlayers(ModeledEntity modeledEntity) {
+    public void detectPlayers(ModeledEntity modeledEntity, List<UUID> playerList) {
         modeledEntity.detectPlayers();
     }
 
@@ -87,5 +91,10 @@ public class OldModelEngine extends  ModelEngine {
     @Override
     public void tint(ActiveModel activeModel, Color color, String boneId) {
         activeModel.setTint(color, boneId, true);
+    }
+
+    @Override
+    public void movementModel(ModeledEntity modeledEntity, Location location) {
+        //modeledEntity.getEntity();
     }
 }
