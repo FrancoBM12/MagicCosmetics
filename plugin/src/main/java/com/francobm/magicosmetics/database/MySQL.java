@@ -10,7 +10,6 @@ import com.francobm.magicosmetics.nms.balloon.PlayerBalloon;
 import com.francobm.magicosmetics.nms.spray.CustomSpray;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.sql.*;
 import java.util.UUID;
@@ -94,7 +93,7 @@ public class MySQL extends SQL{
         } finally {
             closeConnections(statement, connection, null);
             if(close)
-                player.clearCosmeticsInUse(true);
+                player.clearCosmeticsInUse();
         }
     }
 
@@ -181,7 +180,7 @@ public class MySQL extends SQL{
                 plugin.getLogger().severe("Failed to save player information: " + throwable.getMessage());
             } finally {
                 closeConnections(statement, connection, null);
-                player.clearCosmeticsInUse(false);
+                player.clearCosmeticsInUse();
             }
         });
     }
@@ -240,24 +239,23 @@ public class MySQL extends SQL{
                             String wStick = resultSet.getString("WStick");
                             String balloon = resultSet.getString("Balloon");
                             String spray = resultSet.getString("Spray");
-                            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                                PlayerData playerData = PlayerData.getPlayer(player);
-                                playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
-                                playerData.loadCosmetics(cosmetics);
-                                playerData.setCosmetic(playerData.getCosmeticById(hat));
-                                playerData.setCosmetic(playerData.getCosmeticById(bag));
-                                playerData.setCosmetic(playerData.getCosmeticById(wStick));
-                                playerData.setCosmetic(playerData.getCosmeticById(balloon));
-                                playerData.setCosmetic(playerData.getCosmeticById(spray));
-                                //playerData.clearCosmeticsInUse(false);
-                                CustomSpray.updateSpray(player);
-                                PlayerBag.updatePlayerBag(player);
-                                PlayerBalloon.updatePlayerBalloon(player);
-                                if(plugin.isCitizens()) {
-                                    EntityBag.updateEntityBag(player);
-                                    EntityBalloon.updateEntityBalloon(player);
-                                }
-                            });
+
+                            PlayerData playerData = PlayerData.getPlayer(player);
+                            playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
+                            playerData.loadCosmetics(cosmetics);
+                            playerData.setCosmetic(playerData.getCosmeticById(hat));
+                            playerData.setCosmetic(playerData.getCosmeticById(bag));
+                            playerData.setCosmetic(playerData.getCosmeticById(wStick));
+                            playerData.setCosmetic(playerData.getCosmeticById(balloon));
+                            playerData.setCosmetic(playerData.getCosmeticById(spray));
+                            //playerData.clearCosmeticsInUse(false);
+                            CustomSpray.updateSpray(player);
+                            PlayerBag.updatePlayerBag(player);
+                            PlayerBalloon.updatePlayerBalloon(player);
+                            if(plugin.isCitizens()) {
+                                EntityBag.updateEntityBag(player);
+                                EntityBalloon.updateEntityBalloon(player);
+                            }
                         }
                     }catch (SQLException throwable){
                         plugin.getLogger().severe("Failed to load async player information: " + throwable.getMessage());
@@ -293,7 +291,7 @@ public class MySQL extends SQL{
                     playerData.setCosmetic(playerData.getCosmeticById(wStick));
                     playerData.setCosmetic(playerData.getCosmeticById(balloon));
                     playerData.setCosmetic(playerData.getCosmeticById(spray));
-                    playerData.clearCosmeticsInUse(false);
+                    playerData.clearCosmeticsInUse();
                     CustomSpray.updateSpray(player);
                     PlayerBag.updatePlayerBag(player);
                     PlayerBalloon.updatePlayerBalloon(player);
@@ -337,7 +335,7 @@ public class MySQL extends SQL{
                         playerData.setCosmetic(playerData.getCosmeticById(wStick));
                         playerData.setCosmetic(playerData.getCosmeticById(balloon));
                         playerData.setCosmetic(playerData.getCosmeticById(spray));
-                        playerData.clearCosmeticsInUse(false);
+                        playerData.clearCosmeticsInUse();
                         CustomSpray.updateSpray(player);
                         PlayerBag.updatePlayerBag(player);
                         PlayerBalloon.updatePlayerBalloon(player);
@@ -380,7 +378,7 @@ public class MySQL extends SQL{
                 playerData.setCosmetic(playerData.getCosmeticById(wStick));
                 playerData.setCosmetic(playerData.getCosmeticById(balloon));
                 playerData.setCosmetic(playerData.getCosmeticById(spray));
-                playerData.clearCosmeticsInUse(false);
+                playerData.clearCosmeticsInUse();
                 CustomSpray.updateSpray(player);
                 PlayerBag.updatePlayerBag(player);
                 PlayerBalloon.updatePlayerBalloon(player);

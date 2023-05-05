@@ -9,7 +9,6 @@ import com.francobm.magicosmetics.nms.balloon.PlayerBalloon;
 import com.francobm.magicosmetics.nms.spray.CustomSpray;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.sql.*;
@@ -134,7 +133,7 @@ public class SQLite extends SQL {
         }finally {
             closeConnections(preparedStatement, connection, null);
             if(close)
-                player.clearCosmeticsInUse(true);
+                player.clearCosmeticsInUse();
         }
     }
 
@@ -176,7 +175,7 @@ public class SQLite extends SQL {
                 plugin.getLogger().severe("Failed to save player information: " + throwable.getMessage());
             } finally {
                 closeConnections(preparedStatement, connection, null);
-                player.clearCosmeticsInUse(false);
+                player.clearCosmeticsInUse();
             }
         });
     }
@@ -234,24 +233,23 @@ public class SQLite extends SQL {
                         String wStick = resultSet.getString("WStick");
                         String balloon = resultSet.getString("Balloon");
                         String spray = resultSet.getString("Spray");
-                        plugin.getServer().getScheduler().runTask(plugin, () -> {
-                            PlayerData playerData = PlayerData.getPlayer(player);
-                            playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
-                            playerData.loadCosmetics(cosmetics);
-                            playerData.setCosmetic(playerData.getCosmeticById(hat));
-                            playerData.setCosmetic(playerData.getCosmeticById(bag));
-                            playerData.setCosmetic(playerData.getCosmeticById(wStick));
-                            playerData.setCosmetic(playerData.getCosmeticById(balloon));
-                            playerData.setCosmetic(playerData.getCosmeticById(spray));
-                            //playerData.clearCosmeticsInUse(false);
-                            CustomSpray.updateSpray(player);
-                            PlayerBag.updatePlayerBag(player);
-                            PlayerBalloon.updatePlayerBalloon(player);
-                            if(plugin.isCitizens()) {
-                                EntityBag.updateEntityBag(player);
-                                EntityBalloon.updateEntityBalloon(player);
-                            }
-                        });
+
+                        PlayerData playerData = PlayerData.getPlayer(player);
+                        playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
+                        playerData.loadCosmetics(cosmetics);
+                        playerData.setCosmetic(playerData.getCosmeticById(hat));
+                        playerData.setCosmetic(playerData.getCosmeticById(bag));
+                        playerData.setCosmetic(playerData.getCosmeticById(wStick));
+                        playerData.setCosmetic(playerData.getCosmeticById(balloon));
+                        playerData.setCosmetic(playerData.getCosmeticById(spray));
+                        //playerData.clearCosmeticsInUse(false);
+                        CustomSpray.updateSpray(player);
+                        PlayerBag.updatePlayerBag(player);
+                        PlayerBalloon.updatePlayerBalloon(player);
+                        if(plugin.isCitizens()) {
+                            EntityBag.updateEntityBag(player);
+                            EntityBalloon.updateEntityBalloon(player);
+                        }
                     }
                 }catch (SQLException throwable){
                     plugin.getLogger().severe("Failed to load async player information: " + throwable.getMessage());
@@ -287,7 +285,7 @@ public class SQLite extends SQL {
                 playerData.setCosmetic(playerData.getCosmeticById(wStick));
                 playerData.setCosmetic(playerData.getCosmeticById(balloon));
                 playerData.setCosmetic(playerData.getCosmeticById(spray));
-                playerData.clearCosmeticsInUse(false);
+                playerData.clearCosmeticsInUse();
                 CustomSpray.updateSpray(player);
                 PlayerBag.updatePlayerBag(player);
                 PlayerBalloon.updatePlayerBalloon(player);
