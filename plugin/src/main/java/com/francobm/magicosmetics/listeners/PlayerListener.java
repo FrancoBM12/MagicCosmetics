@@ -3,7 +3,6 @@ package com.francobm.magicosmetics.listeners;
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.api.SprayKeys;
 import com.francobm.magicosmetics.cache.*;
-import com.francobm.magicosmetics.events.Reason;
 import com.francobm.magicosmetics.nms.NPC.NPC;
 import com.francobm.magicosmetics.events.UnknownEntityInteractEvent;
 import com.francobm.magicosmetics.utils.XMaterial;
@@ -24,7 +23,6 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Iterator;
 
@@ -65,7 +63,7 @@ public class PlayerListener implements Listener {
             event.setCancelled(true);
         }
         //PlayerBag.refreshPlayerBag(player);
-        playerData.clearCosmeticsInUse(false);
+        playerData.clearCosmeticsInUse();
     }
 
     @EventHandler
@@ -88,7 +86,7 @@ public class PlayerListener implements Listener {
         NPC entity = event.getUnknownEntity();
         if(entity == null) return;
         if(event.getAction() == com.francobm.magicosmetics.events.Action.INTERACT) return;
-        plugin.getCosmeticsManager().openMenu(player, "hat");
+        plugin.getCosmeticsManager().openMenu(player, plugin.getMainMenu());
     }
 
     @EventHandler
@@ -115,7 +113,7 @@ public class PlayerListener implements Listener {
         Player player = event.getEntity();
         PlayerData playerData = PlayerData.getPlayer(player);
         if(playerData == null) return;
-        playerData.clearCosmeticsInUse(false);
+        playerData.clearCosmeticsInUse();
         Iterator<ItemStack> stackList = event.getDrops().iterator();
         while (stackList.hasNext()){
             ItemStack itemStack = stackList.next();
