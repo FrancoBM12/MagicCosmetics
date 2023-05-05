@@ -274,9 +274,7 @@ public class Items {
         if(!plugin.isPlaceholderAPI()) return this;
         ItemMeta itemMeta = itemStack.getItemMeta();
         if(itemMeta == null) return this;
-        if(itemMeta.hasDisplayName()) {
-            itemMeta.setDisplayName(plugin.getPlaceholderAPI().setPlaceholders(player, itemMeta.getDisplayName()));
-        }
+        itemMeta.setDisplayName(plugin.getPlaceholderAPI().setPlaceholders(player, itemMeta.getDisplayName()));
         if(itemMeta.getLore() != null) {
             itemMeta.setLore(plugin.getPlaceholderAPI().setPlaceholders(player, itemMeta.getLore()));
         }
@@ -341,7 +339,6 @@ public class Items {
         ItemMeta itemMeta = itemStack.getItemMeta();
         if(itemMeta == null) return itemStack;
         if(this.itemStack.getItemMeta() == null) return itemStack;
-        itemMeta.setDisplayName(this.itemStack.getItemMeta().getDisplayName());
         if(MagicCosmetics.getInstance().isPermissions()){
             if(!cosmetic.hasPermission(playerData.getOfflinePlayer().getPlayer())){
                 if(itemMeta.getLore() != null){

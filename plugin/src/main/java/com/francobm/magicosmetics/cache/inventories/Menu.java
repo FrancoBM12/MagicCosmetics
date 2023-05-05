@@ -41,12 +41,12 @@ public abstract class Menu implements InventoryHolder {
     }
 
     public void open(){
+        if(playerData == null) return;
         if(MagicCosmetics.getInstance().isPlaceholderAPI()){
             getContentMenu().createInventory(this, MagicCosmetics.getInstance().getPlaceholderAPI().setPlaceholders(playerData.getOfflinePlayer().getPlayer(), getContentMenu().getTitle()));
         }else {
             getContentMenu().createInventory(this);
         }
-        if(playerData == null) return;
         playerData.getOfflinePlayer().getPlayer().openInventory(getInventory());
         setItems();
     }
