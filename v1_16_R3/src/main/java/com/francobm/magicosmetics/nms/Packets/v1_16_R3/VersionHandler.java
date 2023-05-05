@@ -20,12 +20,15 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.SoundCategory;
 import org.bukkit.block.BlockFace;
+import org.bukkit.craftbukkit.v1_16_R3.CraftWorld;
 import org.bukkit.craftbukkit.v1_16_R3.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_16_R3.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_16_R3.entity.CraftPufferFish;
 import org.bukkit.craftbukkit.v1_16_R3.inventory.CraftItemStack;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.PufferFish;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapView;
@@ -225,5 +228,61 @@ public class VersionHandler extends Version {
         if(itemStack == null) return null;
         net.minecraft.server.v1_16_R3.ItemStack itemCosmetic = CraftItemStack.asNMSCopy(itemStack);
         return itemCosmetic.getOrCreateTag().getString("magic_cosmetic");
+    }
+
+    @Override
+    public PufferFish spawnFakePuffer(Location location) {
+        EntityPufferFish entityPufferFish = new EntityPufferFish(EntityTypes.PUFFERFISH, ((CraftWorld)location.getWorld()).getHandle());
+        entityPufferFish.setLocation(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+        return (PufferFish) entityPufferFish.getBukkitEntity();
+    }
+
+    @Override
+    public void showFakePuffer(PufferFish entity, Player... viewers) {
+        EntityPufferFish entityClient = ((CraftPufferFish) entity).getHandle();
+        entityClient.setInvisible(true);
+        DataWatcher dataWatcher = entityClient.getDataWatcher();
+        PacketPlayOutSpawnEntity packet = new PacketPlayOutSpawnEntity(entityClient);
+        PacketPlayOutEntityMetadata metadata = new PacketPlayOutEntityMetadata(entity.getEntityId(), dataWatcher, true);
+        for(Player viewer : viewers) {
+            EntityPlayer view = ((CraftPlayer)viewer).getHandle();
+            view.playerConnection.sendPacket(packet);
+            view.playerConnection.sendPacket(metadata);
+        }
+    }
+
+    @Override
+    public void despawnFakeEntity(Entity entity, Player... viewers) {
+        PacketPlayOutEntityDestroy packet = new PacketPlayOutEntityDestroy(entity.getEntityId());
+        for(Player viewer : viewers) {
+            EntityPlayer view = ((CraftPlayer)viewer).getHandle();
+            view.playerConnection.sendPacket(packet);
+        }
+    }
+
+    @Override
+    public void attachFakeEntity(Entity entity, Entity leashed, Player... viewers) {
+        EntityPlayer entityPlayer = ((CraftPlayer) entity).getHandle();
+        PacketPlayOutAttachEntity packet = new PacketPlayOutAttachEntity(((CraftEntity)leashed).getHandle(), entityPlayer);
+        for(Player viewer : viewers) {
+            EntityPlayer view = ((CraftPlayer)viewer).getHandle();
+            view.playerConnection.sendPacket(packet);
+        }
+    }
+
+    @Override
+    public void updatePositionFakeEntity(Entity leashed, Location location) {
+        net.minecraft.server.v1_16_R3.Entity entity = ((CraftEntity)leashed).getHandle();
+        entity.setLocation(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+    }
+
+    @Override
+    public void teleportFakeEntity(Entity leashed, Player... viewers) {
+        net.minecraft.server.v1_16_R3.Entity entity = ((CraftEntity)leashed).getHandle();
+        PacketPlayOutEntityTeleport packet = new PacketPlayOutEntityTeleport(entity);
+        for(Player viewer : viewers) {
+            EntityPlayer view = ((CraftPlayer)viewer).getHandle();
+            view.playerConnection.sendPacket(packet);
+        }
     }
 }

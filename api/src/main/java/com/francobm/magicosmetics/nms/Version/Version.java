@@ -13,6 +13,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.PufferFish;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapView;
 
@@ -60,4 +61,16 @@ public abstract class Version {
     public abstract ItemStack setNBTCosmetic(ItemStack itemStack, String key);
 
     public abstract String isNBTCosmetic(ItemStack itemStack);
+
+    public abstract PufferFish spawnFakePuffer(Location location);
+
+    public abstract void showFakePuffer(PufferFish entity, Player ...viewers);
+
+    public abstract void despawnFakeEntity(Entity entity, Player ...viewers);
+
+    public abstract void attachFakeEntity(Entity entity, Entity leashed, Player ...viewers);
+
+    public abstract void updatePositionFakeEntity(Entity leashed, Location location);
+
+    public abstract void teleportFakeEntity(Entity leashed, Player ...viewers);
 }

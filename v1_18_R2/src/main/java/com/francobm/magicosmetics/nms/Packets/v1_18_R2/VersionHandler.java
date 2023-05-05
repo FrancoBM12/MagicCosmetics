@@ -18,14 +18,14 @@ import io.netty.buffer.Unpooled;
 import net.minecraft.network.PacketDataSerializer;
 import net.minecraft.network.chat.ChatMessage;
 import net.minecraft.network.protocol.game.*;
+import net.minecraft.network.syncher.DataWatcher;
 import net.minecraft.server.level.EntityPlayer;
 import net.minecraft.server.network.PlayerConnection;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityAreaEffectCloud;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EnumItemSlot;
+import net.minecraft.world.entity.animal.EntityPufferFish;
 import net.minecraft.world.entity.decoration.EntityArmorStand;
-import net.minecraft.world.entity.projectile.EntityWitherSkull;
 import net.minecraft.world.inventory.Containers;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -33,13 +33,10 @@ import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.craftbukkit.v1_18_R2.CraftWorld;
 import org.bukkit.craftbukkit.v1_18_R2.entity.CraftEntity;
-import org.bukkit.craftbukkit.v1_18_R2.entity.CraftItem;
 import org.bukkit.craftbukkit.v1_18_R2.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_18_R2.entity.CraftPufferFish;
 import org.bukkit.craftbukkit.v1_18_R2.inventory.CraftItemStack;
-import org.bukkit.entity.ArmorStand;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapView;
@@ -277,5 +274,61 @@ public class VersionHandler extends Version {
         if(itemStack == null) return null;
         net.minecraft.world.item.ItemStack itemCosmetic = CraftItemStack.asNMSCopy(itemStack);
         return itemCosmetic.u().l("magic_cosmetic");
+    }
+
+    @Override
+    public PufferFish spawnFakePuffer(Location location) {
+        EntityPufferFish entityPufferFish = new EntityPufferFish(EntityTypes.at, ((CraftWorld)location.getWorld()).getHandle());
+        entityPufferFish.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+        return (PufferFish) entityPufferFish.getBukkitEntity();
+    }
+
+    @Override
+    public void showFakePuffer(PufferFish entity, Player... viewers) {
+        EntityPufferFish entityClient = ((CraftPufferFish) entity).getHandle();
+        entityClient.j(true);
+        DataWatcher dataWatcher = entityClient.ai();
+        PacketPlayOutSpawnEntity packet = new PacketPlayOutSpawnEntity(entityClient);
+        PacketPlayOutEntityMetadata metadata = new PacketPlayOutEntityMetadata(entity.getEntityId(), dataWatcher, true);
+        for(Player viewer : viewers) {
+            EntityPlayer view = ((CraftPlayer)viewer).getHandle();
+            view.b.a(packet);
+            view.b.a(metadata);
+        }
+    }
+
+    @Override
+    public void despawnFakeEntity(Entity entity, Player... viewers) {
+        PacketPlayOutEntityDestroy packet = new PacketPlayOutEntityDestroy(entity.getEntityId());
+        for(Player viewer : viewers) {
+            EntityPlayer view = ((CraftPlayer)viewer).getHandle();
+            view.b.a(packet);
+        }
+    }
+
+    @Override
+    public void attachFakeEntity(Entity entity, Entity leashed, Player... viewers) {
+        EntityPlayer entityPlayer = ((CraftPlayer) entity).getHandle();
+        PacketPlayOutAttachEntity packet = new PacketPlayOutAttachEntity(((CraftEntity)leashed).getHandle(), entityPlayer);
+        for(Player viewer : viewers) {
+            EntityPlayer view = ((CraftPlayer)viewer).getHandle();
+            view.b.a(packet);
+        }
+    }
+
+    @Override
+    public void updatePositionFakeEntity(Entity leashed, Location location) {
+        net.minecraft.world.entity.Entity entity = ((CraftEntity)leashed).getHandle();
+        entity.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+    }
+
+    @Override
+    public void teleportFakeEntity(Entity leashed, Player... viewers) {
+        net.minecraft.world.entity.Entity entity = ((CraftEntity)leashed).getHandle();
+        PacketPlayOutEntityTeleport packet = new PacketPlayOutEntityTeleport(entity);
+        for(Player viewer : viewers) {
+            EntityPlayer view = ((CraftPlayer)viewer).getHandle();
+            view.b.a(packet);
+        }
     }
 }
