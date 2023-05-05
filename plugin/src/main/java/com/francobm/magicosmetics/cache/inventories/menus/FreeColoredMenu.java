@@ -250,7 +250,12 @@ public class FreeColoredMenu extends PaginatedMenu {
         for(SlotMenu slotMenu : getContentMenu().getSlotMenu().values()){
             setItemInPaginatedMenu(slotMenu, -1, -1, "_colored");
         }
-        MagicCosmetics.getInstance().getVersion().updateTitle(playerData.getOfflinePlayer().getPlayer(), title.toString());
+        MagicCosmetics plugin = MagicCosmetics.getInstance();
+        if(plugin.isPlaceholderAPI()){
+            plugin.getVersion().updateTitle(playerData.getOfflinePlayer().getPlayer(), plugin.getPlaceholderAPI().setPlaceholders(playerData.getOfflinePlayer().getPlayer(), title.toString()));
+            return;
+        }
+        plugin.getVersion().updateTitle(playerData.getOfflinePlayer().getPlayer(), title.toString());
     }
 
     private String setup(){

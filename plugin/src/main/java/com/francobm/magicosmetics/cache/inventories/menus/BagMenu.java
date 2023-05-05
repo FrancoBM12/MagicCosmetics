@@ -115,17 +115,17 @@ public class BagMenu extends PaginatedMenu {
                 title.append(getContentMenu().getSlots().isSlot(slot));
                 Items items = new Items(getPage()+index+"_bag", Items.getItem("bag-template").copyItem(playerData, cosmetic, cosmetic.getItemStack()));
                 SlotMenu slotMenu;
-                items.addVariable("%equip%", playerData.getEquip(cosmetic.getId()) != null ? MagicCosmetics.getInstance().getMessages().getString("equip") : MagicCosmetics.getInstance().getMessages().getString("unequip"));
+                items.addVariable("%equip%", playerData.getEquip(cosmetic.getId()) != null ? plugin.getMessages().getString("equip") : plugin.getMessages().getString("unequip"));
                 items.addPlaceHolder(playerData.getOfflinePlayer().getPlayer());
                 if(plugin.isPermissions()){
-                    items.addVariable("%name%", cosmetic.getName()).addVariable("%available%", cosmetic.hasPermission(playerData.getOfflinePlayer().getPlayer()) ? MagicCosmetics.getInstance().getMessages().getString("available") : MagicCosmetics.getInstance().getMessages().getString("unavailable")).addVariable("%type%", cosmetic.getCosmeticType());
+                    items.addVariable("%name%", cosmetic.getName()).addVariable("%available%", cosmetic.hasPermission(playerData.getOfflinePlayer().getPlayer()) ? plugin.getMessages().getString("available") : plugin.getMessages().getString("unavailable")).addVariable("%type%", cosmetic.getCosmeticType());
                     if(cosmetic.hasPermission(playerData.getOfflinePlayer().getPlayer())){
                         title.append(playerData.getEquip(cosmetic.getId()) != null ? plugin.equip : plugin.ava);
                     }else{
                         title.append(plugin.unAva);
                     }
                 }else {
-                    items.addVariable("%name%", cosmetic.getName()).addVariable("%available%", playerData.getCosmeticById(cosmetic.getId()) != null ? MagicCosmetics.getInstance().getMessages().getString("available") : MagicCosmetics.getInstance().getMessages().getString("unavailable")).addVariable("%type%", cosmetic.getCosmeticType());
+                    items.addVariable("%name%", cosmetic.getName()).addVariable("%available%", playerData.getCosmeticById(cosmetic.getId()) != null ? plugin.getMessages().getString("available") : plugin.getMessages().getString("unavailable")).addVariable("%type%", cosmetic.getCosmeticType());
                     if (playerData.getCosmeticById(cosmetic.getId()) != null) {
                         title.append(playerData.getEquip(cosmetic.getId()) != null ? plugin.equip : plugin.ava);
                     } else {
@@ -174,7 +174,11 @@ public class BagMenu extends PaginatedMenu {
         for(SlotMenu slotMenu : getContentMenu().getSlotMenu().values()){
             setItemInPaginatedMenu(slotMenu, -1, -1, "_bag");
         }
-        MagicCosmetics.getInstance().getVersion().updateTitle(playerData.getOfflinePlayer().getPlayer(), title.toString());
+        if(plugin.isPlaceholderAPI()){
+            plugin.getVersion().updateTitle(playerData.getOfflinePlayer().getPlayer(), plugin.getPlaceholderAPI().setPlaceholders(playerData.getOfflinePlayer().getPlayer(), title.toString()));
+            return;
+        }
+        plugin.getVersion().updateTitle(playerData.getOfflinePlayer().getPlayer(), title.toString());
     }
 
 }
