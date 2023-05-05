@@ -26,8 +26,6 @@ public class Command implements CommandExecutor, TabCompleter {
             if(args.length >= 1){
                 Player target;
                 switch (args[0].toLowerCase()){
-                    case "test":
-                        return true;
                     case "addall":
                         if(args.length < 2){
                             plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("commands.add-all-usage"));
@@ -455,10 +453,6 @@ public class Command implements CommandExecutor, TabCompleter {
                             return true;
                         }
                         plugin.getCosmeticsManager().tintItem(player, args[1]);
-                        return true;
-                    case "test":
-                        plugin.getItemsAdder().balloonEmote(player);
-                        plugin.getItemsAdder().backPackEmote(player);
                         return true;
                     default:
                         plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + plugin.getMessages().getString("commands.not-found"));
