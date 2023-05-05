@@ -45,7 +45,7 @@ public class PlayerBalloonHandler extends PlayerBalloon {
         Location location = player.getLocation().clone().add(0, space, 0);
         location = location.clone().add(player.getLocation().clone().getDirection().multiply(-1));
         armorStand = new EntityArmorStand(EntityTypes.d, world);
-        armorStand.b(location.getX(), location.getY() - 0.55, location.getZ(), location.getYaw(), location.getPitch());
+        armorStand.b(location.getX(), location.getY() - 1.3, location.getZ(), location.getYaw(), location.getPitch());
         armorStand.j(true); //Invisible
         armorStand.m(true); //Invulnerable
         armorStand.u(true); //Marker
@@ -173,9 +173,8 @@ public class PlayerBalloonHandler extends PlayerBalloon {
     }
 
     protected void teleport(Location location) {
-        Location newLocation = location.add(0, space, 0);
-        leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
-        armorStand.a(newLocation.getX(), newLocation.getY() - 0.55, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+        leashed.a(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+        armorStand.a(location.getX(), location.getY() - 1.3, location.getZ(), location.getYaw(), location.getPitch());
     }
 
     protected void instantUpdate() { //implement this method to others versions
@@ -187,7 +186,7 @@ public class PlayerBalloonHandler extends PlayerBalloon {
             spawn(false);
             return;
         }
-        Location playerLoc = owner.getLocation().clone();
+        Location playerLoc = owner.getLocation().clone().add(0, space, 0);
         Location stand = leashed.getBukkitEntity().getLocation().clone();
         Vector standDir = owner.getEyeLocation().clone().subtract(stand).toVector();
         if (!standDir.equals(new Vector())) {
@@ -284,8 +283,9 @@ public class PlayerBalloonHandler extends PlayerBalloon {
             Vector distVec = lineBetween.clone().normalize().multiply(CATCH_UP_INCREMENTS_DISTANCE);
             Location standTo = stand.clone().setDirection(standDir.setY(0)).add(distVec.clone());
             Location newLocation = standTo.clone();
-            leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
-            armorStand.a(newLocation.getX(), newLocation.getY() - 0.55, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            teleport(newLocation);
+            //leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            //armorStand.a(newLocation.getX(), newLocation.getY() - 0.55, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
         }else {
             if (!standDir.equals(new Vector())) {
                 standDir.normalize();
@@ -324,8 +324,9 @@ public class PlayerBalloonHandler extends PlayerBalloon {
                 }
             }
             Location newLocation = standToLoc.clone();
-            leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
-            armorStand.a(newLocation.getX(), newLocation.getY() - 0.55, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            teleport(newLocation);
+            //leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            //armorStand.a(newLocation.getX(), newLocation.getY() - 0.55, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
         }
         for(UUID uuid : players){
             Player player = Bukkit.getPlayer(uuid);
@@ -389,8 +390,9 @@ public class PlayerBalloonHandler extends PlayerBalloon {
             Vector distVec = lineBetween.clone().normalize().multiply(CATCH_UP_INCREMENTS_DISTANCE);
             Location standTo = stand.clone().setDirection(standDir.setY(0)).add(distVec.clone());
             Location newLocation = standTo.clone();
-            leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
-            armorStand.a(newLocation.getX(), newLocation.getY() - 0.55, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            teleport(newLocation);
+            //leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            //armorStand.a(newLocation.getX(), newLocation.getY() - 0.55, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
         }else {
             if (!standDir.equals(new Vector())) {
                 standDir.normalize();
@@ -429,8 +431,9 @@ public class PlayerBalloonHandler extends PlayerBalloon {
                 }
             }
             Location newLocation = standToLoc.clone();
-            leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
-            armorStand.a(newLocation.getX(), newLocation.getY() - 0.55, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            teleport(newLocation);
+            //leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            //armorStand.a(newLocation.getX(), newLocation.getY() - 0.55, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
         }
         for(UUID uuid : players){
             Player player = Bukkit.getPlayer(uuid);
@@ -540,8 +543,9 @@ public class PlayerBalloonHandler extends PlayerBalloon {
             Vector distVec = lineBetween.clone().normalize().multiply(CATCH_UP_INCREMENTS_DISTANCE);
             Location standTo = stand.clone().setDirection(standDir.setY(0)).add(distVec.clone());
             Location newLocation = standTo.clone();
-            leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
-            armorStand.a(newLocation.getX(), newLocation.getY() - 0.55, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            teleport(newLocation);
+            //leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            //armorStand.a(newLocation.getX(), newLocation.getY() - 0.55, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
         }else {
             if (!standDir.equals(new Vector())) {
                 standDir.normalize();
@@ -580,8 +584,9 @@ public class PlayerBalloonHandler extends PlayerBalloon {
                 }
             }
             Location newLocation = standToLoc.clone();
-            leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
-            armorStand.a(newLocation.getX(), newLocation.getY() - 0.55, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            teleport(newLocation);
+            //leashed.a(newLocation.getX(), newLocation.getY(), newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
+            //armorStand.a(newLocation.getX(), newLocation.getY() - 0.55, newLocation.getZ(), newLocation.getYaw(), newLocation.getPitch());
         }
         armorStand.aj().refresh(p);
         p.b.a(new PacketPlayOutEntityTeleport(leashed));
