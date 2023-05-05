@@ -49,6 +49,11 @@ public class CosmeticsManager {
 
     public void loadNewMessages() {
         FileCreator messages = plugin.getMessages();
+        FileCreator zones = plugin.getZones();
+        if(!zones.contains("on_enter.commands"))
+            zones.set("on_enter.commands", Collections.singletonList("[console] say &aThe %player% has entered the wardrobe"));
+        if(!zones.contains("on_exit.commands"))
+            zones.set("on_exit.commands", Collections.singletonList("[player] say &cThe %player% has come out of the wardrobe"));
         if(!messages.contains("already-all-unlocked")){
             messages.set("already-all-unlocked", "&cThe player already has all the cosmetics unlocked!");
         }
@@ -74,6 +79,9 @@ public class CosmeticsManager {
             plugin.getConfig().set("main-menu", "hat");
         if(!plugin.getConfig().contains("save-data-delay"))
             plugin.getConfig().set("save-data-delay", 300);
+        if(!plugin.getConfig().contains("zones-actions"))
+            plugin.getConfig().set("zones-actions", false);
+        zones.save();
         plugin.getConfig().save();
         messages.save();
     }
@@ -93,7 +101,7 @@ public class CosmeticsManager {
             }, 5L, 2L);
         }
         if(balloons == null) {
-            balloons = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
+            balloons = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
                 for(PlayerData playerData : PlayerData.players.values()){
                     if(!playerData.getOfflinePlayer().isOnline()) continue;
                     playerData.activeBalloon();
@@ -265,6 +273,10 @@ public class CosmeticsManager {
         if(plugin.getConfig().contains("save-data-delay")){
             plugin.saveDataDelay = plugin.getConfig().getInt("save-data-delay");
         }
+        plugin.getZoneActions().getOnEnter().setCommands(plugin.getZones().getStringList("on_enter.commands"));
+        plugin.getZoneActions().getOnExit().setCommands(plugin.getZones().getStringList("on_exit.commands"));
+        plugin.getZoneActions().setEnabled(plugin.getConfig().getBoolean("zones-actions"));
+        plugin.zoneActionsListener();
         Cosmetic.loadCosmetics();
         Color.loadColors();
         Items.loadItems();
