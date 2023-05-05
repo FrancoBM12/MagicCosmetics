@@ -23,7 +23,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffectType;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class PlayerData {
     public static Map<UUID, PlayerData> players = new HashMap<>();
@@ -93,7 +92,7 @@ public class PlayerData {
     public void updateCosmetics(){
         MagicCosmetics plugin = MagicCosmetics.getInstance();
         List<Cosmetic> cosmetics = cosmeticsInUse();
-        clearCosmeticsInUse(false);
+        clearCosmeticsInUse();
         for(Cosmetic cosmetic : cosmetics){
             Cosmetic newCosmetic = Cosmetic.getCloneCosmetic(cosmetic.getId());
             if(newCosmetic == null) {
@@ -247,7 +246,7 @@ public class PlayerData {
                 setWStick(cosmetic);
                 break;
             case BALLOON:
-                clearBalloon(false);
+                clearBalloon();
                 setBalloon(cosmetic);
                 break;
             case SPRAY:
@@ -437,7 +436,7 @@ public class PlayerData {
     }
 
     public void removeBalloon(){
-        clearBalloon(false);
+        clearBalloon();
         balloon = null;
     }
 
@@ -631,16 +630,12 @@ public class PlayerData {
         wStick.clear(player);
     }
 
-    public void clearBalloon(boolean closed){
+    public void clearBalloon(){
         Player player = getOfflinePlayer().getPlayer();
         if(player == null){
             return;
         }
         if(balloon == null){
-            return;
-        }
-        if(closed){
-            ((Balloon)balloon).clearClosed();
             return;
         }
         balloon.clear(player);
@@ -802,7 +797,7 @@ public class PlayerData {
             }
         }
         if(player.isInvisible() || player.isGliding() || player.hasPotionEffect(PotionEffectType.INVISIBILITY)){
-            clearBalloon(false);
+            clearBalloon();
             return;
         }
         balloon.active(player);
@@ -931,11 +926,11 @@ public class PlayerData {
         //activeSpray();
     }
 
-    public void clearCosmeticsInUse(boolean close){
+    public void clearCosmeticsInUse(){
         clearHat();
         clearBag();
         clearWStick();
-        clearBalloon(close);
+        clearBalloon();
         clearSpray();
     }
 
@@ -1156,7 +1151,7 @@ public class PlayerData {
             if(plugin.getCosmeticsManager().npcTaskStopped())
                 plugin.getCosmeticsManager().reRunTasks();
         }, 12);
-        clearCosmeticsInUse(false);
+        clearCosmeticsInUse();
         isZone = true;
     }
 
