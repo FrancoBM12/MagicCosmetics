@@ -1,14 +1,15 @@
 package com.francobm.magicosmetics.cache.nms.v1_19_R3;
 
 import com.francobm.magicosmetics.nms.spray.CustomSpray;
+import io.netty.channel.ChannelPipeline;
 import net.minecraft.core.EnumDirection;
+import net.minecraft.network.NetworkManager;
+import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.PacketPlayOutEntityDestroy;
 import net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata;
 import net.minecraft.network.protocol.game.PacketPlayOutSpawnEntity;
-import net.minecraft.server.level.EntityPlayer;
 import net.minecraft.server.level.WorldServer;
 import net.minecraft.server.network.PlayerConnection;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.decoration.EntityItemFrame;
 import org.bukkit.Bukkit;
@@ -17,14 +18,13 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.craftbukkit.v1_19_R3.CraftWorld;
 import org.bukkit.craftbukkit.v1_19_R3.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_19_R3.inventory.CraftItemStack;
-import org.bukkit.craftbukkit.v1_19_R3.metadata.EntityMetadataStore;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapView;
 
-import java.util.ArrayList;
-import java.util.UUID;
+import java.lang.reflect.Field;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class CustomSprayHandler extends CustomSpray {
@@ -66,9 +66,7 @@ public class CustomSprayHandler extends CustomSpray {
         itemFrame.a(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
         itemFrame.a(enumDirection);
         itemFrame.a(rotation);
-        EntityPlayer entityPlayer = ((CraftPlayer)player).getHandle();
-        entityPlayer.b.a(new PacketPlayOutSpawnEntity(itemFrame, enumDirection.d()));
-        itemFrame.aj().refresh(entityPlayer);
+        sendPackets(player, spawnItemFrame());
         if(mapView != null) {
             player.sendMap(mapView);
         }
@@ -98,8 +96,7 @@ public class CustomSprayHandler extends CustomSpray {
 
     @Override
     public void remove(Player player) {
-        PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
-        connection.a(new PacketPlayOutEntityDestroy(itemFrame.af()));
+        sendPackets(player, Collections.singletonList(destroyItemFrame()));
         players.remove(player.getUniqueId());
     }
 
@@ -117,6 +114,36 @@ public class CustomSprayHandler extends CustomSpray {
                 return EnumDirection.a;
             default:
                 return EnumDirection.b;
+        }
+    }
+
+    private List<Packet<?>> spawnItemFrame() {
+        PacketPlayOutSpawnEntity spawnEntity = new PacketPlayOutSpawnEntity(itemFrame, enumDirection.d());
+        PacketPlayOutEntityMetadata entityMetadata = new PacketPlayOutEntityMetadata(itemFrame.af(), itemFrame.aj().c());
+        return Arrays.asList(spawnEntity, entityMetadata);
+    }
+
+    private Packet<?> destroyItemFrame() {
+        return new PacketPlayOutEntityDestroy(itemFrame.af());
+    }
+
+    private void sendPackets(Player player, List<Packet<?>> packets) {
+        final ChannelPipeline pipeline = getPrivateChannelPipeline(((CraftPlayer) player).getHandle().b);
+        if(pipeline == null) return;
+        for(Packet<?> packet : packets)
+            pipeline.write(packet);
+        pipeline.flush();
+    }
+
+    private ChannelPipeline getPrivateChannelPipeline(PlayerConnection playerConnection) {
+        try {
+            Field privateNetworkManager = playerConnection.getClass().getDeclaredField("h");
+            privateNetworkManager.setAccessible(true);
+            NetworkManager networkManager = (NetworkManager) privateNetworkManager.get(playerConnection);
+            return networkManager.m.pipeline();
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            Bukkit.getLogger().severe("Error: Channel pipeline not found");
+            return null;
         }
     }
 }
