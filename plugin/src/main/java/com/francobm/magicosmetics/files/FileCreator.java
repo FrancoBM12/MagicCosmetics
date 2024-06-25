@@ -1,16 +1,17 @@
 package com.francobm.magicosmetics.files;
 
+import com.francobm.magicosmetics.cache.SecondaryColor;
+import com.francobm.magicosmetics.utils.OffsetModel;
+import com.francobm.magicosmetics.utils.PositionModelType;
 import com.francobm.magicosmetics.utils.Utils;
+import org.bukkit.Color;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Level;
 
 public class FileCreator extends YamlConfiguration {
@@ -89,10 +90,34 @@ public class FileCreator extends YamlConfiguration {
         //return ChatColor.translateAlternateColorCodes('&', super.getString(path));
         String s = super.getString(path);
         if(s == null) {
-            plugin.getLogger().warning("The path(" + path + ") is null in file '" + getName());
+            //plugin.getLogger().warning("The path(" + path + ") is null in file '" + getName());
             return null;
         }
         return Utils.ChatColor(s);
+    }
+
+    public OffsetModel getOffseTModel(String path){
+        String string = getString(path);
+        if(string == null || string.isEmpty()) return new OffsetModel(0, 0.5, -0.15, 0, 0);
+        String[] split = string.split(",");
+        if(split.length >= 5){
+            double x = Double.parseDouble(split[0]);
+            double y = Double.parseDouble(split[1]);
+            double z = Double.parseDouble(split[2]);
+            float yaw = Float.parseFloat(split[3]);
+            float pitch = Float.parseFloat(split[4]);
+            return new OffsetModel(x,y,z,yaw,pitch);
+        }
+        return new OffsetModel(0, 0.5, -0.15, 0, 0);
+    }
+
+    public PositionModelType getPositionModelType(String path){
+        String string = getString(path);
+        if(string == null || string.isEmpty()) return PositionModelType.BODY;
+        try{
+            return PositionModelType.valueOf(string.toUpperCase());
+        }catch (IllegalArgumentException ignored){}
+        return PositionModelType.BODY;
     }
 
     public List<Integer> getIntegerList(String path) {
@@ -107,6 +132,15 @@ public class FileCreator extends YamlConfiguration {
             }
         }
         return integers;
+    }
+
+    public List<String> getStringListWithComma(String path) {
+        List<String> strings = new ArrayList<>();
+        String list = getString(path);
+        if(list == null || list.isEmpty()) return strings;
+        String[] split = list.split(",");
+        strings.addAll(Arrays.asList(split));
+        return strings;
     }
 
     public Set<Integer> getIntegerSet(String path) {
@@ -135,6 +169,25 @@ public class FileCreator extends YamlConfiguration {
     public List<String> getStringListWF(String path) {
 
         return super.getStringList(path);
+    }
+
+    public List<SecondaryColor> getSecondaryColor(String path){
+         List<String> colorText = super.getStringList(path);
+         List<SecondaryColor> secondaryColors = new ArrayList<>();
+         for (String color : colorText){
+             String[] colorTwo = color.split(";");
+             Color secondary;
+             try{
+                 secondary = Utils.hex2Rgb(colorTwo[0]);
+             }catch (IllegalArgumentException exception){
+                 continue;
+             }
+             if(colorTwo.length > 1)
+                 secondaryColors.add(new SecondaryColor(secondary, colorTwo[1]));
+             else
+                 secondaryColors.add(new SecondaryColor(secondary));
+         }
+         return secondaryColors;
     }
 
     public boolean exists(){

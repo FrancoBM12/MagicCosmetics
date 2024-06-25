@@ -9,14 +9,16 @@ import com.francobm.magicosmetics.commands.Command;
 import com.francobm.magicosmetics.database.MySQL;
 import com.francobm.magicosmetics.database.SQL;
 import com.francobm.magicosmetics.database.SQLite;
-import com.francobm.magicosmetics.events.ZoneExitEvent;
 import com.francobm.magicosmetics.files.FileCosmetics;
 import com.francobm.magicosmetics.files.FileCreator;
 import com.francobm.magicosmetics.listeners.*;
+import com.francobm.magicosmetics.loaders.NPCsLoader;
 import com.francobm.magicosmetics.managers.CosmeticsManager;
 import com.francobm.magicosmetics.nms.Version.Version;
-import com.francobm.magicosmetics.nms.Packets.v1_17_R1.VersionHandler;
+import com.francobm.magicosmetics.nms.v1_17_R1.VersionHandler;
 import com.francobm.magicosmetics.provider.*;
+import com.francobm.magicosmetics.provider.citizens.Citizens;
+import com.francobm.magicosmetics.provider.znpcplus.ZNPCsPlus;
 import com.francobm.magicosmetics.utils.MathUtils;
 import com.francobm.magicosmetics.utils.Utils;
 import org.bukkit.Bukkit;
@@ -24,12 +26,15 @@ import org.bukkit.GameMode;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
-import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,20 +47,23 @@ public final class MagicCosmetics extends JavaPlugin {
     private FileCreator zones;
     private FileCreator tokens;
     private FileCreator sounds;
+    private FileCreator npcs;
+    private NPCsLoader NPCsLoader;
     private SQL sql;
     public String prefix;
-    private CosmeticsManager cosmeticsManager;
+    public CosmeticsManager cosmeticsManager;
     private Version version;
     public boolean wkasdwk;
     private List<BossBar> bossBar;
-    private ModelEngine modelEngine;
-    private ItemsAdder itemsAdder;
-    private Oraxen oraxen;
+    public ModelEngine modelEngine;
+    public ItemsAdder itemsAdder;
+    public Oraxen oraxen;
     private User user;
-    private PlaceholderAPI placeholderAPI;
+    public PlaceholderAPI placeholderAPI;
     public GameMode gameMode = null;
     public boolean equipMessage;
-    private Citizens citizens;
+    public Citizens citizens;
+    private ZNPCsPlus zNPCsPlus;
     public String ava = "";
     public String unAva = "";
     public String equip = "";
@@ -67,14 +75,24 @@ public final class MagicCosmetics extends JavaPlugin {
     private SprayKeys sprayKey;
     private int sprayStayTime = 60;
     private int sprayCooldown = 5;
-    private LuckPerms luckPerms;
-
-    private Floodgate floodgate;
-
+    public LuckPerms luckPerms;
     private boolean placeholders;
     private String mainMenu = "hat";
     public int saveDataDelay;
     private ZoneActions zoneActions;
+    private String luckPermsServer;
+    private String onExecuteCosmetics;
+    private MagicCrates magicCrates;
+    private MagicGestures magicGestures;
+    private List<String> worldsBlacklist;
+    private WorldGuard worldGuard;
+    private boolean proxy;
+
+    @Override
+    public void onLoad() {
+        if(getServer().getPluginManager().getPlugin("WorldGuard") != null)
+            worldGuard = new WorldGuard(this);
+    }
 
     @Override
     public void onEnable() {
@@ -82,28 +100,37 @@ public final class MagicCosmetics extends JavaPlugin {
         instance = this;
         switch (Utils.getVersion()){
             case "v1_16_R3":
-                version = new com.francobm.magicosmetics.nms.Packets.v1_16_R3.VersionHandler();
+                version = new com.francobm.magicosmetics.nms.v1_16_R3.VersionHandler();
                 break;
             case "v1_17_R1":
                 version = new VersionHandler();
                 break;
             case "v1_18_R1":
-                version = new com.francobm.magicosmetics.nms.Packets.v1_18_R1.VersionHandler();
+                version = new com.francobm.magicosmetics.nms.v1_18_R1.VersionHandler();
                 break;
             case "v1_18_R2":
-                version = new com.francobm.magicosmetics.nms.Packets.v1_18_R2.VersionHandler();
+                version = new com.francobm.magicosmetics.nms.v1_18_R2.VersionHandler();
                 break;
             case "v1_19_R1":
-                version = new com.francobm.magicosmetics.nms.Packets.v1_19_R1.VersionHandler();
+                version = new com.francobm.magicosmetics.nms.v1_19_R1.VersionHandler();
                 break;
             case "v1_19_R2":
-                version = new com.francobm.magicosmetics.nms.Packets.v1_19_R2.VersionHandler();
+                version = new com.francobm.magicosmetics.nms.v1_19_R2.VersionHandler();
                 break;
             case "v1_19_R3":
-                version = new com.francobm.magicosmetics.nms.Packets.v1_19_R3.VersionHandler();
+                version = new com.francobm.magicosmetics.nms.v1_19_R3.VersionHandler();
+                break;
+            case "v1_20_R1":
+                version = new com.francobm.magicosmetics.nms.v1_20_R1.VersionHandler();
+                break;
+            case "v1_20_R2":
+                version = new com.francobm.magicosmetics.nms.v1_20_R2.VersionHandler();
+                break;
+            case "v1_20_R3":
+                version = new com.francobm.magicosmetics.nms.v1_20_R3.VersionHandler();
                 break;
         }
-        Version.setVersion(version);
+        checkIfProxy();
         if(version == null){
             getLogger().severe(Utils.bsc("VmVyc2lvbjog") + Utils.getVersion() + Utils.bsc("IE5vdCBTdXBwb3J0ZWQh"));
             getServer().getPluginManager().disablePlugin(this);
@@ -118,6 +145,8 @@ public final class MagicCosmetics extends JavaPlugin {
         this.zones = new FileCreator(this, "zones");
         this.tokens = new FileCreator(this, "tokens");
         this.sounds = new FileCreator(this, "sounds");
+        this.npcs = new FileCreator(this, "npcs");
+        this.NPCsLoader = new NPCsLoader();
         createDefaultSpray();
         if (config.getBoolean("MySQL.enabled")) {
             sql = new MySQL();
@@ -142,11 +171,11 @@ public final class MagicCosmetics extends JavaPlugin {
         if(getServer().getPluginManager().isPluginEnabled("ModelEngine")) {
             String version = getServer().getPluginManager().getPlugin("ModelEngine").getDescription().getVersion().split("\\.")[0];
             if(version.equalsIgnoreCase("R3")){
-                modelEngine = new NewModelEngine();
-                getLogger().info("ModelEngine 3.0.0 found, using new model engine");
+                modelEngine = new ModelEngine3();
+                getLogger().info("ModelEngine 3.0.0 found, using old model engine");
             }else{
-                modelEngine = new OldModelEngine();
-                getLogger().info("ModelEngine 2.5.X found, using old model engine");
+                modelEngine = new ModelEngine4();
+                getLogger().info("ModelEngine 4 found, using new model engine");
             }
         }
 
@@ -161,8 +190,16 @@ public final class MagicCosmetics extends JavaPlugin {
             luckPerms = new LuckPerms();
         }
 
-        if(Utils.existPluginClass("org.geysermc.floodgate.api.FloodgateApi")){
-            floodgate = new Floodgate();
+        if(getServer().getPluginManager().isPluginEnabled("MagicCrates")){
+            magicCrates = new MagicCrates();
+        }
+
+        if(getServer().getPluginManager().isPluginEnabled("MagicGestures")) {
+            magicGestures = new MagicGestures();
+        }
+
+        if(getServer().getPluginManager().isPluginEnabled("SkinsRestorer") && !isProxy()) {
+            new SkinListener();
         }
 
         ava = MagicCosmetics.getInstance().getMessages().getString("edge.available");
@@ -202,7 +239,7 @@ public final class MagicCosmetics extends JavaPlugin {
         }
     }
 
-    private void registerData(){
+    public void registerData(){
         this.prefix = messages.getString("prefix");
         if(config.contains("leave-wardrobe-gamemode")) {
             try {
@@ -252,6 +289,12 @@ public final class MagicCosmetics extends JavaPlugin {
         if(config.contains("save-data-delay")) {
             saveDataDelay = config.getInt("save-data-delay");
         }
+        if(config.contains("luckperms-server"))
+            luckPermsServer = config.getString("luckperms-server");
+        if(config.contains("on_execute_cosmetics"))
+            onExecuteCosmetics = config.getString("on_execute_cosmetics");
+        if(config.contains("worlds-blacklist"))
+            worldsBlacklist = config.getStringListWF("worlds-blacklist");
         balloonRotation = config.getDouble("balloons-rotation");
         ZoneAction onEnter = null;
         ZoneAction onExit = null;
@@ -273,10 +316,37 @@ public final class MagicCosmetics extends JavaPlugin {
         if(isCitizens()){
             getServer().getPluginManager().registerEvents(new CitizensListener(), this);
         }
-        if(getServer().getPluginManager().getPlugin("SkinsRestorer") != null) {
-            getServer().getPluginManager().registerEvents(new SkinListener(), this);
+        if(worldGuard != null){
+            getServer().getPluginManager().registerEvents(worldGuard, this);
         }
         zoneActionsListener();
+    }
+
+    private void checkIfProxy()
+    {
+        Path spigotPath = Paths.get("spigot.yml");
+        if(Files.exists(spigotPath) && YamlConfiguration.loadConfiguration(spigotPath.toFile()).getBoolean("settings.bungeecord")){
+            getLogger().info( "Enabling BungeeMode!");
+            setProxy(true);
+            //getServer().getMessenger().registerIncomingPluginChannel(this, "mc:player", new ProxyListener());
+            //getServer().getMessenger().registerOutgoingPluginChannel(this, "mc:player");
+            return;
+        }
+        Path oldPaperPath = Paths.get("paper.yml");
+        if(Utils.isPaper()) {
+            if(Files.exists(oldPaperPath) && YamlConfiguration.loadConfiguration(oldPaperPath.toFile()).getBoolean("settings.velocity-support.enabled")){
+                getLogger().info( "Enabling VelocityMode!");
+                setProxy(true);
+                //getServer().getMessenger().registerIncomingPluginChannel(this, "mc:player", new ProxyListener());
+                return;
+            }
+            YamlConfiguration config = Utils.getPaperConfig(getServer());
+            if(config != null && (config.getBoolean("settings.velocity-support.enabled") || config.getBoolean("proxies.velocity.enabled"))) {
+                getLogger().info( "Enabling VelocityMode!");
+                setProxy(true);
+                //getServer().getMessenger().registerIncomingPluginChannel(this, "mc:player", new ProxyListener());
+            }
+        }
     }
 
     public void zoneActionsListener(){
@@ -302,28 +372,25 @@ public final class MagicCosmetics extends JavaPlugin {
         for(Player player : Bukkit.getOnlinePlayers()){
             if(player == null || !player.isOnline()) continue;
             PlayerData playerData = PlayerData.getPlayer(player);
-            if(playerData.isZone()){
-                playerData.exitZoneSync();
-            }
-            sql.savePlayer(playerData, true);
+            if(!playerData.isZone()) continue;
+            playerData.exitZoneSync();
         }
-        PlayerData.players.clear();
-        if(isCitizens()) {
-            for(EntityCache entityCache : EntityCache.entities.values()){
-                if(!entityCache.isCosmeticUse()) {
-                    sql.removeEntity(entityCache.getUniqueId());
-                    continue;
-                }
-                sql.saveEntity(entityCache);
-            }
-            EntityCache.entities.clear();
-        }
+        sql.savePlayers();
         if(bossBar != null) {
             for (BossBar bar : bossBar) {
                 bar.removeAll();
             }
+            bossBar.clear();
         }
+        NPCsLoader.save();
+    }
 
+    public boolean isProxy() {
+        return proxy;
+    }
+
+    public void setProxy(boolean proxy) {
+        this.proxy = proxy;
     }
 
     public static MagicCosmetics getInstance() {
@@ -439,6 +506,10 @@ public final class MagicCosmetics extends JavaPlugin {
         return citizens;
     }
 
+    public ZNPCsPlus getzNPCsPlus() {
+        return zNPCsPlus;
+    }
+
     public boolean isBungee() {
         return bungee;
     }
@@ -501,10 +572,6 @@ public final class MagicCosmetics extends JavaPlugin {
         return luckPerms != null;
     }
 
-    public Floodgate getFloodgate() {
-        return floodgate;
-    }
-
     public void setPlaceholders(boolean placeholders) {
         this.placeholders = placeholders;
     }
@@ -527,5 +594,41 @@ public final class MagicCosmetics extends JavaPlugin {
 
     public void setZoneActions(ZoneActions zoneActions) {
         this.zoneActions = zoneActions;
+    }
+
+    public String getLuckPermsServer() {
+        return luckPermsServer;
+    }
+
+    public void setLuckPermsServer(String luckPermsServer) {
+        this.luckPermsServer = luckPermsServer;
+    }
+
+    public String getOnExecuteCosmetics() {
+        return onExecuteCosmetics;
+    }
+
+    public void setOnExecuteCosmetics(String onExecuteCosmetics) {
+        this.onExecuteCosmetics = onExecuteCosmetics;
+    }
+
+    public FileCreator getNPCs() {
+        return npcs;
+    }
+
+    public com.francobm.magicosmetics.loaders.NPCsLoader getNPCsLoader() {
+        return NPCsLoader;
+    }
+
+    public MagicCrates getMagicCrates() {
+        return magicCrates;
+    }
+
+    public MagicGestures getMagicGestures() {
+        return magicGestures;
+    }
+
+    public List<String> getWorldsBlacklist() {
+        return worldsBlacklist;
     }
 }

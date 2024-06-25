@@ -37,8 +37,9 @@ public class NewOraxen extends CompatibilityProvider<MagicCosmetics> implements 
         FontManager fontManager = oraxenPlugin.getFontManager();
         if(fontManager == null) return id;
         for(Glyph glyph : fontManager.getGlyphs()){
+            if(glyph.getCharacter().isEmpty()) continue;
             if(!id.contains(glyph.getName())) continue;
-            id = id.replace(glyph.getName(), String.valueOf(glyph.getCharacter()));
+            id = id.replace(glyph.getName(), glyph.getCharacter());
         }
         return id;
     }

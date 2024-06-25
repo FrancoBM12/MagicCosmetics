@@ -2,9 +2,9 @@ package com.francobm.magicosmetics.provider;
 
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.cache.PlayerData;
-import com.francobm.magicosmetics.cache.cosmetics.Bag;
+import com.francobm.magicosmetics.cache.cosmetics.backpacks.Bag;
 import com.francobm.magicosmetics.cache.cosmetics.balloons.Balloon;
-import com.francobm.magicosmetics.nms.Packets.v1_18_R2.VersionHandler;
+import com.francobm.magicosmetics.nms.v1_18_R2.VersionHandler;
 import dev.lone.itemsadder.api.CustomEntity;
 import dev.lone.itemsadder.api.CustomPlayer;
 import dev.lone.itemsadder.api.CustomStack;

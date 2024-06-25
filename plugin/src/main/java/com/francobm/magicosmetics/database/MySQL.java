@@ -1,7 +1,8 @@
 package com.francobm.magicosmetics.database;
 
-import com.francobm.magicosmetics.cache.EntityCache;
+import com.francobm.magicosmetics.api.CosmeticType;
 import com.francobm.magicosmetics.cache.PlayerData;
+import com.francobm.magicosmetics.events.PlayerDataLoadEvent;
 import com.francobm.magicosmetics.files.FileCreator;
 import com.francobm.magicosmetics.nms.bag.EntityBag;
 import com.francobm.magicosmetics.nms.bag.PlayerBag;
@@ -25,8 +26,9 @@ public class MySQL extends SQL{
         String username = config.getString("MySQL.user");
         String password = config.getString("MySQL.password");
         String database = config.getString("MySQL.database");
+        String options = config.getString("MySQL.options");;
         table = config.getString("MySQL.table");;
-        hikariCP = new HikariCP(hostname, port, username, password, database);
+        hikariCP = new HikariCP(hostname, port, username, password, database, options);
         hikariCP.setProperties(this);
         createTable();
     }
@@ -93,7 +95,7 @@ public class MySQL extends SQL{
         } finally {
             closeConnections(statement, connection, null);
             if(close)
-                player.clearCosmeticsInUse();
+                player.clearCosmeticsToSaveData();
         }
     }
 
@@ -104,6 +106,7 @@ public class MySQL extends SQL{
         try{
             connection = hikariCP.getHikariDataSource().getConnection();
             for(PlayerData player : PlayerData.players.values()){
+                player.clearCosmeticsToSaveData();
                 if(!checkInfo(player.getUniqueId())){
                     String query = "INSERT INTO " + table + " (id, UUID, Player, Hat, Bag, WStick, Balloon, Spray, Available) VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?);";
                     statement = connection.prepareStatement(query);
@@ -134,7 +137,6 @@ public class MySQL extends SQL{
             plugin.getLogger().severe("Failed to save player information: " + throwable.getMessage());
         } finally {
             closeConnections(statement, connection, null);
-            plugin.getLogger().info("Players data was saved.");
         }
     }
 
@@ -144,6 +146,7 @@ public class MySQL extends SQL{
     }
 
     private void asyncSavePlayerInfo(PlayerData player){
+        player.clearCosmeticsToSaveData();
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             Connection connection = null;
             PreparedStatement statement = null;
@@ -180,40 +183,8 @@ public class MySQL extends SQL{
                 plugin.getLogger().severe("Failed to save player information: " + throwable.getMessage());
             } finally {
                 closeConnections(statement, connection, null);
-                player.clearCosmeticsInUse();
             }
         });
-    }
-
-    @Override
-    public void loadEntity(UUID uuid) {
-        Connection connection = null;
-        PreparedStatement statement = null;
-        ResultSet resultSet = null;
-        String queryBuilder = "SELECT * FROM " + table + " WHERE UUID = ?";
-        try {
-            connection = hikariCP.getHikariDataSource().getConnection();
-            statement = connection.prepareStatement(queryBuilder);
-            statement.setString(1, uuid.toString());
-            resultSet = statement.executeQuery();
-            EntityCache entityCache = EntityCache.getOrCreateEntity(uuid);
-            if(resultSet == null){
-                return;
-            }
-            if(resultSet.next()){
-                String hat = resultSet.getString("Hat");
-                String bag = resultSet.getString("Bag");
-                String wStick = resultSet.getString("WStick");
-                String balloon = resultSet.getString("Balloon");
-                String spray = resultSet.getString("Spray");
-                String ids = hat + "," + bag + "," + wStick + "," + balloon + "," + spray;
-                entityCache.loadCosmetics(ids);
-            }
-        }catch (SQLException throwable){
-            plugin.getLogger().severe("Failed to load entity information: " + throwable.getMessage());
-        } finally {
-            closeConnections(statement, connection, resultSet);
-        }
     }
 
     private void loadPlayerInfo(Player player, boolean async){
@@ -221,6 +192,8 @@ public class MySQL extends SQL{
         if(plugin.isBungee()){
             if(async){
                 plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
+                    EntityBag.updateEntityBag(player);
+                    EntityBalloon.updateEntityBalloon(player);
                     Connection connection = null;
                     PreparedStatement statement = null;
                     ResultSet resultSet = null;
@@ -243,19 +216,17 @@ public class MySQL extends SQL{
                             PlayerData playerData = PlayerData.getPlayer(player);
                             playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
                             playerData.loadCosmetics(cosmetics);
-                            playerData.setCosmetic(playerData.getCosmeticById(hat));
-                            playerData.setCosmetic(playerData.getCosmeticById(bag));
-                            playerData.setCosmetic(playerData.getCosmeticById(wStick));
-                            playerData.setCosmetic(playerData.getCosmeticById(balloon));
-                            playerData.setCosmetic(playerData.getCosmeticById(spray));
-                            //playerData.clearCosmeticsInUse(false);
+                            playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
+                            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                                playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
+                                playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
+                            });
+                            playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
+                            playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
                             CustomSpray.updateSpray(player);
                             PlayerBag.updatePlayerBag(player);
                             PlayerBalloon.updatePlayerBalloon(player);
-                            if(plugin.isCitizens()) {
-                                EntityBag.updateEntityBag(player);
-                                EntityBalloon.updateEntityBalloon(player);
-                            }
+                            plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
                         }
                     }catch (SQLException throwable){
                         plugin.getLogger().severe("Failed to load async player information: " + throwable.getMessage());
@@ -265,6 +236,8 @@ public class MySQL extends SQL{
                 }, 20L);
                 return;
             }
+            EntityBag.updateEntityBag(player);
+            EntityBalloon.updateEntityBalloon(player);
             Connection connection = null;
             PreparedStatement statement = null;
             ResultSet resultSet = null;
@@ -286,19 +259,15 @@ public class MySQL extends SQL{
                     String spray = resultSet.getString("Spray");
                     playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
                     playerData.loadCosmetics(cosmetics);
-                    playerData.setCosmetic(playerData.getCosmeticById(hat));
-                    playerData.setCosmetic(playerData.getCosmeticById(bag));
-                    playerData.setCosmetic(playerData.getCosmeticById(wStick));
-                    playerData.setCosmetic(playerData.getCosmeticById(balloon));
-                    playerData.setCosmetic(playerData.getCosmeticById(spray));
-                    playerData.clearCosmeticsInUse();
+                    playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
+                    playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
+                    playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
+                    playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
+                    playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
                     CustomSpray.updateSpray(player);
                     PlayerBag.updatePlayerBag(player);
                     PlayerBalloon.updatePlayerBalloon(player);
-                    if(plugin.isCitizens()) {
-                        EntityBag.updateEntityBag(player);
-                        EntityBalloon.updateEntityBalloon(player);
-                    }
+                    plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
                 }
             }catch (SQLException throwable){
                 plugin.getLogger().severe("Failed to load player information: " + throwable.getMessage());
@@ -309,6 +278,8 @@ public class MySQL extends SQL{
         }
         if(async){
             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                EntityBag.updateEntityBag(player);
+                EntityBalloon.updateEntityBalloon(player);
                 Connection connection = null;
                 PreparedStatement statement = null;
                 ResultSet resultSet = null;
@@ -330,19 +301,15 @@ public class MySQL extends SQL{
                         String spray = resultSet.getString("Spray");
                         playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
                         playerData.loadCosmetics(cosmetics);
-                        playerData.setCosmetic(playerData.getCosmeticById(hat));
-                        playerData.setCosmetic(playerData.getCosmeticById(bag));
-                        playerData.setCosmetic(playerData.getCosmeticById(wStick));
-                        playerData.setCosmetic(playerData.getCosmeticById(balloon));
-                        playerData.setCosmetic(playerData.getCosmeticById(spray));
-                        playerData.clearCosmeticsInUse();
+                        playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
+                        playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
+                        playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
+                        playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
+                        playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
                         CustomSpray.updateSpray(player);
                         PlayerBag.updatePlayerBag(player);
                         PlayerBalloon.updatePlayerBalloon(player);
-                        if(plugin.isCitizens()) {
-                            EntityBag.updateEntityBag(player);
-                            EntityBalloon.updateEntityBalloon(player);
-                        }
+                        plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
                     }
                 }catch (SQLException throwable){
                     plugin.getLogger().severe("Failed to load async player information: " + throwable.getMessage());
@@ -352,6 +319,8 @@ public class MySQL extends SQL{
             });
             return;
         }
+        EntityBag.updateEntityBag(player);
+        EntityBalloon.updateEntityBalloon(player);
         Connection connection = null;
         PreparedStatement statement = null;
         ResultSet resultSet = null;
@@ -373,19 +342,15 @@ public class MySQL extends SQL{
                 String spray = resultSet.getString("Spray");
                 playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
                 playerData.loadCosmetics(cosmetics);
-                playerData.setCosmetic(playerData.getCosmeticById(hat));
-                playerData.setCosmetic(playerData.getCosmeticById(bag));
-                playerData.setCosmetic(playerData.getCosmeticById(wStick));
-                playerData.setCosmetic(playerData.getCosmeticById(balloon));
-                playerData.setCosmetic(playerData.getCosmeticById(spray));
-                playerData.clearCosmeticsInUse();
+                playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
+                playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
+                playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
+                playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
+                playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
                 CustomSpray.updateSpray(player);
                 PlayerBag.updatePlayerBag(player);
                 PlayerBalloon.updatePlayerBalloon(player);
-                if(plugin.isCitizens()) {
-                    EntityBag.updateEntityBag(player);
-                    EntityBalloon.updateEntityBalloon(player);
-                }
+                plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
             }
         }catch (SQLException throwable){
             plugin.getLogger().severe("Failed to load player information: " + throwable.getMessage());
@@ -413,154 +378,6 @@ public class MySQL extends SQL{
             closeConnections(preparedStatement, connection, resultSet);
         }
         return false;
-    }
-
-    @Override
-    public void removeEntity(UUID uuid) {
-        if(!checkInfo(uuid)) return;
-        Connection connection = null;
-        PreparedStatement preparedStatement = null;
-        String queryBuilder = "DELETE FROM " + table + " WHERE UUID = ?";
-        try {
-            connection = hikariCP.getHikariDataSource().getConnection();
-            preparedStatement = connection.prepareStatement(queryBuilder);
-            preparedStatement.setString(1, uuid.toString());
-            preparedStatement.executeUpdate();
-        }catch (SQLException throwable){
-            plugin.getLogger().severe("Failed to remove entity information: " + throwable.getMessage());
-        } finally {
-            closeConnections(preparedStatement, connection, null);
-        }
-    }
-
-    @Override
-    public void saveEntities() {
-        Connection connection = null;
-        PreparedStatement statement = null;
-        try{
-            connection = hikariCP.getHikariDataSource().getConnection();
-            for(EntityCache entityCache : EntityCache.entities.values()){
-                if(!checkInfo(entityCache.getUniqueId())){
-                    String query = "INSERT INTO " + table + " (id, UUID, Player, Hat, Bag, WStick, Balloon, Spray, Available) VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?);";
-                    statement = connection.prepareStatement(query);
-                    statement.setString(1, entityCache.getUniqueId().toString());
-                    statement.setString(2, "[NPC]");
-                    statement.setString(3, entityCache.getHat() == null ? "" : entityCache.getHat().getId() + "|" + entityCache.getHat().getColor().asRGB());
-                    statement.setString(4, entityCache.getBag() == null ? "" : entityCache.getBag().getId() + "|" + entityCache.getBag().getColor().asRGB());
-                    statement.setString(5, entityCache.getWStick() == null ? "" : entityCache.getWStick().getId() + "|" + entityCache.getWStick().getColor().asRGB());
-                    statement.setString(6, entityCache.getBalloon() == null ? "" : entityCache.getBalloon().getId() + "|" + entityCache.getBalloon().getColor().asRGB());
-                    statement.setString(7, "");
-                    statement.setString(8, "");
-                    statement.executeUpdate();
-                    return;
-                }
-                String query = "UPDATE " + table + " SET Player = ?, Hat = ?, Bag = ?, WStick = ?, Balloon = ?, Spray = ?, Available = ? WHERE UUID = ?";
-                statement = connection.prepareStatement(query);
-                statement.setString(1, "[NPC]");
-                statement.setString(2, entityCache.saveHat());
-                statement.setString(3, entityCache.saveBag());
-                statement.setString(4, entityCache.saveWStick());
-                statement.setString(5, entityCache.saveBalloon());
-                statement.setString(6, "");
-                statement.setString(7, "");
-                statement.setString(8, entityCache.getUniqueId().toString());
-                statement.executeUpdate();
-            }
-        }catch (SQLException throwable) {
-            plugin.getLogger().severe("Failed to save entity information: " + throwable.getMessage());
-        } finally {
-            closeConnections(statement, connection, null);
-            plugin.getLogger().info("Entities/NPC data was saved.");
-        }
-    }
-
-    @Override
-    public void saveEntity(EntityCache entityCache) {
-        saveEntityInfo(entityCache);
-    }
-
-    private void saveEntityInfo(EntityCache entityCache){
-        Connection connection = null;
-        PreparedStatement statement = null;
-        try{
-            connection = hikariCP.getHikariDataSource().getConnection();
-            if(!checkInfo(entityCache.getUniqueId())){
-                String query = "INSERT INTO " + table + " (id, UUID, Player, Hat, Bag, WStick, Balloon, Spray, Available) VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?);";
-                statement = connection.prepareStatement(query);
-                statement.setString(1, entityCache.getUniqueId().toString());
-                statement.setString(2, "[NPC]");
-                statement.setString(3, entityCache.getHat() == null ? "" : entityCache.getHat().getId() + "|" + entityCache.getHat().getColor().asRGB());
-                statement.setString(4, entityCache.getBag() == null ? "" : entityCache.getBag().getId() + "|" + entityCache.getBag().getColor().asRGB());
-                statement.setString(5, entityCache.getWStick() == null ? "" : entityCache.getWStick().getId() + "|" + entityCache.getWStick().getColor().asRGB());
-                statement.setString(6, entityCache.getBalloon() == null ? "" : entityCache.getBalloon().getId() + "|" + entityCache.getBalloon().getColor().asRGB());
-                statement.setString(7, "");
-                statement.setString(8, "");
-                statement.executeUpdate();
-                return;
-            }
-            String query = "UPDATE " + table + " SET Player = ?, Hat = ?, Bag = ?, WStick = ?, Balloon = ?, Spray = ?, Available = ? WHERE UUID = ?";
-            statement = connection.prepareStatement(query);
-            statement.setString(1, "[NPC]");
-            statement.setString(2, entityCache.saveHat());
-            statement.setString(3, entityCache.saveBag());
-            statement.setString(4, entityCache.saveWStick());
-            statement.setString(5, entityCache.saveBalloon());
-            statement.setString(6, "");
-            statement.setString(7, "");
-            statement.setString(8, entityCache.getUniqueId().toString());
-            statement.executeUpdate();
-        }catch (SQLException throwable) {
-            plugin.getLogger().severe("Failed to save entity information: " + throwable.getMessage());
-        } finally {
-            closeConnections(statement, connection, null);
-            //EntityCache.removeEntity(entityCache.getUniqueId());
-        }
-    }
-
-    @Override
-    public void asyncSaveEntity(EntityCache entityCache) {
-        asyncSaveEntityInfo(entityCache);
-    }
-
-    private void asyncSaveEntityInfo(EntityCache entityCache){
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            Connection connection = null;
-            PreparedStatement statement = null;
-            try{
-                connection = hikariCP.getHikariDataSource().getConnection();
-                if(!checkInfo(entityCache.getUniqueId())){
-                    String query = "INSERT INTO " + table + " (id, UUID, Player, Hat, Bag, WStick, Balloon, Spray, Available) VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?);";
-                    statement = connection.prepareStatement(query);
-                    statement.setString(1, entityCache.getUniqueId().toString());
-                    statement.setString(2, "[NPC]");
-                    statement.setString(3, entityCache.saveHat());
-                    statement.setString(4, entityCache.saveBag());
-                    statement.setString(5, entityCache.saveWStick());
-                    statement.setString(6, entityCache.saveBalloon());
-                    statement.setString(7, "");
-                    statement.setString(8, "");
-                    statement.executeUpdate();
-                    return;
-                }
-                String query = "UPDATE " + table + " SET Player = ?, Hat = ?, Bag = ?, WStick = ?, Balloon = ?, Spray = ?, Available = ? WHERE UUID = ?";
-                statement = connection.prepareStatement(query);
-                statement.setString(1, "[NPC]");
-                statement.setString(2, entityCache.saveHat());
-                statement.setString(3, entityCache.saveBag());
-                statement.setString(4, entityCache.saveWStick());
-                statement.setString(5, entityCache.saveBalloon());
-                statement.setString(6, "");
-                statement.setString(7, "");
-                statement.setString(8, entityCache.getUniqueId().toString());
-                statement.executeUpdate();
-            }catch (SQLException throwable) {
-                plugin.getLogger().severe("Failed to save player information: " + throwable.getMessage());
-            } finally {
-                closeConnections(statement, connection, null);
-                entityCache.clearCosmeticsInUse();
-            }
-            //EntityCache.removeEntity(entityCache.getUniqueId());
-        });
     }
 
     @Override

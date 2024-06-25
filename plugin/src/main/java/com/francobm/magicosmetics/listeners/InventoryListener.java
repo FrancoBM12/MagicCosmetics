@@ -1,10 +1,8 @@
 package com.francobm.magicosmetics.listeners;
 
-import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.cache.inventories.Menu;
 import com.francobm.magicosmetics.cache.inventories.menus.FreeColoredMenu;
 import com.francobm.magicosmetics.cache.inventories.menus.TokenMenu;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -12,8 +10,6 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.InventoryView;
-import org.bukkit.scheduler.BukkitRunnable;
 
 public class InventoryListener implements Listener {
 

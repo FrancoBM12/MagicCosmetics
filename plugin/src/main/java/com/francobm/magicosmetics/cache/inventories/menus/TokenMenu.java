@@ -2,7 +2,6 @@ package com.francobm.magicosmetics.cache.inventories.menus;
 
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.api.Cosmetic;
-import com.francobm.magicosmetics.cache.Color;
 import com.francobm.magicosmetics.cache.PlayerData;
 import com.francobm.magicosmetics.cache.Sound;
 import com.francobm.magicosmetics.cache.Token;
@@ -12,7 +11,6 @@ import com.francobm.magicosmetics.cache.inventories.Menu;
 import com.francobm.magicosmetics.cache.inventories.SlotMenu;
 import com.francobm.magicosmetics.cache.items.Items;
 import com.francobm.magicosmetics.utils.XMaterial;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -71,10 +69,13 @@ public class TokenMenu extends Menu {
                         Items items = new Items(event.getCursor());
                         items.addPlaceHolder(playerData.getOfflinePlayer().getPlayer());
                         SlotMenu slotMenu = new SlotMenu(getContentMenu().getPreviewSlot(), items, "");
+                        slotMenu.setSound(Sound.getSound("on_click_token"));
+                        slotMenu.playSound(player);
                         getContentMenu().addSlotMenu(slotMenu);
 
                         items = new Items(token.getItemStack().clone());
                         slotMenu = new SlotMenu(getContentMenu().getResultSlot(), items, token, event.getCursor());
+                        slotMenu.setSound(Sound.getSound("on_click_token_result"));
                         getContentMenu().addSlotMenu(slotMenu);
                         setItemInMenu(slotMenu);
                         return;
@@ -83,10 +84,13 @@ public class TokenMenu extends Menu {
                     Items items = new Items(token.getItemStack().clone());
                     items.addPlaceHolder(playerData.getOfflinePlayer().getPlayer());
                     SlotMenu slotMenu = new SlotMenu(getContentMenu().getPreviewSlot(), items, "");
+                    slotMenu.setSound(Sound.getSound("on_click_token"));
                     getContentMenu().addSlotMenu(slotMenu);
+                    slotMenu.playSound(player);
 
                     items = new Items(Cosmetic.getCloneCosmetic(token.getCosmetic()).getItemStack());
                     slotMenu = new SlotMenu(getContentMenu().getResultSlot(), items, token, null);
+                    slotMenu.setSound(Sound.getSound("on_click_token_result"));
                     getContentMenu().addSlotMenu(slotMenu);
                     setItemInMenu(slotMenu);
                     return;
@@ -108,8 +112,8 @@ public class TokenMenu extends Menu {
                 if(slotMenu == null) return;
                 Token token = slotMenu.getToken();
                 if(slotMenu.getOldToken() != null){
-                    Bukkit.getLogger().info("SE HA CANJEADO");
                     itemStack = null;
+                    slotMenu.playSound(player);
                     slotMenu.action(player, ActionType.UPDATE_OLD_TOKEN);
                     getContentMenu().removeSlotMenu(getContentMenu().getPreviewSlot());
                     getContentMenu().removeSlotMenu(getContentMenu().getResultSlot());
@@ -125,6 +129,7 @@ public class TokenMenu extends Menu {
                     player.getInventory().addItem(newItem);
                 }
                 itemStack = null;
+                slotMenu.playSound(player);
                 getContentMenu().removeSlotMenu(getContentMenu().getPreviewSlot());
                 getContentMenu().removeSlotMenu(getContentMenu().getResultSlot());
                 event.getClickedInventory().setItem(getContentMenu().getPreviewSlot(), XMaterial.AIR.parseItem());
@@ -171,7 +176,6 @@ public class TokenMenu extends Menu {
             slotMenu.setSound(Sound.getSound("on_click_token_result"));
             getContentMenu().addSlotMenu(slotMenu);
             return;
-            //CustomCosmetics.getInstance().getLogger().warning("[Token] Player: '" + playerCache.getOfflinePlayer().getName() + "' Token Not Found.");
         }
         Items items = new Items(token.getItemStack());
         items.addPlaceHolder(playerData.getOfflinePlayer().getPlayer());

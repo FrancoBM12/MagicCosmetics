@@ -54,8 +54,6 @@ public abstract class EntityBalloon {
 
     public abstract void update();
 
-    public abstract void update(Player player);
-
     public abstract void rotate(boolean rotation, RotationType rotationType, float rotate);
 
     public LivingEntity getEntity() {

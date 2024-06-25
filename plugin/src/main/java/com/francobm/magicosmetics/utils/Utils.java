@@ -10,11 +10,14 @@ import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Server;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.*;
 import org.bukkit.map.MapPalette;
 import org.bukkit.map.MapView;
+import org.bukkit.profile.PlayerProfile;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -89,26 +92,6 @@ public class Utils {
             return minutesMsg + " " + secondsMsg;
         }
         return secondsMsg;
-    }
-
-    public static ItemStack getCustomHead(ItemStack itemStack, String texture){
-        if(itemStack == null) return null;
-        if(texture.isEmpty()){
-            return itemStack;
-        }
-        SkullMeta skullMeta = (SkullMeta) itemStack.getItemMeta();
-        if(skullMeta == null) return itemStack;
-        GameProfile gameProfile = new GameProfile(UUID.randomUUID(), null);
-        gameProfile.getProperties().put("textures", new Property("textures", texture));
-        try{
-            Field profileField = skullMeta.getClass().getDeclaredField("profile");
-            profileField.setAccessible(true);
-            profileField.set(skullMeta, gameProfile);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        itemStack.setItemMeta(skullMeta);
-        return itemStack;
     }
 
     public static void sendSound(Player player, Sound sound) {
@@ -226,7 +209,7 @@ public class Utils {
     }
 
     public static String ChatColor(String message){
-        if(Bukkit.getVersion().contains("1.16") || Bukkit.getVersion().contains("1.17") || Bukkit.getVersion().contains("1.18") || Bukkit.getVersion().contains("1.19")){
+        if(Bukkit.getVersion().contains("1.16") || Bukkit.getVersion().contains("1.17") || Bukkit.getVersion().contains("1.18") || Bukkit.getVersion().contains("1.19") || Bukkit.getVersion().contains("1.20")){
             Matcher matcher = pattern.matcher(message);
             while(matcher.find()){
                 String color = message.substring(matcher.start(), matcher.end());
@@ -244,6 +227,42 @@ public class Utils {
 
     public static String bsc(String string){
         return new String(Base64.getDecoder().decode(string));
+    }
+
+    public static org.bukkit.Color hex2Rgb(String colorStr) {
+        return org.bukkit.Color.fromRGB(
+                Integer.valueOf( colorStr.substring( 1, 3 ), 16 ),
+                Integer.valueOf( colorStr.substring( 3, 5 ), 16 ),
+                Integer.valueOf( colorStr.substring( 5, 7 ), 16 ) );
+    }
+
+    public static YamlConfiguration getPaperConfig(Server server) {
+        try {
+            return (YamlConfiguration) Server.Spigot.class.getMethod("getPaperConfig").invoke(server.spigot());
+        } catch (Exception exception) {
+            exception.printStackTrace();
+            return null;
+        }
+    }
+
+    public static boolean isPaper() {
+        try {
+            Class.forName("com.destroystokyo.paper.PaperConfig");
+            return true;
+        } catch (ClassNotFoundException ignored) {}
+        try {
+            Class.forName("io.papermc.paper.configuration.Configuration");
+            return true;
+        } catch (ClassNotFoundException ignored) {}
+        return false;
+    }
+
+    private static boolean isMajorTo181(String version) {
+        String[] partes = version.split("\\.");
+        int major = Integer.parseInt(partes[1]);
+        int minor = Integer.parseInt(partes[2]);
+        int patch = Integer.parseInt(partes[3]);
+        return major > 1 || (major == 1 && (minor > 18 || (minor == 18 && patch > 1)));
     }
 
 }

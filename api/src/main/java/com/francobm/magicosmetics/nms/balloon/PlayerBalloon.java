@@ -3,6 +3,8 @@ package com.francobm.magicosmetics.nms.balloon;
 import com.francobm.magicosmetics.cache.RotationType;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import java.util.List;
 import java.util.Map;
@@ -12,7 +14,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public abstract class PlayerBalloon {
     public static Map<UUID, PlayerBalloon> playerBalloons = new ConcurrentHashMap<>();
     protected UUID uuid;
-    protected List<UUID> players;
+    protected List<UUID> viewers;
+    protected List<UUID> hideViewers;
+    protected LivingEntity lendEntity;
     protected boolean floatLoop = true;
     protected double y = 0;
     protected double height = 0;
@@ -35,7 +39,7 @@ public abstract class PlayerBalloon {
     public static void removePlayerBagByPlayer(Player player){
         for(PlayerBalloon playerBalloon : playerBalloons.values()){
             if(player.getUniqueId().equals(playerBalloon.uuid)) continue;
-            if(!playerBalloon.players.contains(player.getUniqueId())) continue;
+            if(!playerBalloon.viewers.contains(player.getUniqueId())) continue;
             playerBalloon.remove(player);
         }
     }
@@ -58,9 +62,11 @@ public abstract class PlayerBalloon {
 
     public abstract void update(boolean instantFollow);
 
-    public abstract void update(Player player);
-
     public abstract void rotate(boolean rotation, RotationType rotationType, float rotate);
+
+    public void setLendEntity(LivingEntity lendEntity) {
+        this.lendEntity = lendEntity;
+    }
 
     public Player getPlayer(){
         return Bukkit.getPlayer(uuid);
@@ -70,11 +76,25 @@ public abstract class PlayerBalloon {
         return uuid;
     }
 
-    public List<UUID> getPlayers() {
-        return players;
+    public List<UUID> getViewers() {
+        return viewers;
     }
 
     public boolean isBigHead() {
         return bigHead;
+    }
+
+    public List<UUID> getHideViewers() {
+        return hideViewers;
+    }
+
+    public void addHideViewer(Player player) {
+        if(hideViewers.contains(player.getUniqueId())) return;
+        hideViewers.add(player.getUniqueId());
+        remove(player);
+    }
+
+    public void removeHideViewer(Player player) {
+        hideViewers.remove(player.getUniqueId());
     }
 }

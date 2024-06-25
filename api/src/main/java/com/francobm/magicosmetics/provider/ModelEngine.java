@@ -1,15 +1,12 @@
 package com.francobm.magicosmetics.provider;
 
-import com.ticxo.modelengine.api.ModelEngineAPI;
-import com.ticxo.modelengine.api.model.ActiveModel;
-import com.ticxo.modelengine.api.model.ModeledEntity;
+import com.francobm.magicosmetics.utils.OffsetModel;
+import com.francobm.magicosmetics.utils.PositionModelType;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -17,29 +14,37 @@ public abstract class ModelEngine {
 
     public abstract boolean existAnimation(String modelId, String animationName);
 
-    public abstract ModelEngineAPI getModelEngineAPI();
+    public abstract void loopAnimation(UUID balloonUniqueId, String modelId, String animationName);
 
-    public abstract ModeledEntity createModeledEntity(Entity entity);
+    public abstract Object getModelEngineAPI();
 
-    public abstract ActiveModel createActiveModel(String modelId);
+    public abstract UUID spawnModel(Entity entity, String modelId, Location location, OffsetModel offsetModel);
 
-    public abstract ModeledEntity spawnModel(String modelId, Location location);
+    public abstract void spawnLeash(Entity entity, UUID balloonUniqueId, String modelId);
 
-    public abstract void stopAnimations(ActiveModel activeModel);
+    public abstract Object spawnModelBackPack(Entity entity, String modelId, Location location, OffsetModel offsetModel, PositionModelType positionModelType);
 
-    public abstract void stopAnimationExcept(ActiveModel activeModel, String animationId);
+    public abstract void stopAnimations(UUID balloonUniqueId, String modelId);
 
-    public abstract boolean isPlayingAnimation(ActiveModel activeModel, String animationId);
+    public abstract void stopAnimationExcept(UUID balloonUniqueId, String modelId, String animationId);
 
-    public abstract void playAnimation(ActiveModel activeModel, String animationId);
+    public abstract boolean isPlayingAnimation(UUID balloonUniqueId, String modelId, String animationId);
 
-    public abstract void removeModeledEntity(ModeledEntity modeledEntity, ActiveModel activeModel);
+    public abstract void playAnimation(UUID balloonUniqueId, String modelId, String animationId);
 
-    public abstract void detectPlayers(ModeledEntity modeledEntity, List<UUID> playerList);
+    public abstract void removeModeledEntity(UUID balloonUniqueId, String modelId);
 
-    public abstract Set<String> getAllBonesIds(ActiveModel activeModel);
+    public abstract void removeBackPack(UUID balloonUniqueId, String modelId);
 
-    public abstract void tint(ActiveModel activeModel, Color color, String boneId);
+    public abstract Set<Player> getTrackedPlayers(UUID balloonUniqueId);
 
-    public abstract void movementModel(ModeledEntity modeledEntity, Location location);
+    public abstract void hideModel(UUID balloonUniqueId, Player player);
+
+    public abstract void showModel(UUID balloonUniqueId, Player player);
+
+    public abstract Set<String> getAllBonesIds(UUID balloonUniqueId, String modelId);
+
+    public abstract void tint(UUID balloonUniqueId, String modelId, Color color, String boneId);
+
+    public abstract void movementModel(UUID balloonUniqueId, Location location);
 }

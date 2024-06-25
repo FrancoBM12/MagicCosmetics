@@ -5,6 +5,7 @@ equip-message: true
 save-on-quit: true
 bossbar-color: YELLOW
 bungeecord: false
+luckperms-server: ''
 permissions: true
 zones-hide-items: true
 spray-key: 'SHIFT_F'
@@ -15,6 +16,9 @@ placeholder-api: false
 main-menu: 'hat'
 save-data-delay: 300
 zones-actions: false
+worlds-blacklist:
+  - 'test'
+  - 'test1'
 MySQL:
   enabled: false
   host: "127.0.0.1"
@@ -23,3 +27,4 @@ MySQL:
   password: "password"
   table: "player_cosmetics"
   database: "magicosmetics"
+on_execute_cosmetics: ""

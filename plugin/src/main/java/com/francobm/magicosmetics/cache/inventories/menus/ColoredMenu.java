@@ -1,10 +1,11 @@
 package com.francobm.magicosmetics.cache.inventories.menus;
 
 import com.francobm.magicosmetics.MagicCosmetics;
-import com.francobm.magicosmetics.cache.inventories.*;
-import com.francobm.magicosmetics.cache.Color;
 import com.francobm.magicosmetics.api.Cosmetic;
 import com.francobm.magicosmetics.cache.PlayerData;
+import com.francobm.magicosmetics.cache.SecondaryColor;
+import com.francobm.magicosmetics.cache.inventories.*;
+import com.francobm.magicosmetics.cache.Color;
 import com.francobm.magicosmetics.cache.Sound;
 import com.francobm.magicosmetics.cache.items.Items;
 import org.bukkit.entity.Player;
@@ -16,7 +17,7 @@ import java.util.*;
 public class ColoredMenu extends PaginatedMenu {
 
     private Color color;
-    private org.bukkit.Color secondaryColor;
+    private SecondaryColor secondaryColor;
     private Cosmetic cosmetic;
 
     public ColoredMenu(String id, ContentMenu contentMenu, int startSlot, int endSlot, Set<Integer> backSlot, Set<Integer> nextSlot, int pagesSlot, List<Integer> slotsUnavailable) {
@@ -104,7 +105,7 @@ public class ColoredMenu extends PaginatedMenu {
             for (int i = 0; i < getMaxItemsPerPage(); i++) {
                 index = getMaxItemsPerPage() * page + i;
                 if (index >= color.getSecondaryColors().size()) break;
-                org.bukkit.Color dyeColor = color.getSecondaryColors().get(index);
+                SecondaryColor dyeColor = color.getSecondaryColors().get(index);
                 int slot = (getStartSlot() + i + a);
                 if (dyeColor == null) continue;
                 if(getSecondaryColor() == null) {
@@ -117,16 +118,15 @@ public class ColoredMenu extends PaginatedMenu {
                     a++;
                 }
                 Cosmetic cosmetic = Cosmetic.getCloneCosmetic(this.cosmetic.getId());
-                cosmetic.setColor(dyeColor);
-                if(!color.hasPermission(playerData.getOfflinePlayer().getPlayer()))
+                cosmetic.setColor(dyeColor.getColor());
+                if(!color.hasPermission(playerData.getOfflinePlayer().getPlayer()) || !dyeColor.hasPermission(playerData.getOfflinePlayer().getPlayer()))
                     cosmetic.setColorBlocked(true);
-                Items items = new Items(getPage()+index+"_colored", Items.getItem("color-template").colorItem(dyeColor, secondaryColor));
+                Items items = new Items(getPage()+index+"_colored", Items.getItem("color-template").colorItem(playerData.getOfflinePlayer().getPlayer(), dyeColor, secondaryColor));
                 items.addPlaceHolder(playerData.getOfflinePlayer().getPlayer());
-                if(dyeColor.asRGB() == secondaryColor.asRGB()){
+                if(dyeColor.getColor().asRGB() == secondaryColor.getColor().asRGB()){
                     //title.append(getContentMenu().getSlots().isSecondaryColored(sPrimaryColor, slot));
                     title.append(selected[i]);
                 }
-                //CustomCosmetics.getInstance().getLogger().info("Cosmetic ID: " + cosmetic.getId() + " Color: " + cosmetic.getColor().asRGB());
                 Items resultItem = new Items(cosmetic.getItemColor());
                 SlotMenu result = new SlotMenu(getContentMenu().getResultSlot(), resultItem, cosmetic, ActionType.PREVIEW_ITEM);
                 result.setSound(Sound.getSound("on_click_cosmetic_preview"));
@@ -168,8 +168,12 @@ public class ColoredMenu extends PaginatedMenu {
         String title = "";
         Items items = new Items(cosmetic.getItemStack());
         items.addPlaceHolder(playerData.getOfflinePlayer().getPlayer());
-        SlotMenu slotMenu = new SlotMenu(getContentMenu().getPreviewSlot(), items, "", ActionType.CLOSE_MENU);
-        getContentMenu().addSlotMenu(slotMenu);
+        int previewSlot = getContentMenu().getPreviewSlot();
+        SlotMenu slotMenu;
+        if(previewSlot != -1) {
+            slotMenu = new SlotMenu(previewSlot, items, "", ActionType.CLOSE_MENU);
+            getContentMenu().addSlotMenu(slotMenu);
+        }
         for(Color color : Color.colors.values()){
             if(color.isPrimaryItem())
                 items = new Items(color.getId(), Items.getItem("color-template").copyItem(color, this.color));
@@ -192,8 +196,12 @@ public class ColoredMenu extends PaginatedMenu {
         return title;
     }
 
-    public void setSecondaryColor(org.bukkit.Color secondaryColor) {
-        this.secondaryColor = secondaryColor;
+    public void setSecondaryColor(org.bukkit.Color color) {
+        this.secondaryColor = new SecondaryColor(color);
+    }
+
+    public void setSecondaryColor(SecondaryColor color) {
+        this.secondaryColor = color;
     }
 
     public Cosmetic getCosmetic() {
@@ -204,7 +212,7 @@ public class ColoredMenu extends PaginatedMenu {
         return color;
     }
 
-    public org.bukkit.Color getSecondaryColor() {
+    public SecondaryColor getSecondaryColor() {
         return secondaryColor;
     }
 

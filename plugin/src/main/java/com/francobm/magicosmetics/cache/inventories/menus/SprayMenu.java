@@ -1,8 +1,8 @@
 package com.francobm.magicosmetics.cache.inventories.menus;
 
 import com.francobm.magicosmetics.MagicCosmetics;
-import com.francobm.magicosmetics.api.CosmeticType;
 import com.francobm.magicosmetics.api.Cosmetic;
+import com.francobm.magicosmetics.api.CosmeticType;
 import com.francobm.magicosmetics.cache.PlayerData;
 import com.francobm.magicosmetics.cache.Sound;
 import com.francobm.magicosmetics.cache.Token;

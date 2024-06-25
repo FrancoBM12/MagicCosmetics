@@ -6,7 +6,6 @@ import com.francobm.magicosmetics.cache.*;
 import com.francobm.magicosmetics.cache.inventories.menus.FreeColoredMenu;
 import com.francobm.magicosmetics.cache.items.Items;
 import com.francobm.magicosmetics.utils.Utils;
-import com.francobm.magicosmetics.utils.XMaterial;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.InventoryHolder;
@@ -247,14 +246,12 @@ public class SlotMenu {
                         if(command.startsWith("magiccos unset ")){
                             refreshMenu(player);
                         }
-                        //MagicCosmetics.getInstance().getLogger().info("Comando: " + command);
                         break;
                     case PLAYER_COMMAND:
                         player.performCommand(command);
                         if(command.startsWith("magiccos unset ")){
                             refreshMenu(player);
                         }
-                        //MagicCosmetics.getInstance().getLogger().info("Comando: " + command);
                         break;
                 }
             }
@@ -298,7 +295,9 @@ public class SlotMenu {
             if(playerData.isZone()) {
                 MagicCosmetics.getInstance().getCosmeticsManager().previewCosmetic(player, cosmetic);
             }
-            MagicCosmetics.getInstance().getCosmeticsManager().equipCosmetic(player, cosmetic, null);
+            if(!cosmetic.isColorBlocked()) {
+                MagicCosmetics.getInstance().getCosmeticsManager().equipCosmetic(player, cosmetic, null);
+            }
             closeMenu(player);
             return;
         }
@@ -311,7 +310,9 @@ public class SlotMenu {
         }
         playerData.removeCosmetic(cosmetic.getId());
         playerData.addCosmetic(cosmetic);
-        MagicCosmetics.getInstance().getCosmeticsManager().equipCosmetic(player, cosmetic.getId(), null, false);
+        if(!cosmetic.isColorBlocked()) {
+            MagicCosmetics.getInstance().getCosmeticsManager().equipCosmetic(player, cosmetic.getId(), null, false);
+        }
         if(playerData.isZone()) {
             MagicCosmetics.getInstance().getCosmeticsManager().previewCosmetic(player, cosmetic);
         }
@@ -367,14 +368,8 @@ public class SlotMenu {
             }
             menu.setPage(0);
             menu.setColor(color);
-            menu.setSecondaryColor(null);
+            menu.setSecondaryColor((SecondaryColor) null);
             menu.setItems();
-            /*Color color = Color.getColor(split[1]);
-            if(color == null){
-                MagicCosmetics.getInstance().getLogger().info("Color Null");
-                return;
-            }
-            MagicCosmetics.getInstance().getCosmeticsManager().openFreeMenuColor(player, split[0], color, this.itemStack);*/
             return;
         }
         MagicCosmetics.getInstance().getCosmeticsManager().openMenu(player, this.menu);

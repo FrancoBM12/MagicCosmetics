@@ -3,11 +3,10 @@ package com.francobm.magicosmetics.cache;
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.api.Cosmetic;
 import com.francobm.magicosmetics.api.CosmeticType;
-import com.francobm.magicosmetics.cache.cosmetics.Bag;
+import com.francobm.magicosmetics.cache.cosmetics.backpacks.Bag;
 import com.francobm.magicosmetics.cache.cosmetics.balloons.Balloon;
 import com.francobm.magicosmetics.nms.NPC.ItemSlot;
 import com.francobm.magicosmetics.utils.XMaterial;
-import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -27,7 +26,6 @@ public class EntityCache {
 
     public EntityCache(UUID uniqueId) {
         this.uniqueId = uniqueId;
-        this.entity = Bukkit.getEntity(uniqueId);
     }
 
     public EntityCache(Entity entity) {
@@ -35,14 +33,14 @@ public class EntityCache {
         this.entity = entity;
     }
 
-    public static EntityCache getOrCreateEntity(UUID uniqueId) {
+    public static EntityCache getEntity(UUID uniqueId) {
         if (!entities.containsKey(uniqueId)) {
-            entities.put(uniqueId, new EntityCache(uniqueId));
+            return null;
         }
         return entities.get(uniqueId);
     }
 
-    public static EntityCache getOrCreateEntity(Entity entity) {
+    public static EntityCache getEntityOrCreate(Entity entity) {
         if (!entities.containsKey(entity.getUniqueId())) {
             entities.put(entity.getUniqueId(), new EntityCache(entity));
         }
@@ -167,7 +165,7 @@ public class EntityCache {
 
     public void activeBag(){
         if(bag == null) return;
-        ((Bag)bag).active(getEntity());
+        ((Bag)bag).active(getEntityOrCreate());
     }
 
     public void activeWStick(){
@@ -188,7 +186,7 @@ public class EntityCache {
 
     public void activeBalloon(){
         if(balloon == null) return;
-        ((Balloon)balloon).active(getEntity());
+        ((Balloon)balloon).active(getEntityOrCreate());
     }
 
     public void clearHat(){
@@ -206,7 +204,7 @@ public class EntityCache {
 
     public void clearBag(){
         if(bag == null) return;
-        bag.clear(null);
+        bag.clear();
     }
 
     public void clearWStick(){
@@ -226,21 +224,19 @@ public class EntityCache {
         if(balloon == null){
             return;
         }
-        balloon.clear(null);
+        balloon.clear();
     }
 
     public UUID getUniqueId() {
         return uniqueId;
     }
 
-    public Entity getEntity(){
-        if(MagicCosmetics.getInstance().isCitizens()) {
-            if (entity == null) {
-                entity = MagicCosmetics.getInstance().getCitizens().getNPC(uniqueId).getEntity();
-                npc = true;
-            }
-        }
+    public Entity getEntityOrCreate(){
         return entity;
+    }
+
+    public void setEntity(Entity entity) {
+        this.entity = entity;
     }
 
     public Cosmetic getHat() {
@@ -263,6 +259,7 @@ public class EntityCache {
         if(ids.isEmpty()) return;
         List<String> cosmetics = new ArrayList<>(Arrays.asList(ids.split(",")));
         for(String cosmetic : cosmetics){
+            if(cosmetic.isEmpty()) continue;
             String[] color = cosmetic.split("\\|");
             if(color.length > 1){
                 Cosmetic cosmetic1 = Cosmetic.getCloneCosmetic(color[0]);
@@ -275,6 +272,10 @@ public class EntityCache {
             if(cosmetic1 == null) continue;
             setCosmetic(cosmetic1);
         }
+    }
+
+    public String saveCosmetics() {
+        return saveHat() + "," + saveBag() + "," + saveWStick() + "," + saveBalloon();
     }
 
     public String saveHat(){
@@ -305,4 +306,7 @@ public class EntityCache {
         return hat != null || bag != null || wStick != null || balloon != null;
     }
 
+    public void setNpc(boolean npc) {
+        this.npc = npc;
+    }
 }

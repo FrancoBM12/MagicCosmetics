@@ -2,6 +2,7 @@ package com.francobm.magicosmetics.api;
 
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.cache.*;
+import com.francobm.magicosmetics.utils.Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Entity;
@@ -11,7 +12,6 @@ import org.bukkit.inventory.ItemStack;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class MagicAPI {
 
@@ -49,7 +49,8 @@ public class MagicAPI {
     }
 
     public static boolean hasEquipCosmetic(Entity entity, String cosmeticId){
-        EntityCache entityCache = EntityCache.getOrCreateEntity(entity.getUniqueId());
+        EntityCache entityCache = EntityCache.getEntity(entity.getUniqueId());
+        if(entityCache == null) return false;
         return entityCache.hasEquipped(cosmeticId);
     }
 
@@ -65,18 +66,18 @@ public class MagicAPI {
     }
 
     public static void EquipCosmetic(Entity entity, String cosmeticId, String colorHex){
-        EntityCache entityCache = EntityCache.getOrCreateEntity(entity);
+        EntityCache entityCache = EntityCache.getEntityOrCreate(entity);
         Cosmetic cosmetic = Cosmetic.getCloneCosmetic(cosmeticId);
         if(cosmetic == null) return;
         if(colorHex != null){
-            org.bukkit.Color color = Color.hex2Rgb(colorHex);
+            org.bukkit.Color color = Utils.hex2Rgb(colorHex);
             cosmetic.setColor(color);
         }
         entityCache.setCosmetic(cosmetic);
     }
 
     public static void EquipCosmetic(Entity entity, String cosmeticId, org.bukkit.Color color){
-        EntityCache entityCache = EntityCache.getOrCreateEntity(entity);
+        EntityCache entityCache = EntityCache.getEntityOrCreate(entity);
         Cosmetic cosmetic = Cosmetic.getCloneCosmetic(cosmeticId);
         if(cosmetic == null) return;
         if(color != null){
@@ -91,13 +92,14 @@ public class MagicAPI {
     }
 
     public static void UnEquipCosmetic(Entity entity, CosmeticType cosmeticType){
-        EntityCache entityCache = EntityCache.getOrCreateEntity(entity.getUniqueId());
+        EntityCache entityCache = EntityCache.getEntity(entity.getUniqueId());
+        if(entityCache == null) return;
         entityCache.unSetCosmetic(cosmeticType);
     }
 
     public static void RemoveEntityCosmetics(UUID entityUniqueId) {
         if(!EntityCache.entities.containsKey(entityUniqueId)) return;
-        EntityCache entityCache = EntityCache.getOrCreateEntity(entityUniqueId);
+        EntityCache entityCache = EntityCache.getEntity(entityUniqueId);
         if(entityCache == null) return;
         entityCache.clearCosmeticsInUse();
         EntityCache.removeEntity(entityUniqueId);

@@ -1,5 +1,6 @@
 package com.francobm.magicosmetics.cache;
 
+import com.francobm.magicosmetics.api.Cosmetic;
 import com.francobm.magicosmetics.api.TokenType;
 import com.francobm.magicosmetics.files.FileCreator;
 import com.francobm.magicosmetics.utils.XMaterial;
@@ -68,6 +69,12 @@ public class Token {
         PlayerData playerData = PlayerData.getPlayer(player);
         if(itemStack.getAmount() < token.getItemStack().getAmount()){
             plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("insufficient-tokens"));
+            return false;
+        }
+        if(plugin.isPermissions()){
+            Cosmetic cosmetic =  Cosmetic.getCosmetic(token.getCosmetic());
+            if(!cosmetic.hasPermission(player)) return true;
+            plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
             return false;
         }
         if(playerData.getCosmeticById(token.getCosmetic()) != null){
@@ -210,7 +217,7 @@ public class Token {
             tokens.put(key, tk);
             tokens_count++;
         }
-        MagicCosmetics.getInstance().getLogger().info("Registered tokens: " + tokens_count);
+        plugin.getLogger().info("Registered tokens: " + tokens_count);
     }
 
     public String getId() {

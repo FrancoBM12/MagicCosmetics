@@ -1,12 +1,18 @@
 package com.francobm.magicosmetics.listeners;
 
 import com.francobm.magicosmetics.MagicCosmetics;
+import com.francobm.magicosmetics.api.Cosmetic;
+import com.francobm.magicosmetics.api.CosmeticType;
 import com.francobm.magicosmetics.api.SprayKeys;
 import com.francobm.magicosmetics.cache.*;
-import com.francobm.magicosmetics.nms.NPC.NPC;
-import com.francobm.magicosmetics.events.UnknownEntityInteractEvent;
+import com.francobm.magicosmetics.cache.cosmetics.CosmeticInventory;
+import com.francobm.magicosmetics.cache.cosmetics.WStick;
+import com.francobm.magicosmetics.events.CosmeticInventoryUpdateEvent;
+import com.francobm.magicosmetics.events.PlayerChangeBlacklistEvent;
 import com.francobm.magicosmetics.utils.XMaterial;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.*;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
@@ -31,9 +37,10 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event){
+        //if(plugin.isProxy()) return;
         Player player = event.getPlayer();
         plugin.getSql().loadPlayer(player, true);
-        plugin.getVersion().getPacketReader(player).inject();
+        plugin.getVersion().getPacketReader().injectPlayer(player);
     }
 
     @EventHandler
@@ -44,10 +51,15 @@ public class PlayerListener implements Listener {
         event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onQuit(PlayerQuitEvent event){
         Player player = event.getPlayer();
         PlayerData playerData = PlayerData.getPlayer(player);
+        /*if(plugin.isProxy()) {
+            playerData.sendSavePlayerData();
+            return;
+        }*/
+        plugin.getVersion().getPacketReader().removePlayer(player);
         if(playerData.isZone()){
             playerData.exitZoneSync();
         }
@@ -63,7 +75,10 @@ public class PlayerListener implements Listener {
             event.setCancelled(true);
         }
         //PlayerBag.refreshPlayerBag(player);
-        playerData.clearCosmeticsInUse();
+        if(event.getFrom().getWorld() != null && event.getTo().getWorld() != null && event.getFrom().getWorld().getUID().equals(event.getTo().getWorld().getUID())) {
+            if (event.getFrom().distanceSquared(event.getTo()) < 10) return;
+        }
+        playerData.clearCosmeticsInUse(false);
     }
 
     @EventHandler
@@ -81,12 +96,10 @@ public class PlayerListener implements Listener {
     }
 
     @EventHandler
-    public void onUnkInteract(UnknownEntityInteractEvent event){
+    public void onRespawn(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
-        NPC entity = event.getUnknownEntity();
-        if(entity == null) return;
-        if(event.getAction() == com.francobm.magicosmetics.events.Action.INTERACT) return;
-        plugin.getCosmeticsManager().openMenu(player, plugin.getMainMenu());
+        PlayerData playerData = PlayerData.getPlayer(player);
+        playerData.activeCosmeticsInventory();
     }
 
     @EventHandler
@@ -108,33 +121,40 @@ public class PlayerListener implements Listener {
         plugin.getCosmeticsManager().exitZone(player);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onDead(PlayerDeathEvent event){
         Player player = event.getEntity();
         PlayerData playerData = PlayerData.getPlayer(player);
         if(playerData == null) return;
-        playerData.clearCosmeticsInUse();
+        playerData.clearCosmeticsInUse(false);
+        if(event.getKeepInventory()) return;
         Iterator<ItemStack> stackList = event.getDrops().iterator();
         while (stackList.hasNext()){
             ItemStack itemStack = stackList.next();
             if(itemStack == null) break;
             if(playerData.getHat() != null && playerData.getHat().isCosmetic(itemStack)){
                 stackList.remove();
+                continue;
             }
             if(playerData.getWStick() != null && playerData.getWStick().isCosmetic(itemStack)){
                 stackList.remove();
             }
+        }
+        if(playerData.getHat() != null && playerData.getHat().getCurrentItemSaved() != null && playerData.getHat().isOverlaps()){
+            event.getDrops().add(playerData.getHat().leftItemAndGet());
+        }
+
+        if(playerData.getWStick() != null && playerData.getWStick().getCurrentItemSaved() != null && playerData.getWStick().isOverlaps()){
+            event.getDrops().add(playerData.getWStick().leftItemAndGet());
         }
     }
 
     @EventHandler
     public void onItemFrame(PlayerInteractEntityEvent event){
         Player player = event.getPlayer();
-        if(!(event.getRightClicked() instanceof ItemFrame)) return;
         PlayerData playerData = PlayerData.getPlayer(player);
         if(event.getHand() != EquipmentSlot.OFF_HAND) return;
         if(playerData.getWStick() == null) return;
-        if(!playerData.getWStick().isCosmetic(player.getInventory().getItemInOffHand())) return;
         event.setCancelled(true);
     }
 
@@ -154,7 +174,6 @@ public class PlayerListener implements Listener {
         PlayerData playerData = PlayerData.getPlayer(player);
         ItemStack itemStack = event.getItem();
         if(itemStack != null) {
-            //plugin.getLogger().info("Material: " + itemStack.getType());
             if(itemStack.getType() == XMaterial.BLAZE_ROD.parseMaterial()){
                 String nbt = plugin.getVersion().isNBTCosmetic(itemStack);
                 if(!nbt.startsWith("wand")) return;
@@ -178,32 +197,14 @@ public class PlayerListener implements Listener {
             if(itemStack.getType().toString().toUpperCase().endsWith("HELMET")){
                 if(event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
                     if (playerData.getHat() != null) {
-                        if(player.getInventory().getHelmet() == null) return;
-                        if(playerData.getHat().isCosmetic(player.getInventory().getHelmet())) {
-                            player.getInventory().setHelmet(itemStack.clone());
-                            if(event.getHand() == EquipmentSlot.OFF_HAND){
-                                player.getInventory().setItemInOffHand(null);
-                            }else{
-                                player.getInventory().removeItem(itemStack);
-                            }
-                        }
-                    }
-                }
-            }
-            if(playerData.getHat() != null) {
-                if (playerData.getHat().isCosmetic(itemStack)) {
-                    player.getInventory().removeItem(itemStack);
-                    event.setCancelled(true);
-                    return;
-                }
-            }
-            if(playerData.getWStick() != null) {
-                if(event.getHand() == EquipmentSlot.OFF_HAND) {
-                    if (playerData.getWStick().isCosmetic(itemStack)) {
-                        player.getInventory().removeItem(itemStack);
-                        event.setUseInteractedBlock(Event.Result.DENY);
-                        event.setUseItemInHand(Event.Result.DENY);
+                        if(playerData.getHat().isHideCosmetic()) return;
                         event.setCancelled(true);
+                        ItemStack returnItem = playerData.getHat().changeItem(itemStack);
+                        if(event.getHand() == EquipmentSlot.OFF_HAND){
+                            player.getInventory().setItemInOffHand(returnItem);
+                        }else{
+                            player.getInventory().setItemInMainHand(returnItem);
+                        }
                     }
                 }
             }
@@ -224,32 +225,22 @@ public class PlayerListener implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerChange(PlayerSwapHandItemsEvent event){
         Player player = event.getPlayer();
         PlayerData playerData = PlayerData.getPlayer(player);
         ItemStack mainHand = event.getMainHandItem();
-        ItemStack offHand = event.getOffHandItem();
-
-        if(mainHand != null){
-            if(playerData.getWStick() != null){
-                if(playerData.getWStick().isCosmetic(mainHand)){
-                    mainHand.setType(XMaterial.AIR.parseMaterial());
+        if(playerData.getWStick() != null) {
+            event.setCancelled(true);
+            /*if(playerData.getWStick().isCosmetic(mainHand)) {
+                if(!playerData.getWStick().isOverlaps()){
+                    event.setMainHandItem(new ItemStack(Material.AIR));
+                    return;
                 }
-                if(offHand == null){
-                    playerData.getWStick().active(player);
-                }
-                if(offHand != null && offHand.getType() == XMaterial.AIR.parseMaterial()){
-                    playerData.getWStick().active(player);
-                }
-            }
-        }
-        if(offHand != null) {
-            if (playerData.getWStick() != null) {
-                if(playerData.getWStick().isCosmetic(offHand)){
-                    offHand.setType(XMaterial.AIR.parseMaterial());
-                }
-            }
+                ItemStack itemStack = playerData.getWStick().leftItemAndGet();
+                if(itemStack == null) return;
+                event.setMainHandItem(itemStack);
+            }*/
         }
 
         if(playerData.getSpray() == null) return;
@@ -322,91 +313,139 @@ public class PlayerListener implements Listener {
     }
 
     @EventHandler
+    public void onChangeWorld(PlayerChangedWorldEvent event) {
+        Player player = event.getPlayer();
+        World world = player.getWorld();
+        PlayerData playerData = PlayerData.getPlayer(player);
+        if(playerData == null) return;
+        if(playerData.getEquippedCount() < 1) return;
+        if(plugin.getWorldsBlacklist().contains(world.getName())) {
+            if(playerData.isHasInBlackList()) return;
+            playerData.setHasInBlackList(true);
+            playerData.hideAllCosmetics();
+            PlayerChangeBlacklistEvent callEvent = new PlayerChangeBlacklistEvent(player, playerData.isHasInBlackList());
+            plugin.getServer().getPluginManager().callEvent(callEvent);
+            return;
+        }
+        if(!playerData.isHasInBlackList()) return;
+        playerData.setHasInBlackList(false);
+        playerData.showAllCosmetics();
+        PlayerChangeBlacklistEvent callEvent = new PlayerChangeBlacklistEvent(player, playerData.isHasInBlackList());
+        plugin.getServer().getPluginManager().callEvent(callEvent);
+    }
+
+    @EventHandler
+    public void onInteractInventory(CosmeticInventoryUpdateEvent event) {
+        Player player = event.getPlayer();
+        Cosmetic cosmetic = event.getCosmetic();
+        if(cosmetic.isHideCosmetic()) return;
+        ItemStack itemStack = event.getItemToChange();
+        CosmeticInventory cosmeticInventory = (CosmeticInventory) cosmetic;
+        if(itemStack == null || itemStack.getType().isAir()){
+            if(!cosmeticInventory.isOverlaps()) {
+                cosmeticInventory.setCurrentItemSaved(null);
+            }
+            cosmetic.active();
+            return;
+        }
+        if(plugin.getMagicCrates() != null && plugin.getMagicCrates().hasInCrate(player)) return;
+        if(plugin.getMagicGestures() != null && plugin.getMagicGestures().hasInWardrobe(player)) return;
+        boolean hasItemSaved = cosmeticInventory.getCurrentItemSaved() != null;
+        if(hasItemSaved) {
+            if (itemStack.isSimilar(cosmeticInventory.getCurrentItemSaved())) return;
+        }
+        if(!cosmeticInventory.isOverlaps()) {
+            if(cosmetic.isCosmetic(itemStack)) return;
+            if(player.getInventory().getItemInMainHand().getType().isAir() || cosmetic.isCosmetic(player.getInventory().getItemInMainHand())){
+                player.getInventory().setItemInMainHand(null);
+            }
+            cosmeticInventory.setCurrentItemSaved(itemStack);
+            return;
+        }
+        ItemStack oldItem = cosmeticInventory.changeItem(itemStack);
+        if(oldItem == null) {
+            if(cosmetic.isCosmetic(player.getInventory().getItemInMainHand()))
+                player.getInventory().setItemInMainHand(null);
+            return;
+        }
+        if(hasItemSaved && oldItem.isSimilar(cosmeticInventory.getCurrentItemSaved()))
+            if(oldItem.isSimilar(cosmeticInventory.getCurrentItemSaved())) return;
+        if(itemStack.isSimilar(oldItem)) return;
+        if(player.getOpenInventory().getType() == InventoryType.PLAYER) {
+            player.setItemOnCursor(oldItem);
+            return;
+        }
+        if(player.getInventory().getItemInMainHand().getType().isAir() || cosmetic.isCosmetic(player.getInventory().getItemInMainHand())){
+            player.getInventory().setItemInMainHand(oldItem);
+            return;
+        }
+        player.getInventory().addItem(oldItem);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onInventory(InventoryClickEvent event){
         Player player = (Player) event.getWhoClicked();
         PlayerData playerData = PlayerData.getPlayer(player);
         if(playerData == null) return;
         if(event.getClickedInventory() == null) return;
-        if(event.getClickedInventory().getType() == InventoryType.PLAYER) {
-            if(playerData.getWStick() != null) {
-                if (event.getClick() == ClickType.SWAP_OFFHAND) {
-                    event.setCancelled(true);
-                    return;
-                }
-                if (playerData.getWStick().isCosmetic(player.getInventory().getItemInOffHand())) {
-                    if(event.getSlotType() == InventoryType.SlotType.QUICKBAR && event.getSlot() == 40){
-                        event.setCancelled(true);
-                        if(player.getItemOnCursor().getType() == XMaterial.AIR.parseMaterial()) return;
-                        event.setCurrentItem(player.getItemOnCursor());
-                        player.setItemOnCursor(XMaterial.AIR.parseItem());
-                        return;
-                    }
-                }
-                if(event.getCurrentItem() == null) return;
-                if(playerData.getWStick().isCosmetic(event.getCurrentItem())){
-                    event.setCancelled(true);
-                    event.setCurrentItem(XMaterial.AIR.parseItem());
-                    return;
-                }
-            }
-            if (playerData.getHat() != null) {
-                if (event.getCurrentItem() == null) {
-                    return;
-                }
-                if(playerData.getHat().isCosmetic(event.getCursor())){
-                    player.setItemOnCursor(XMaterial.AIR.parseItem());
-                }
-                if (playerData.getHat().isCosmetic(player.getInventory().getHelmet())) {
-                    if(event.getSlotType() == InventoryType.SlotType.ARMOR && event.getSlot() == 39){
-                        event.setCancelled(true);
-                        if(player.getItemOnCursor().getType() == XMaterial.AIR.parseMaterial()) return;
-                        if(player.getItemOnCursor().getType().name().endsWith("HELMET") || player.getItemOnCursor().getType().name().endsWith("HEAD")) {
-                            event.setCurrentItem(event.getCursor());
-                            player.setItemOnCursor(XMaterial.AIR.parseItem());
-                        }
-                        return;
-                    }
-
-                    if (playerData.getHat().isCosmetic(event.getCurrentItem())) {
-                        event.setCurrentItem(XMaterial.AIR.parseItem());
-                        event.setCancelled(true);
-                        return;
-                    }
-                }
-
-                if (playerData.getHat().isCosmetic(event.getCurrentItem())) {
-                    event.setCurrentItem(XMaterial.AIR.parseItem());
-                    event.setCancelled(true);
-                }
-
-            }
+        if(event.getClickedInventory().getType() != InventoryType.PLAYER) {
+            if(playerData.getWStick() != null && event.getClick() == ClickType.SWAP_OFFHAND) event.setCancelled(true);
             return;
         }
         if(playerData.getWStick() != null) {
-            if (playerData.getWStick().isCosmetic(player.getInventory().getItemInOffHand())) {
-                if (event.getClick() == ClickType.SWAP_OFFHAND) {
+            if(playerData.getWStick().isHideCosmetic()) return;
+            if (event.getClick() == ClickType.SWAP_OFFHAND) {
+                event.setCancelled(true);
+                return;
+            }
+            if(event.getCursor() != null) {
+                if (playerData.getWStick().isCosmetic(event.getCursor()))
+                    player.setItemOnCursor(null);
+            }
+            if(event.getSlotType() == InventoryType.SlotType.QUICKBAR && event.getSlot() == 40){
+                if(event.getClick() == ClickType.RIGHT) {
                     event.setCancelled(true);
                     return;
                 }
-            }}
-        if (playerData.getHat() != null) {
-            if (event.getCurrentItem() == null) {
+                /*if(!playerData.getWStick().isOverlaps() && !playerData.getWStick().isCosmetic(event.getCurrentItem())) {
+                    plugin.getServer().getScheduler().runTask(plugin, () -> player.getInventory().setItemInOffHand(null));
+                    return;
+                }*/
+                event.setCancelled(true);
+                if(event.getCursor().getType().isAir()) {
+                    if(playerData.getWStick().getCurrentItemSaved() != null){
+                        playerData.getWStick().leftItem();
+                    }
+                    return;
+                }
+                ItemStack returnItem = playerData.getWStick().changeItem(event.getCursor());
+                player.setItemOnCursor(returnItem);
                 return;
             }
-            if(playerData.getHat().isCosmetic(event.getCursor())){
-                player.setItemOnCursor(XMaterial.AIR.parseItem());
+        }
+        if (playerData.getHat() != null) {
+            if(playerData.getHat().isHideCosmetic()) return;
+            if(event.getCursor() != null){
+                if(playerData.getHat().isCosmetic(event.getCursor()))
+                    player.setItemOnCursor(null);
             }
-            if (playerData.getHat().isCosmetic(player.getInventory().getHelmet())) {
-                if(event.getSlotType() == InventoryType.SlotType.ARMOR && event.getSlot() == 39){
+            if(event.getSlotType() == InventoryType.SlotType.ARMOR && event.getSlot() == 39){
+                if (event.getClick() == ClickType.RIGHT) {
                     event.setCancelled(true);
-                    if(player.getItemOnCursor().getType() == XMaterial.AIR.parseMaterial()) return;
-                    if(player.getItemOnCursor().getType().name().endsWith("HELMET") || player.getItemOnCursor().getType().name().endsWith("HEAD")) {
-                        event.setCurrentItem(event.getCursor());
-                        player.setItemOnCursor(XMaterial.AIR.parseItem());
+                    return;
+                }
+                event.setCancelled(true);
+                if(event.getCursor().getType().isAir()) {
+                    if(playerData.getHat().getCurrentItemSaved() != null){
+                        playerData.getHat().leftItem();
                     }
+                    return;
+                }
+                if(event.getCursor().getType().name().endsWith("HELMET") || event.getCursor().getType().name().endsWith("HEAD")) {
+                    ItemStack returnItem = playerData.getHat().changeItem(event.getCursor());
+                    player.setItemOnCursor(returnItem);
                 }
             }
-
         }
     }
 }

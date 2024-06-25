@@ -16,7 +16,25 @@
         <module>v1_19_R1</module>
         <module>v1_19_R2</module>
         <module>v1_19_R3</module>
+        <module>v1_20_R1</module>
+        <module>v1_20_R2</module>
+        <module>meg3_support</module>
+        <module>meg4_support</module>
+        <module>v1_20_R3</module>
+        <module>bungeecord</module>
     </modules>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>8</source>
+                    <target>8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
     <packaging>pom</packaging>
 
     <name>MagicCosmetics</name>
@@ -35,5 +53,24 @@
             <id>nms-repo</id>
             <url>https://repo.codemc.io/repository/nms/</url>
         </repository>
+        <repository>
+            <id>jitpack-repo</id>
+            <url>https://jitpack.io</url>
+        </repository>
     </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.github.FrancoBM12</groupId>
+            <artifactId>API-MagicCosmetics</artifactId>
+            <version>2.2.5</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.joml</groupId>
+            <artifactId>joml</artifactId>
+            <version>1.10.5</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
 </project>

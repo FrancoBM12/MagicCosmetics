@@ -25,10 +25,10 @@ public class Color {
     private final ItemStack primaryItem;
     private final String select;
     private final boolean withRow;
-    private final List<org.bukkit.Color> secondaryColors;
+    private final List<SecondaryColor> secondaryColors;
     private final int slot;
 
-    public Color(String id, String name, String permission, org.bukkit.Color primaryColor, ItemStack primaryItem, String select, boolean withRow, List<org.bukkit.Color> secondaryColors, int slot) {
+    public Color(String id, String name, String permission, org.bukkit.Color primaryColor, ItemStack primaryItem, String select, boolean withRow, List<SecondaryColor> secondaryColors, int slot) {
         this.id = id;
         this.name = name;
         this.permission = permission;
@@ -83,7 +83,7 @@ public class Color {
             ItemStack primaryItem = null;
             String select = "";
             boolean withRow = true;
-            List<org.bukkit.Color> secondaryColors = new ArrayList<>();
+            List<SecondaryColor> secondaryColors = new ArrayList<>();
             if(plugin.getMenus().contains("colors." + key + ".name")){
                 name = plugin.getMenus().getString("colors." + key + ".name");
             }
@@ -191,7 +191,7 @@ public class Color {
                 }
                 primaryItem.setItemMeta(itemMeta);
                 if(primaryItem.getType() == XMaterial.PLAYER_HEAD.parseMaterial() && texture != null) {
-                    primaryItem = Utils.getCustomHead(primaryItem, texture);
+                    primaryItem = plugin.getVersion().getCustomHead(primaryItem, texture);
                 }
             }
             if(plugin.getMenus().contains("colors." + key + ".primary-color")){
@@ -201,7 +201,7 @@ public class Color {
                 }catch (IllegalArgumentException exception){
                     plugin.getLogger().warning("Primary Color: '" + color + "' Not Found Parsing to Hex Color...");
                     try{
-                        primaryColor = hex2Rgb(color);
+                        primaryColor = Utils.hex2Rgb(color);
                     }catch (IllegalArgumentException ex){
                         plugin.getLogger().warning("Primary Color Hex: " + color + " Not Found Skipping...");
                         continue;
@@ -221,13 +221,7 @@ public class Color {
                 withRow = plugin.getMenus().getBoolean("colors." + key + ".with-row");
             }
             if(plugin.getMenus().contains("colors." + key + ".secondary-colors")){
-                for(String secondary : plugin.getMenus().getStringListWF("colors." + key + ".secondary-colors")){
-                    try{
-                        secondaryColors.add(hex2Rgb(secondary));
-                    }catch (IllegalArgumentException exception){
-                        plugin.getLogger().warning("Secondary Color from " + key + " RGB: '" + secondary + "' Not Found.");
-                    }
-                }
+                secondaryColors = plugin.getMenus().getSecondaryColor("colors." + key + ".secondary-colors");
             }
             if(plugin.getMenus().contains("colors." + key + ".slot")){
                 slot = plugin.getMenus().getInt("colors." + key + ".slot");
@@ -264,19 +258,12 @@ public class Color {
         return primaryColor;
     }
 
-    public List<org.bukkit.Color> getSecondaryColors() {
+    public List<SecondaryColor> getSecondaryColors() {
         return secondaryColors;
     }
 
     public int getSlot() {
         return slot;
-    }
-
-    public static org.bukkit.Color hex2Rgb(String colorStr) {
-        return org.bukkit.Color.fromRGB(
-                Integer.valueOf( colorStr.substring( 1, 3 ), 16 ),
-                Integer.valueOf( colorStr.substring( 3, 5 ), 16 ),
-                Integer.valueOf( colorStr.substring( 5, 7 ), 16 ) );
     }
 
     public String getSelectWithRow() {

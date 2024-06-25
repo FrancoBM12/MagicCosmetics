@@ -11,7 +11,7 @@ public class User {
     private final String time;
 
     public User(){
-        this.id = "";
+        this.id = "ROwROw";
         this.name = "";
         this.version = "";
         this.resource = "";

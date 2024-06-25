@@ -1,9 +1,9 @@
 package com.francobm.magicosmetics.cache.inventories;
 
 import com.francobm.magicosmetics.cache.Panel;
+import com.francobm.magicosmetics.cache.PlayerData;
 import com.francobm.magicosmetics.files.FileCreator;
 import com.francobm.magicosmetics.MagicCosmetics;
-import com.francobm.magicosmetics.cache.PlayerData;
 import com.francobm.magicosmetics.cache.Sound;
 import com.francobm.magicosmetics.cache.inventories.menus.*;
 import com.francobm.magicosmetics.cache.items.Items;
@@ -83,6 +83,7 @@ public abstract class Menu implements InventoryHolder {
             int previewSlot = 0;
             int resultSlot = 0;
             List<Integer> slotsUnavailable = new ArrayList<>();
+            List<String> unavailableColors = new ArrayList<>();
             Items containItem = null;
             boolean drag = false;
             if(menu.contains("menus." + key + ".permission")){
@@ -127,6 +128,9 @@ public abstract class Menu implements InventoryHolder {
             }
             if(menu.contains("menus." + key + ".unavailable-slots")){
                 slotsUnavailable = menu.getIntegerList("menus." + key + ".unavailable-slots");
+            }
+            if(menu.contains("menus." + key + ".unavailable-colors")){
+                unavailableColors = menu.getStringListWithComma("menus." + key + ".unavailable-colors");
             }
             if(menu.contains("menus." + key + ".preview-slot")){
                 previewSlot = menu.getInt("menus." + key + ".preview-slot");
@@ -231,7 +235,7 @@ public abstract class Menu implements InventoryHolder {
                     inventories.put(key, coloredMenu);
                     break;
                 case FREE_COLORED:
-                    FreeColoredMenu freeColoredMenu = new FreeColoredMenu(key, contentMenu, startSlot, endSlot, backButton, nextButton, pagesSlot, slotsUnavailable, containItem);
+                    FreeColoredMenu freeColoredMenu = new FreeColoredMenu(key, contentMenu, startSlot, endSlot, backButton, nextButton, pagesSlot, slotsUnavailable, containItem, unavailableColors);
                     freeColoredMenu.setPermission(perm);
                     inventories.put(key, freeColoredMenu);
                     break;

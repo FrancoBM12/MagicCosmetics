@@ -2,18 +2,18 @@ package com.francobm.magicosmetics.listeners;
 
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.cache.PlayerData;
-import net.skinsrestorer.api.bukkit.events.SkinApplyBukkitEvent;
+import net.skinsrestorer.api.SkinsRestorerProvider;
+import net.skinsrestorer.api.event.SkinApplyEvent;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
 
-public class SkinListener implements Listener {
+public class SkinListener {
     private final MagicCosmetics plugin = MagicCosmetics.getInstance();
 
-    @EventHandler
-    public void onChangeSkin(SkinApplyBukkitEvent event) {
-        Player player = event.getWho();
-        PlayerData playerData = PlayerData.getPlayer(player);
-        plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, playerData::clearBag, 20L);
+    public SkinListener() {
+        SkinsRestorerProvider.get().getEventBus().subscribe(plugin, SkinApplyEvent.class, event -> {
+            Player player = event.getPlayer(Player.class);
+            PlayerData playerData = PlayerData.getPlayer(player);
+            plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, playerData::clearBag, 20L);
+        });
     }
 }

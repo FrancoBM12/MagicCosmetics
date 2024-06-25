@@ -1,0 +1,4 @@
+name: MagicCosmetics
+main: com.francobm.magicosmetics.bungeecord.MagicCosmetics
+version: '${project.version}'
+author: FrancoBM

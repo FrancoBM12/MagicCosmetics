@@ -1,9 +1,9 @@
 package com.francobm.magicosmetics.cache.inventories.menus;
 
 import com.francobm.magicosmetics.MagicCosmetics;
-import com.francobm.magicosmetics.api.Cosmetic;
 import com.francobm.magicosmetics.cache.Color;
 import com.francobm.magicosmetics.cache.PlayerData;
+import com.francobm.magicosmetics.cache.SecondaryColor;
 import com.francobm.magicosmetics.cache.Sound;
 import com.francobm.magicosmetics.cache.inventories.*;
 import com.francobm.magicosmetics.cache.items.Items;
@@ -23,13 +23,15 @@ import java.util.Set;
 public class FreeColoredMenu extends PaginatedMenu {
 
     private Color color;
-    private org.bukkit.Color secondaryColor;
+    private SecondaryColor secondaryColor;
     private ItemStack itemStack;
     private Items containItem;
+    private List<String> unavailableColors;
 
-    public FreeColoredMenu(String id, ContentMenu contentMenu, int startSlot, int endSlot, Set<Integer> backSlot, Set<Integer> nextSlot, int pagesSlot, List<Integer> slotsUnavailable, Items containItem) {
+    public FreeColoredMenu(String id, ContentMenu contentMenu, int startSlot, int endSlot, Set<Integer> backSlot, Set<Integer> nextSlot, int pagesSlot, List<Integer> slotsUnavailable, Items containItem, List<String> unavailableColors) {
         super(id, contentMenu, startSlot, endSlot, backSlot, nextSlot, pagesSlot, slotsUnavailable);
         this.containItem = containItem;
+        this.unavailableColors = unavailableColors;
     }
 
     public FreeColoredMenu(String id, ContentMenu contentMenu) {
@@ -44,7 +46,7 @@ public class FreeColoredMenu extends PaginatedMenu {
     }
 
     public FreeColoredMenu getClone(PlayerData playerData, Color color, ItemStack itemStack) {
-        FreeColoredMenu freeColoredMenu = new FreeColoredMenu(this.getId(), this.getContentMenu().getClone(), this.getStartSlot(), this.getEndSlot(), this.getBackSlot(), this.getNextSlot(), this.getPagesSlot(), this.getSlotsUnavailable(), this.getContainItem());
+        FreeColoredMenu freeColoredMenu = new FreeColoredMenu(this.getId(), this.getContentMenu().getClone(), this.getStartSlot(), this.getEndSlot(), this.getBackSlot(), this.getNextSlot(), this.getPagesSlot(), this.getSlotsUnavailable(), this.getContainItem(), this.getUnavailableColors());
         freeColoredMenu.playerData = playerData;
         freeColoredMenu.setColor(color);
         freeColoredMenu.itemStack = itemStack;
@@ -53,7 +55,7 @@ public class FreeColoredMenu extends PaginatedMenu {
     }
 
     public FreeColoredMenu getClone(PlayerData playerData, Color color) {
-        FreeColoredMenu freeColoredMenu = new FreeColoredMenu(this.getId(), this.getContentMenu().getClone(), this.getStartSlot(), this.getEndSlot(), this.getBackSlot(), this.getNextSlot(), this.getPagesSlot(), this.getSlotsUnavailable(), this.getContainItem());
+        FreeColoredMenu freeColoredMenu = new FreeColoredMenu(this.getId(), this.getContentMenu().getClone(), this.getStartSlot(), this.getEndSlot(), this.getBackSlot(), this.getNextSlot(), this.getPagesSlot(), this.getSlotsUnavailable(), this.getContainItem(), this.getUnavailableColors());
         freeColoredMenu.playerData = playerData;
         freeColoredMenu.setColor(color);
         freeColoredMenu.secondaryColor = color.getSecondaryColors().get(0);
@@ -134,7 +136,7 @@ public class FreeColoredMenu extends PaginatedMenu {
                 return;
             }
             page = page - 1;
-            setSecondaryColor(null);
+            setSecondaryColor((SecondaryColor) null);
             setItems();
             return;
         }
@@ -145,7 +147,7 @@ public class FreeColoredMenu extends PaginatedMenu {
                 return;
             }
             page = page + 1;
-            setSecondaryColor(null);
+            setSecondaryColor((SecondaryColor) null);
             setItems();
             return;
         }
@@ -154,7 +156,7 @@ public class FreeColoredMenu extends PaginatedMenu {
 
     public void setResultItem(){
         if(itemStack == null) return;
-        Items resultItem = new Items(itemStack.clone()).coloredItem(secondaryColor);
+        Items resultItem = new Items(itemStack.clone()).coloredItem(secondaryColor.getColor());
         SlotMenu result = new SlotMenu(getContentMenu().getResultSlot(), resultItem, "");
         result.setSound(Sound.getSound("on_click_cosmetic_preview"));
         getContentMenu().addSlotMenu(result);
@@ -199,7 +201,7 @@ public class FreeColoredMenu extends PaginatedMenu {
             for (int i = 0; i < getMaxItemsPerPage(); i++) {
                 index = getMaxItemsPerPage() * page + i;
                 if (index >= color.getSecondaryColors().size()) break;
-                org.bukkit.Color dyeColor = color.getSecondaryColors().get(index);
+                SecondaryColor dyeColor = color.getSecondaryColors().get(index);
                 int slot = (getStartSlot() + i + a);
                 if (dyeColor == null) continue;
                 if(getSecondaryColor() == null) {
@@ -211,17 +213,17 @@ public class FreeColoredMenu extends PaginatedMenu {
                     slot++;
                     a++;
                 }
-                Items items = new Items(getPage()+index+"_colored", Items.getItem("color-template").colorItem(dyeColor, secondaryColor));
+                Items items = new Items(getPage()+index+"_colored", Items.getItem("color-template").colorItem(playerData.getOfflinePlayer().getPlayer(), dyeColor, secondaryColor));
                 items.addPlaceHolder(playerData.getOfflinePlayer().getPlayer());
-                if(dyeColor.asRGB() == secondaryColor.asRGB()){
+                if(dyeColor.getColor().asRGB() == secondaryColor.getColor().asRGB()){
                     //title.append(getContentMenu().getSlots().isSecondaryColored(sPrimaryColor, slot));
                     title.append(selected[i]);
                 }
                 Items resultItem;
                 if(itemStack == null){
-                    resultItem = new Items(XMaterial.AIR.parseItem()).coloredItem(dyeColor);
+                    resultItem = new Items(XMaterial.AIR.parseItem()).coloredItem(dyeColor.getColor());
                 }else {
-                    resultItem = new Items(itemStack.clone()).coloredItem(dyeColor);
+                    resultItem = new Items(itemStack.clone()).coloredItem(dyeColor.getColor());
                 }
                 SlotMenu result = new SlotMenu(getContentMenu().getResultSlot(), resultItem, "");
                 result.setSound(Sound.getSound("on_click_cosmetic_preview"));
@@ -260,15 +262,10 @@ public class FreeColoredMenu extends PaginatedMenu {
 
     private String setup(){
         String title = "";
-        Items items = null;
+        Items items;
         SlotMenu slotMenu;
-        /*if(itemStack != null) {
-            items = new Items(itemStack);
-            items.addPlaceHolder(playerCache.getOfflinePlayer().getPlayer());
-            slotMenu = new SlotMenu(getContentMenu().getPreviewSlot(), items, "");
-            getContentMenu().addSlotMenu(slotMenu);
-        }*/
         for(Color color : Color.colors.values()){
+            if(unavailableColors.contains(color.getId())) continue;
             if(color.isPrimaryItem()){
                 items = new Items(color.getId(), Items.getItem("color-template").copyItem(color, this.color));
             }else {
@@ -292,6 +289,10 @@ public class FreeColoredMenu extends PaginatedMenu {
     }
 
     public void setSecondaryColor(org.bukkit.Color secondaryColor) {
+        this.secondaryColor = new SecondaryColor(secondaryColor);
+    }
+
+    public void setSecondaryColor(SecondaryColor secondaryColor) {
         this.secondaryColor = secondaryColor;
     }
 
@@ -311,7 +312,7 @@ public class FreeColoredMenu extends PaginatedMenu {
         this.color = color;
     }
 
-    public org.bukkit.Color getSecondaryColor() {
+    public SecondaryColor getSecondaryColor() {
         return secondaryColor;
     }
 
@@ -334,5 +335,9 @@ public class FreeColoredMenu extends PaginatedMenu {
         this.itemStack = null;
         getContentMenu().removeSlotMenu(getContentMenu().getPreviewSlot());
         getContentMenu().removeSlotMenu(getContentMenu().getResultSlot());
+    }
+
+    public List<String> getUnavailableColors() {
+        return unavailableColors;
     }
 }

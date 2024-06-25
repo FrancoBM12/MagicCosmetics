@@ -12,10 +12,12 @@ public abstract class PlayerBag {
     public static Map<UUID, PlayerBag> playerBags = new ConcurrentHashMap<>();
     protected ItemStack backPackItem;
     protected ItemStack backPackItemForMe;
+    protected int lendEntityId = -1;
     protected UUID uuid;
-    protected int height;
+    protected float height;
     protected List<Integer> ids;
-    protected List<UUID> players;
+    protected List<UUID> viewers;
+    protected List<UUID> hideViewers;
 
 
     public static void updatePlayerBag(Player player){
@@ -46,8 +48,6 @@ public abstract class PlayerBag {
 
     public abstract void addPassenger(boolean exception);
 
-    public abstract void addPassenger(Player player);
-
     public abstract void setItemOnHelmet(ItemStack itemStack, boolean all);
 
     public abstract void setItemOnHelmet(Player player, ItemStack itemStack);
@@ -55,6 +55,10 @@ public abstract class PlayerBag {
     public abstract void lookEntity(float yaw, float pitch, boolean all);
 
     public abstract Entity getEntity();
+
+    public void setLendEntityId(int id){
+        lendEntityId = id;
+    }
 
     public Player getPlayer(){
         return Bukkit.getPlayer(uuid);
@@ -64,7 +68,21 @@ public abstract class PlayerBag {
         return uuid;
     }
 
-    public List<UUID> getPlayers() {
-        return players;
+    public List<UUID> getViewers() {
+        return viewers;
+    }
+
+    public List<UUID> getHideViewers() {
+        return hideViewers;
+    }
+
+    public void addHideViewer(Player player) {
+        if(hideViewers.contains(player.getUniqueId())) return;
+        hideViewers.add(player.getUniqueId());
+        remove(player);
+    }
+
+    public void removeHideViewer(Player player) {
+        hideViewers.remove(player.getUniqueId());
     }
 }

@@ -4,7 +4,7 @@ import com.francobm.magicosmetics.api.*;
 import com.francobm.magicosmetics.cache.EntityCache;
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.cache.*;
-import com.francobm.magicosmetics.cache.cosmetics.Bag;
+import com.francobm.magicosmetics.cache.cosmetics.backpacks.Bag;
 import com.francobm.magicosmetics.cache.inventories.Menu;
 import com.francobm.magicosmetics.cache.inventories.menus.*;
 import com.francobm.magicosmetics.cache.items.Items;
@@ -49,6 +49,7 @@ public class CosmeticsManager {
 
     public void loadNewMessages() {
         FileCreator messages = plugin.getMessages();
+        FileCreator config = plugin.getConfig();
         FileCreator zones = plugin.getZones();
         if(!zones.contains("on_enter.commands"))
             zones.set("on_enter.commands", Collections.singletonList("[console] say &aThe %player% has entered the wardrobe"));
@@ -72,17 +73,23 @@ public class CosmeticsManager {
         if(!messages.contains("exit-color-without-perm")) {
             messages.set("exit-color-without-perm", "&cOne or more cosmetics have colors that you dont have access to, so they have become unequipped!");
         }
-        if(!plugin.getConfig().contains("placeholder-api")){
-            plugin.getConfig().set("placeholder-api", false);
+        if(!config.contains("placeholder-api")){
+            config.set("placeholder-api", false);
         }
-        if(!plugin.getConfig().contains("main-menu"))
-            plugin.getConfig().set("main-menu", "hat");
-        if(!plugin.getConfig().contains("save-data-delay"))
-            plugin.getConfig().set("save-data-delay", 300);
-        if(!plugin.getConfig().contains("zones-actions"))
-            plugin.getConfig().set("zones-actions", false);
+        if(!config.contains("luckperms-server"))
+            config.set("luckperms-server", "none");
+        if(!config.contains("main-menu"))
+            config.set("main-menu", "hat");
+        if(!config.contains("save-data-delay"))
+            config.set("save-data-delay", 300);
+        if(!config.contains("zones-actions"))
+            config.set("zones-actions", false);
+        if(!config.contains("on_execute_cosmetics"))
+            config.set("on_execute_cosmetics", "");
+        if(!config.contains("worlds-blacklist"))
+            config.set("worlds-blacklist", Arrays.asList("test", "test1"));
         zones.save();
-        plugin.getConfig().save();
+        config.save();
         messages.save();
     }
 
@@ -94,10 +101,6 @@ public class CosmeticsManager {
                     playerData.activeCosmetics();
                     playerData.enterZone();
                 }
-                if(EntityCache.entities.values().isEmpty()) return;
-                for(EntityCache entityCache : EntityCache.entities.values()){
-                    entityCache.activeCosmetics();
-                }
             }, 5L, 2L);
         }
         if(balloons == null) {
@@ -106,23 +109,16 @@ public class CosmeticsManager {
                     if(!playerData.getOfflinePlayer().isOnline()) continue;
                     playerData.activeBalloon();
                 }
+                for(EntityCache entityCache : EntityCache.entities.values()){
+                    entityCache.activeCosmetics();
+                }
             }, 0L, 1L);
         }
         if(saveDataTask == null && plugin.saveDataDelay != -1) {
             saveDataTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
                 plugin.getSql().savePlayers();
-                if(EntityCache.entities.values().isEmpty()) return;
-                plugin.getSql().saveEntities();
             }, 20L * plugin.saveDataDelay, 20L * plugin.saveDataDelay);
         }
-        /*if(zoneCosmeticTask == null) {
-            zoneCosmeticTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
-                for(Player player : Bukkit.getOnlinePlayers()){
-                    PlayerData playerData = PlayerData.getPlayer(player);
-                    playerData.enterZone();
-                }
-            }, 1L, 1L);
-        }*/
         if(npcTask == null) {
             npcTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
                 if(NPC.npcs.isEmpty()) {
@@ -188,6 +184,7 @@ public class CosmeticsManager {
         plugin.getMenus().reload();
         plugin.getTokens().reload();
         plugin.getZones().reload();
+        plugin.getNPCs().reload();
         if (plugin.getConfig().getBoolean("MySQL.enabled")) {
             plugin.setSql(new MySQL());
         } else {
@@ -273,6 +270,10 @@ public class CosmeticsManager {
         if(plugin.getConfig().contains("save-data-delay")){
             plugin.saveDataDelay = plugin.getConfig().getInt("save-data-delay");
         }
+        if(plugin.getConfig().contains("luckperms-server"))
+            plugin.setLuckPermsServer(plugin.getConfig().getString("luckperms-server"));
+        if(plugin.getConfig().contains("on_execute_cosmetics"))
+            plugin.setOnExecuteCosmetics(plugin.getConfig().getString("on_execute_cosmetics"));
         plugin.getZoneActions().getOnEnter().setCommands(plugin.getZones().getStringList("on_enter.commands"));
         plugin.getZoneActions().getOnExit().setCommands(plugin.getZones().getStringList("on_exit.commands"));
         plugin.getZoneActions().setEnabled(plugin.getConfig().getBoolean("zones-actions"));
@@ -285,6 +286,7 @@ public class CosmeticsManager {
         Menu.loadMenus();
         Zone.loadZones();
         PlayerData.reload();
+        plugin.getNPCsLoader().load();
         plugin.getCosmeticsManager().runTasks();
         if(sender == null) return;
         if(sender instanceof Player) {
@@ -680,7 +682,7 @@ public class CosmeticsManager {
         if(colorHex == null) {
             return false;
         }
-        org.bukkit.Color color = Color.hex2Rgb(colorHex);
+        org.bukkit.Color color = Utils.hex2Rgb(colorHex);
         Items item = new Items(itemStack);
         item.coloredItem(color);
         return true;
@@ -697,7 +699,7 @@ public class CosmeticsManager {
             return;
         }
         if(colorHex == null) return;
-        org.bukkit.Color color = Color.hex2Rgb(colorHex);
+        org.bukkit.Color color = Utils.hex2Rgb(colorHex);
         Items item = new Items(itemStack);
         item.coloredItem(color);
         sendMessage(player, plugin.prefix + plugin.getMessages().getString("tint-item").replace("%color%", Utils.ChatColor(colorHex)));
@@ -721,7 +723,7 @@ public class CosmeticsManager {
                     if(event.isCancelled()) return;
                 }
                 if(colorHex != null){
-                    org.bukkit.Color color = Color.hex2Rgb(colorHex);
+                    org.bukkit.Color color = Utils.hex2Rgb(colorHex);
                     cosmetic.setColor(color);
                 }
                 playerData.setCosmetic(cosmetic);
@@ -752,7 +754,7 @@ public class CosmeticsManager {
                 if(event.isCancelled()) return;
             }
             if(colorHex != null){
-                org.bukkit.Color color = Color.hex2Rgb(colorHex);
+                org.bukkit.Color color = Utils.hex2Rgb(colorHex);
                 cosmetic.setColor(color);
             }
             playerData.setCosmetic(cosmetic);
@@ -780,7 +782,7 @@ public class CosmeticsManager {
                 if(event.isCancelled()) return;
             }
             if(colorHex != null){
-                org.bukkit.Color color = Color.hex2Rgb(colorHex);
+                org.bukkit.Color color = Utils.hex2Rgb(colorHex);
                 cosmetic.setColor(color);
             }
             playerData.setCosmetic(cosmetic);
@@ -809,7 +811,7 @@ public class CosmeticsManager {
                 if(event.isCancelled()) return;
             }
             if(colorHex != null){
-                org.bukkit.Color color = Color.hex2Rgb(colorHex);
+                org.bukkit.Color color = Utils.hex2Rgb(colorHex);
                 cosmetic.setColor(color);
             }
             playerData.setCosmetic(cosmetic);
@@ -831,7 +833,7 @@ public class CosmeticsManager {
                 if(event.isCancelled()) return;
             }
             if(colorHex != null){
-                org.bukkit.Color color = Color.hex2Rgb(colorHex);
+                org.bukkit.Color color = Utils.hex2Rgb(colorHex);
                 cosmetic.setColor(color);
             }
             playerData.setCosmetic(cosmetic);

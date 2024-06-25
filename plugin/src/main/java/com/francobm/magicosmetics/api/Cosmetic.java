@@ -1,7 +1,8 @@
 package com.francobm.magicosmetics.api;
 
 import com.francobm.magicosmetics.cache.*;
-import com.francobm.magicosmetics.cache.cosmetics.Bag;
+import com.francobm.magicosmetics.cache.cosmetics.backpacks.BackPackEngine;
+import com.francobm.magicosmetics.cache.cosmetics.backpacks.Bag;
 import com.francobm.magicosmetics.cache.cosmetics.Hat;
 import com.francobm.magicosmetics.cache.cosmetics.Spray;
 import com.francobm.magicosmetics.cache.cosmetics.WStick;
@@ -10,16 +11,21 @@ import com.francobm.magicosmetics.cache.cosmetics.balloons.BalloonEngine;
 import com.francobm.magicosmetics.cache.cosmetics.balloons.BalloonIA;
 import com.francobm.magicosmetics.files.FileCosmetics;
 import com.francobm.magicosmetics.files.FileCreator;
+import com.francobm.magicosmetics.utils.OffsetModel;
+import com.francobm.magicosmetics.utils.PositionModelType;
 import com.francobm.magicosmetics.utils.Utils;
 import com.francobm.magicosmetics.utils.XMaterial;
 import com.francobm.magicosmetics.MagicCosmetics;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
+import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.*;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.awt.image.BufferedImage;
 import java.util.*;
@@ -27,21 +33,25 @@ import java.util.*;
 public abstract class Cosmetic {
     public static Map<String, Cosmetic> cosmetics = new LinkedHashMap<>();
     private final String id;
-    private final String name;
-    private final ItemStack itemStack;
-    private final int modelData;
+    private String name;
+    protected ItemStack itemStack;
+    private int modelData;
     private final CosmeticType cosmeticType;
     private final boolean colored;
     private boolean defaultColor;
     private Color color;
-    private final String permission;
-    private final boolean texture;
-    private final boolean hideMenu;
+    private String permission;
+    private boolean texture;
+    private boolean hideMenu;
     private boolean hideCosmetic;
-    private final boolean useEmote;
+    private boolean useEmote;
     private boolean colorBlocked;
+    protected LivingEntity lendEntity;
+    protected boolean removedLendEntity;
+    protected Player player;
+    protected NamespacedKey namespacedKey;
 
-    public Cosmetic(String id, String name, ItemStack itemStack, int modelData, boolean colored, CosmeticType cosmeticType, Color color, String permission, boolean texture, boolean hideMenu, boolean useEmote) {
+    public Cosmetic(String id, String name, ItemStack itemStack, int modelData, boolean colored, CosmeticType cosmeticType, Color color, String permission, boolean texture, boolean hideMenu, boolean useEmote, NamespacedKey namespacedKey) {
         this.id = id;
         this.name = name;
         this.itemStack = itemStack;
@@ -54,6 +64,7 @@ public abstract class Cosmetic {
         this.hideMenu = hideMenu;
         this.hideCosmetic = false;
         this.useEmote = useEmote;
+        this.namespacedKey = namespacedKey;
     }
 
     public Cosmetic(String id, String name, String permission) {
@@ -69,6 +80,25 @@ public abstract class Cosmetic {
         this.hideMenu = false;
         this.hideCosmetic = false;
         this.useEmote = false;
+    }
+
+    protected void updateCosmetic(Cosmetic cosmetic) {
+        this.name = cosmetic.name;
+        this.itemStack = cosmetic.itemStack;
+        this.modelData = cosmetic.modelData;
+        this.permission = cosmetic.permission;
+        this.texture = cosmetic.texture;
+        this.hideMenu = cosmetic.hideMenu;
+        this.hideCosmetic = cosmetic.hideCosmetic;
+        this.useEmote = cosmetic.useEmote;
+        this.namespacedKey = cosmetic.namespacedKey;
+    }
+
+    public boolean update() {
+        Cosmetic cosmetic = getCosmetic(id);
+        if(cosmetic == null) return false;
+        updateCosmetic(cosmetic);
+        return true;
     }
 
     public static List<Cosmetic> getCosmeticsUnHideByType(CosmeticType cosmeticType){
@@ -129,23 +159,23 @@ public abstract class Cosmetic {
         switch (cosmetic.getCosmeticType()){
             case HAT:
                 Hat hat = (Hat) cosmetic;
-                cosmec = new Hat(hat.getId(), hat.getName(), hat.getItemStack().clone(), hat.getModelData(), hat.isColored(), hat.getCosmeticType(), hat.getColor(), hat.isOverlaps(), hat.getPermission(), hat.isTexture(), hat.isHideMenu(), hat.isUseEmote());
+                cosmec = new Hat(hat.getId(), hat.getName(), hat.getItemStack().clone(), hat.getModelData(), hat.isColored(), hat.getCosmeticType(), hat.getColor(), hat.isOverlaps(), hat.getPermission(), hat.isTexture(), hat.isHideMenu(), hat.isUseEmote(), hat.getOffSetY(), hat.getNamespacedKey());
                 break;
             case BAG:
                 Bag bag = (Bag) cosmetic;
-                cosmec = new Bag(bag.getId(), bag.getName(), bag.getItemStack().clone(), bag.getModelData(), bag.getBagForMe(), bag.isColored(), bag.getSpace(), bag.getCosmeticType(), bag.getColor(), bag.getDistance(), bag.getPermission(), bag.isTexture(), bag.isHideMenu(), bag.getHeight(), bag.isUseEmote());
+                cosmec = new Bag(bag.getId(), bag.getName(), bag.getItemStack().clone(), bag.getModelData(), bag.getBagForMe(), bag.isColored(), bag.getSpace(), bag.getCosmeticType(), bag.getColor(), bag.getDistance(), bag.getPermission(), bag.isTexture(), bag.isHideMenu(), bag.getHeight(), bag.isUseEmote(), bag.getBackPackEngine() != null ? bag.getBackPackEngine().getClone() : null, bag.getNamespacedKey());
                 break;
             case WALKING_STICK:
                 WStick wStick = (WStick) cosmetic;
-                cosmec = new WStick(wStick.getId(), wStick.getName(), wStick.getItemStack().clone(), wStick.getModelData(), wStick.isColored(), wStick.getCosmeticType(), wStick.getColor(), wStick.getPermission(), wStick.isTexture(), wStick.isOverlaps(), wStick.isHideMenu(), wStick.isUseEmote());
+                cosmec = new WStick(wStick.getId(), wStick.getName(), wStick.getItemStack().clone(), wStick.getModelData(), wStick.isColored(), wStick.getCosmeticType(), wStick.getColor(), wStick.getPermission(), wStick.isTexture(), wStick.isOverlaps(), wStick.isHideMenu(), wStick.isUseEmote(), wStick.getNamespacedKey());
                 break;
             case BALLOON:
                 Balloon balloon = (Balloon) cosmetic;
-                cosmec = new Balloon(balloon.getId(), balloon.getName(), balloon.getItemStack().clone(), balloon.getModelData(), balloon.isColored(), balloon.getSpace(), balloon.getCosmeticType(), balloon.getColor(), balloon.isRotation(), balloon.getRotationType(), balloon.getBalloonEngine() != null ? balloon.getBalloonEngine().getClone() : null, balloon.getBalloonIA() != null ? balloon.getBalloonIA().getClone() : null, balloon.getDistance(), balloon.getPermission(), balloon.isTexture(), balloon.isBigHead(), balloon.isHideMenu(), balloon.isInvisibleLeash(), balloon.isUseEmote(), balloon.isInstantFollow());
+                cosmec = new Balloon(balloon.getId(), balloon.getName(), balloon.getItemStack().clone(), balloon.getModelData(), balloon.isColored(), balloon.getSpace(), balloon.getCosmeticType(), balloon.getColor(), balloon.isRotation(), balloon.getRotationType(), balloon.getBalloonEngine() != null ? balloon.getBalloonEngine().getClone() : null, balloon.getBalloonIA() != null ? balloon.getBalloonIA().getClone() : null, balloon.getDistance(), balloon.getPermission(), balloon.isTexture(), balloon.isBigHead(), balloon.isHideMenu(), balloon.isInvisibleLeash(), balloon.isUseEmote(), balloon.isInstantFollow(), balloon.getNamespacedKey());
                 break;
             case SPRAY:
                 Spray spray = (Spray) cosmetic;
-                cosmec = new Spray(spray.getId(), spray.getName(), spray.getItemStack().clone(), spray.getModelData(), spray.isColored(), spray.getCosmeticType(), spray.getColor(), spray.getPermission(), spray.isTexture(), spray.getImage(), spray.isItemImage(), spray.isHideMenu(), spray.isUseEmote());
+                cosmec = new Spray(spray.getId(), spray.getName(), spray.getItemStack().clone(), spray.getModelData(), spray.isColored(), spray.getCosmeticType(), spray.getColor(), spray.getPermission(), spray.isTexture(), spray.getImage(), spray.isItemImage(), spray.isHideMenu(), spray.isUseEmote(), spray.getNamespacedKey());
                 break;
         }
         return cosmec;
@@ -170,11 +200,12 @@ public abstract class Cosmetic {
                 boolean overlaps = false;
                 BalloonEngine balloonEngine = null;
                 BalloonIA balloonIA = null;
+                BackPackEngine backPackEngine = null;
                 boolean rotation = false;
                 RotationType rotationType = null;
                 int modelData = 0;
                 ItemStack bagForMe = null;
-                int height = 0;
+                float height = 0;
                 double distance = 800;
                 String permission = "";
                 BufferedImage image = null;
@@ -183,6 +214,7 @@ public abstract class Cosmetic {
                 boolean bigHead = false;
                 boolean hideMenu = false;
                 boolean useEmote = false;
+                double offsetY = 0;
                 boolean invisibleLeash = false;
                 boolean instantFollow = false;
                 if(cosmeticsConf.contains("cosmetics." + key + ".permission")){
@@ -246,11 +278,11 @@ public abstract class Cosmetic {
                     if(cosmeticsConf.contains("cosmetics." + key + ".item.color")){
                         String hex = cosmeticsConf.getStringWF("cosmetics." + key + ".item.color");
                         if(hex != null){
-                            color = com.francobm.magicosmetics.cache.Color.hex2Rgb(hex);
+                            color = Utils.hex2Rgb(hex);
                         }
                     }
                     if(cosmeticsConf.contains("cosmetics." + key + ".height")) {
-                        height = cosmeticsConf.getInt("cosmetics." + key + ".height");
+                        height = (float) cosmeticsConf.getDouble("cosmetics." + key + ".height");
                     }
                     if(cosmeticsConf.contains("cosmetics." + key + ".item.item-adder")){
                         if(!plugin.isItemsAdder()){
@@ -291,7 +323,7 @@ public abstract class Cosmetic {
                         itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
                     }
                     if(hide_attributes) {
-                        itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_DYE, ItemFlag.HIDE_UNBREAKABLE);
+                        itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_DYE, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_POTION_EFFECTS, ItemFlag.HIDE_DESTROYS, ItemFlag.HIDE_PLACED_ON);
                     }
                     itemMeta.setUnbreakable(unbreakable);
                     if(modelData != -1) {
@@ -299,7 +331,7 @@ public abstract class Cosmetic {
                     }
                     itemStack.setItemMeta(itemMeta);
                     if(itemStack.getType() == XMaterial.PLAYER_HEAD.parseMaterial()) {
-                        itemStack = Utils.getCustomHead(itemStack, texture);
+                        itemStack = plugin.getVersion().getCustomHead(itemStack, texture);
                     }
                     if(cosmeticsConf.contains("cosmetics." + key + ".item.for-me")){
                         int datamodel = cosmeticsConf.getInt("cosmetics." + key + ".item.for-me");
@@ -368,6 +400,9 @@ public abstract class Cosmetic {
                 if(cosmeticsConf.contains("cosmetics." + key + ".use-emote")){
                     useEmote = cosmeticsConf.getBoolean("cosmetics." + key + ".use-emote");
                 }
+                if(cosmeticsConf.contains("cosmetics." + key + ".offset-y")){
+                    offsetY = cosmeticsConf.getDouble("cosmetics." + key + ".offset-y");
+                }
                 if(cosmeticsConf.contains("cosmetics." + key + ".big-head")){
                     bigHead = cosmeticsConf.getBoolean("cosmetics." + key + ".big-head");
                 }
@@ -404,7 +439,13 @@ public abstract class Cosmetic {
                     List<String> colorableParts = cosmeticsConf.getStringListWF("cosmetics." + key + ".meg.colorable-parts");
                     String walk_animation = cosmeticsConf.getString("cosmetics." + key + ".meg.animations.walk");
                     String idle_animation = cosmeticsConf.getString("cosmetics." + key + ".meg.animations.idle");
-                    balloonEngine = new BalloonEngine(modelId, colorableParts, walk_animation, idle_animation, distance);
+                    OffsetModel offsetModel = cosmeticsConf.getOffseTModel("cosmetics." + key +".meg.offset");
+                    if(cosmeticType == CosmeticType.BAG) {
+                        PositionModelType positionModelType = cosmeticsConf.getPositionModelType("cosmetics." + key +".meg.position");
+                        backPackEngine = new BackPackEngine(modelId, colorableParts, idle_animation, distance, offsetModel, positionModelType);
+                    }else {
+                        balloonEngine = new BalloonEngine(modelId, colorableParts, walk_animation, idle_animation, distance, offsetModel);
+                    }
                 }
                 if(cosmeticsConf.contains("cosmetics." + key + ".ia.model")){
                     if(!plugin.isItemsAdder()){
@@ -419,43 +460,49 @@ public abstract class Cosmetic {
                     List<String> colorableParts = cosmeticsConf.getStringListWF("cosmetics." + key + ".ia.colorable-parts");
                     String walk_animation = cosmeticsConf.getString("cosmetics." + key + ".ia.animations.walk");
                     String idle_animation = cosmeticsConf.getString("cosmetics." + key + ".ia.animations.idle");
-                    balloonIA = new BalloonIA(modelId, colorableParts, walk_animation, idle_animation);
+                    balloonIA = new BalloonIA(modelId, colorableParts, walk_animation, idle_animation, distance);
                 }
                 if(cosmeticType == null){
                     return;
                 }
-                itemStack = plugin.getVersion().setNBTCosmetic(itemStack, key);
+                NamespacedKey namespacedKey = new NamespacedKey(plugin, "cosmetic");
+                //itemStack = plugin.getVersion().setNBTCosmetic(itemStack, key);
+                ItemMeta itemMeta = itemStack.getItemMeta();
+                if(itemMeta != null){
+                    itemMeta.getPersistentDataContainer().set(namespacedKey, PersistentDataType.STRING, key);
+                    itemStack.setItemMeta(itemMeta);
+                }
                 switch (cosmeticType){
                     case HAT:
-                        Hat hat = new Hat(key, name, itemStack, modelData, colored, cosmeticType, color, overlaps, permission, isTexture, hideMenu, useEmote);
+                        Hat hat = new Hat(key, name, itemStack, modelData, colored, cosmeticType, color, overlaps, permission, isTexture, hideMenu, useEmote, offsetY, namespacedKey);
                         if(color != null) {
                             hat.setDefaultColor(true);
                         }
                         cosmetics.put(key, hat);
                         break;
                     case BAG:
-                        Bag bag = new Bag(key, name, itemStack, modelData, bagForMe, colored, space, cosmeticType, color, distance, permission, isTexture, hideMenu, height, useEmote);
+                        Bag bag = new Bag(key, name, itemStack, modelData, bagForMe, colored, space, cosmeticType, color, distance, permission, isTexture, hideMenu, height, useEmote, backPackEngine, namespacedKey);
                         if(color != null) {
                             bag.setDefaultColor(true);
                         }
                         cosmetics.put(key, bag);
                         break;
                     case WALKING_STICK:
-                        WStick wStick = new WStick(key, name, itemStack, modelData, colored, cosmeticType, color, permission, isTexture, overlaps, hideMenu, useEmote);
+                        WStick wStick = new WStick(key, name, itemStack, modelData, colored, cosmeticType, color, permission, isTexture, overlaps, hideMenu, useEmote, namespacedKey);
                         if(color != null) {
                             wStick.setDefaultColor(true);
                         }
                         cosmetics.put(key, wStick);
                         break;
                     case BALLOON:
-                        Balloon balloon = new Balloon(key, name, itemStack, modelData, colored, space, cosmeticType, color, rotation, rotationType, balloonEngine, balloonIA, distance, permission, isTexture, bigHead, hideMenu, invisibleLeash, useEmote, instantFollow);
+                        Balloon balloon = new Balloon(key, name, itemStack, modelData, colored, space, cosmeticType, color, rotation, rotationType, balloonEngine, balloonIA, distance, permission, isTexture, bigHead, hideMenu, invisibleLeash, useEmote, instantFollow, namespacedKey);
                         if(color != null) {
                             balloon.setDefaultColor(true);
                         }
                         cosmetics.put(key, balloon);
                         break;
                     case SPRAY:
-                        Spray spray = new Spray(key, name, itemStack, modelData, colored, cosmeticType, color, permission, isTexture, image, itemImage, hideMenu, useEmote);
+                        Spray spray = new Spray(key, name, itemStack, modelData, colored, cosmeticType, color, permission, isTexture, image, itemImage, hideMenu, useEmote, namespacedKey);
                         if(color != null) {
                             spray.setDefaultColor(true);
                         }
@@ -511,9 +558,16 @@ public abstract class Cosmetic {
         return colored;
     }
 
-    public abstract void active(Player player);
+    public abstract void active();
 
-    public abstract void clear(Player player);
+    public abstract void clear();
+
+    public abstract void clearClose();
+
+    public abstract void lendToEntity();
+
+    public abstract void hide(Player player);
+    public abstract void show(Player player);
 
     public Color getColor() {
         return color;
@@ -525,35 +579,9 @@ public abstract class Cosmetic {
 
     public boolean isCosmetic(ItemStack itemStack){
         if(itemStack == null) return false;
-        /*if(this.itemStack == null) return false;
-        ItemStack cosmetic = this.itemStack;
-        if(MagicCosmetics.getInstance().isItemsAdder()) {
-            if (MagicCosmetics.getInstance().getItemsAdder().getCustomStack(itemStack) != null) {
-                if(cosmetic.hasItemMeta() && itemStack.hasItemMeta()) {
-                    if (cosmetic.getItemMeta().hasDisplayName() && itemStack.getItemMeta().hasDisplayName()) {
-                        return cosmetic.getItemMeta().getDisplayName().equals(itemStack.getItemMeta().getDisplayName());
-                    }
-                }
-                return true;
-            }
-        }
-        if(MagicCosmetics.getInstance().isOraxen()){
-            if(MagicCosmetics.getInstance().getOraxen().getItemStackByItem(itemStack) != null){
-                if(cosmetic.hasItemMeta() && itemStack.hasItemMeta()) {
-                    if (cosmetic.getItemMeta().hasDisplayName() && itemStack.getItemMeta().hasDisplayName()) {
-                        return cosmetic.getItemMeta().getDisplayName().equals(itemStack.getItemMeta().getDisplayName());
-                    }
-                }
-                return true;
-            }
-        }
-        if(cosmetic.hasItemMeta() && itemStack.hasItemMeta()) {
-            if (cosmetic.getItemMeta().hasDisplayName() && itemStack.getItemMeta().hasDisplayName()) {
-                return cosmetic.getItemMeta().getDisplayName().equals(itemStack.getItemMeta().getDisplayName());
-            }
-        }*/
-        String key = MagicCosmetics.getInstance().getVersion().isNBTCosmetic(itemStack);
-        return key != null && !key.isEmpty() && key.equalsIgnoreCase(id);
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if(itemMeta == null) return false;
+        return itemMeta.getPersistentDataContainer().has(namespacedKey, PersistentDataType.STRING);
     }
 
     public ItemStack getItemPlaceholders(Player player) {
@@ -663,5 +691,34 @@ public abstract class Cosmetic {
 
     public void setColorBlocked(boolean colorBlocked) {
         this.colorBlocked = colorBlocked;
+    }
+
+    public void setPlayer(Player player) {
+        this.player = player;
+    }
+
+    public void setLendEntity(LivingEntity lendEntity) {
+        this.lendEntity = lendEntity;
+        setRemovedLendEntity(lendEntity == null);
+    }
+
+    public Player getPlayer() {
+        return player;
+    }
+
+    public LivingEntity getLendEntity() {
+        return lendEntity;
+    }
+
+    public boolean isRemovedLendEntity() {
+        return removedLendEntity;
+    }
+
+    public void setRemovedLendEntity(boolean removedLendEntity) {
+        this.removedLendEntity = removedLendEntity;
+    }
+
+    public NamespacedKey getNamespacedKey() {
+        return namespacedKey;
     }
 }

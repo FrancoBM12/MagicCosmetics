@@ -264,20 +264,6 @@ items:
       amount: 1
       glow: false
       modeldata: 10000
-  itemSkin-template: #in
-    item:
-      display: '%name%'
-      material: PLAYER_HEAD
-      lore-available:
-        - '&6Type: &7%type%'
-        - '&eCondition: %available%'
-        - '&cEquip: %equip%'
-      lore-unavailable:
-        - '&cYou do not have this cosmetic available!'
-        - '&9See in -> https://spigotmc.org'
-      amount: 1
-      glow: false
-      modeldata: 10000
   color-template:
     item:
       display: '&aHere you can paint your cosmetic.'
@@ -287,6 +273,9 @@ items:
         - '&a➜ Selected'
       lore-notselected:
         - '&8➜ Click to select'
+      lore-unavailable:
+        - '&cYou do not have this color available!'
+        - '&9See in -> https://spigotmc.org'
       glow: false
       modeldata: 10012
   pages-template:

@@ -1,12 +1,14 @@
 package com.francobm.magicosmetics.models;
 
+import org.bukkit.entity.Player;
+
 import java.lang.reflect.Field;
 
 public abstract class PacketReader {
 
-    public abstract boolean inject();
+    public abstract void injectPlayer(Player player);
 
-    public abstract void unject();
+    public abstract void removePlayer(Player player);
 
     protected Object getValue(Object instance, String name){
         Object result = null;

@@ -83,8 +83,8 @@ public class Zone {
         //loadSpec();
     }
 
-    public static Zone getZone(String name){
-        return zones.get(name);
+    public static Zone getZone(String id){
+        return zones.get(id);
     }
 
     public static Zone addZone(String name){

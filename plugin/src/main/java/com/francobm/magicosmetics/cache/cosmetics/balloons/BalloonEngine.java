@@ -1,43 +1,62 @@
 package com.francobm.magicosmetics.cache.cosmetics.balloons;
 
 import com.francobm.magicosmetics.MagicCosmetics;
-import com.ticxo.modelengine.api.model.ActiveModel;
-import com.ticxo.modelengine.api.model.ModeledEntity;
-import org.bukkit.Bukkit;
+import com.francobm.magicosmetics.utils.OffsetModel;
 import org.bukkit.Color;
 import org.bukkit.Location;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.PufferFish;
+import org.bukkit.entity.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class BalloonEngine {
-    private ModeledEntity modeledEntity;
-    private final List<UUID> players;
-    private ActiveModel activeModel;
+    private UUID balloonUniqueId;
     private final String modelId;
     private final List<String> colorParts;
     private final String walk_animation;
     private final String idle_animation;
     private final double distance;
+    private final OffsetModel offsetModel;
+    private boolean playOn;
 
-    public BalloonEngine(String modelId, List<String> colorParts, String walk_animation, String idle_animation, double distance) {
+    public BalloonEngine(String modelId, List<String> colorParts, String walk_animation, String idle_animation, double distance, OffsetModel offsetModel) {
         this.modelId = modelId;
         this.colorParts = colorParts;
         this.walk_animation = walk_animation == null ? "walk" : walk_animation;
         this.idle_animation = idle_animation == null ? "idle" : idle_animation;
-        this.modeledEntity = null;
-        this.activeModel = null;
         this.distance = distance;
-        players = new ArrayList<>();
+        this.offsetModel = offsetModel;
     }
 
     public BalloonEngine getClone() {
-        return new BalloonEngine(modelId, new ArrayList<>(colorParts), walk_animation, idle_animation, distance);
+        return new BalloonEngine(modelId, new ArrayList<>(colorParts), walk_animation, idle_animation, distance, offsetModel);
+    }
+
+    public void setStatePlayOn(int state){
+        if(playOn) return;
+        MagicCosmetics plugin = MagicCosmetics.getInstance();
+        switch (state){
+            case 0:
+                if(!plugin.getModelEngine().existAnimation(modelId, idle_animation)) return;
+                if(plugin.getModelEngine().isPlayingAnimation(balloonUniqueId, modelId, idle_animation)) {
+                    plugin.getModelEngine().stopAnimationExcept(balloonUniqueId, modelId, idle_animation);
+                    break;
+                }
+                plugin.getModelEngine().stopAnimations(balloonUniqueId, modelId);
+                plugin.getModelEngine().playAnimation(balloonUniqueId, modelId, idle_animation);
+                plugin.getModelEngine().loopAnimation(balloonUniqueId, modelId, idle_animation);
+                break;
+            case 1:
+                if(!MagicCosmetics.getInstance().getModelEngine().existAnimation(modelId, walk_animation)) return;
+                if(plugin.getModelEngine().isPlayingAnimation(balloonUniqueId, modelId, walk_animation)){
+                    plugin.getModelEngine().stopAnimationExcept(balloonUniqueId, modelId, walk_animation);
+                    break;
+                }
+                plugin.getModelEngine().stopAnimations(balloonUniqueId, modelId);
+                plugin.getModelEngine().playAnimation(balloonUniqueId, modelId, walk_animation);
+                plugin.getModelEngine().loopAnimation(balloonUniqueId, modelId, walk_animation);
+                break;
+        }
+        playOn = true;
     }
 
     public void setState(int state){
@@ -46,121 +65,73 @@ public class BalloonEngine {
             case 0:
                 if(!plugin.getModelEngine().existAnimation(modelId, idle_animation)) return;
                 //activeModel.addState("idle", 1, 1, 1);
-                if(plugin.getModelEngine().isPlayingAnimation(activeModel, idle_animation)) {
-                    plugin.getModelEngine().stopAnimationExcept(activeModel, idle_animation);
+                if(plugin.getModelEngine().isPlayingAnimation(balloonUniqueId, modelId, idle_animation)) {
+                    plugin.getModelEngine().stopAnimationExcept(balloonUniqueId, modelId, idle_animation);
                     return;
                 }
-                plugin.getModelEngine().stopAnimations(activeModel);
-                plugin.getModelEngine().playAnimation(activeModel, idle_animation);
+                plugin.getModelEngine().stopAnimations(balloonUniqueId, modelId);
+                plugin.getModelEngine().playAnimation(balloonUniqueId, modelId, idle_animation);
                 return;
             case 1:
                 if(!MagicCosmetics.getInstance().getModelEngine().existAnimation(modelId, walk_animation)) return;
-                if(plugin.getModelEngine().isPlayingAnimation(activeModel, walk_animation)){
-                    plugin.getModelEngine().stopAnimationExcept(activeModel, walk_animation);
+                if(plugin.getModelEngine().isPlayingAnimation(balloonUniqueId, modelId, walk_animation)){
+                    plugin.getModelEngine().stopAnimationExcept(balloonUniqueId, modelId, walk_animation);
                     return;
                 }
-                plugin.getModelEngine().stopAnimations(activeModel);
-                plugin.getModelEngine().playAnimation(activeModel, walk_animation);
+                plugin.getModelEngine().stopAnimations(balloonUniqueId, modelId);
+                plugin.getModelEngine().playAnimation(balloonUniqueId, modelId, walk_animation);
                 //activeModel.setState(ActiveModel.ModelState.WALK);
         }
     }
 
-    public void remove(PufferFish leash){
-        if(activeModel == null) return;
-        if(modeledEntity == null) return;
+    public void remove(LivingEntity pufferFish){
+        if(balloonUniqueId == null) return;
         MagicCosmetics plugin = MagicCosmetics.getInstance();
-        for(Player player : modeledEntity.getRangeManager().getPlayerInRange()) {
-            removePlayer(leash, player);
-        }
-        plugin.getModelEngine().removeModeledEntity(modeledEntity, activeModel);
-        setActiveModel(null);
-        setModeledEntity(null);
-    }
-
-    public void detectPlayers(PufferFish pufferFish, Entity owner) {
-        if(modeledEntity == null) return;
-        for(Player player : Bukkit.getOnlinePlayers()){
-            if(players.contains(player.getUniqueId())) {
-                if(!owner.getWorld().equals(player.getWorld())) {
-                    removePlayer(pufferFish, player);
-                    continue;
-                }
-                if(owner.getLocation().distanceSquared(player.getLocation()) > distance) {
-                    removePlayer(pufferFish, player);
-                    continue;
-                }
-            }
-            if(!owner.getWorld().equals(player.getWorld())) continue;
-            if(owner.getLocation().distanceSquared(player.getLocation()) > distance) continue;
-            addPlayer(owner, pufferFish, player);
-        }
-        //MagicCosmetics.getInstance().getModelEngine().detectPlayers(modeledEntity, players);
-    }
-
-    private void addPlayer(Entity owner, PufferFish pufferFish, Player player) {
-        if(modeledEntity == null) return;
-        if(players.contains(player.getUniqueId())) return;
-        modeledEntity.getRangeManager().forceSpawn(player);
-        players.add(player.getUniqueId());
-        if(pufferFish == null) return;
-        MagicCosmetics.getInstance().getVersion().showFakePuffer(pufferFish, player);
-        MagicCosmetics.getInstance().getVersion().attachFakeEntity(owner, pufferFish, player);
-    }
-
-    public void removePlayer(PufferFish pufferFish, Player player) {
-        if(modeledEntity == null) return;
-        modeledEntity.getRangeManager().removePlayer(player);
-        players.remove(player.getUniqueId());
-        if(pufferFish == null) return;
-        MagicCosmetics.getInstance().getVersion().despawnFakeEntity(pufferFish, player);
+        plugin.getModelEngine().removeModeledEntity(balloonUniqueId, modelId);
+        balloonUniqueId = null;
     }
 
     public Set<String> getBones() {
-        if(activeModel == null) return null;
-        return MagicCosmetics.getInstance().getModelEngine().getAllBonesIds(activeModel);
+        if(balloonUniqueId == null) return null;
+        return MagicCosmetics.getInstance().getModelEngine().getAllBonesIds(balloonUniqueId, modelId);
     }
 
-    public void spawnModel(Location location){
-        modeledEntity = MagicCosmetics.getInstance().getModelEngine().spawnModel(modelId, location);
-        activeModel = modeledEntity.getModel(modelId);
+    public ArmorStand spawnModel(Location location){
+        ArmorStand armorStand = MagicCosmetics.getInstance().getVersion().spawnArmorStand(location);
+        balloonUniqueId = MagicCosmetics.getInstance().getModelEngine().spawnModel(armorStand, modelId, location, offsetModel);
+        return armorStand;
     }
 
-    public void movementModel(Location location) {
-        if(modeledEntity == null) return;
-        MagicCosmetics.getInstance().getModelEngine().movementModel(modeledEntity, location);
-    }
-
-    public Location getMovementModel() {
-        if(modeledEntity == null) return null;
-        return modeledEntity.getBase().getLocation();
+    public void updateTeleport(LivingEntity leashed, Location location) {
+        if(balloonUniqueId == null) return;
+        MagicCosmetics.getInstance().getVersion().updatePositionFakeEntity(leashed, location);
+        Set<Player> players = MagicCosmetics.getInstance().getModelEngine().getTrackedPlayers(balloonUniqueId);
+        MagicCosmetics.getInstance().getVersion().teleportFakeEntity(leashed, players);
+        MagicCosmetics.getInstance().getModelEngine().movementModel(balloonUniqueId, location);
     }
 
     public void tintModel(Color color) {
         if(color == null) return;
-        if(activeModel == null) return;
+        if(balloonUniqueId == null) return;
         MagicCosmetics plugin = MagicCosmetics.getInstance();
         for (String id : getBones()) {
             if (getColorParts() != null && !getColorParts().isEmpty()) {
                 if (!getColorParts().contains(id)) continue;
             }
-            plugin.getModelEngine().tint(activeModel, color, id);
+            plugin.getModelEngine().tint(balloonUniqueId, modelId, color, id);
         }
     }
 
-    public ActiveModel getActiveModel() {
-        return activeModel;
+    public void showModel(Player player) {
+        MagicCosmetics.getInstance().getModelEngine().showModel(balloonUniqueId, player);
     }
 
-    public ModeledEntity getModeledEntity() {
-        return modeledEntity;
+    public void hideModel(Player player) {
+        MagicCosmetics.getInstance().getModelEngine().hideModel(balloonUniqueId, player);
     }
 
-    public void setActiveModel(ActiveModel activeModel) {
-        this.activeModel = activeModel;
-    }
-
-    public void setModeledEntity(ModeledEntity modeledEntity) {
-        this.modeledEntity = modeledEntity;
+    public UUID getBalloonUniqueId() {
+        return balloonUniqueId;
     }
 
     public String getModelId() {
@@ -171,20 +142,8 @@ public class BalloonEngine {
         return colorParts;
     }
 
-    public PufferFish spawnLeash(Location location) {
-        return MagicCosmetics.getInstance().getVersion().spawnFakePuffer(location);
-    }
-
-    public void attachPufferFish(Player owner, Entity leashed) {
-        if(modeledEntity == null) return;
-        MagicCosmetics.getInstance().getVersion().attachFakeEntity(owner, leashed, modeledEntity.getRangeManager().getPlayerInRange().toArray(new Player[0]));
-    }
-
-    public void updatePositionLeash(Entity leashed, Location location) {
-        MagicCosmetics.getInstance().getVersion().updatePositionFakeEntity(leashed, location);
-    }
-
-    public void teleportLeash(Entity leashed) {
-        MagicCosmetics.getInstance().getVersion().teleportFakeEntity(leashed, modeledEntity.getRangeManager().getPlayerInRange().toArray(new Player[0]));
+    public void spawnLeash(Entity entity) {
+        if(balloonUniqueId == null) return;
+        MagicCosmetics.getInstance().getModelEngine().spawnLeash(entity, balloonUniqueId, modelId);
     }
 }

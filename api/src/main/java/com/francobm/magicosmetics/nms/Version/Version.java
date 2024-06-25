@@ -10,22 +10,24 @@ import com.francobm.magicosmetics.nms.balloon.PlayerBalloon;
 import com.francobm.magicosmetics.nms.spray.CustomSpray;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.PufferFish;
+import org.bukkit.entity.*;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapView;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Base64;
+import java.util.Set;
+import java.util.UUID;
+
 public abstract class Version {
-    private static Version version;
+    protected static final UUID RANDOM_UUID = UUID.fromString("92864445-51c5-4c3b-9039-517c9927d1b4");
 
-    public static Version getVersion(){
-        return version;
-    }
 
-    public static void setVersion(Version version2){
-        version = version2;
+    protected PacketReader packetReader;
+
+    public PacketReader getPacketReader() {
+        return packetReader;
     }
 
     public abstract void setSpectator(Player player);
@@ -44,9 +46,8 @@ public abstract class Version {
 
     public abstract void setCamera(Player player, Entity entity);
 
-    public abstract PacketReader getPacketReader(Player player);
 
-    public abstract PlayerBag createPlayerBag(Player player, double distance, int height, ItemStack backPackItem, ItemStack backPackItemForMe);
+    public abstract PlayerBag createPlayerBag(Player player, double distance, float height, ItemStack backPackItem, ItemStack backPackItemForMe);
 
     public abstract EntityBag createEntityBag(Entity entity, double distance);
 
@@ -64,7 +65,9 @@ public abstract class Version {
 
     public abstract PufferFish spawnFakePuffer(Location location);
 
-    public abstract void showFakePuffer(PufferFish entity, Player ...viewers);
+    public abstract ArmorStand spawnArmorStand(Location location);
+
+    public abstract void showEntity(LivingEntity entity, Player ...viewers);
 
     public abstract void despawnFakeEntity(Entity entity, Player ...viewers);
 
@@ -72,5 +75,18 @@ public abstract class Version {
 
     public abstract void updatePositionFakeEntity(Entity leashed, Location location);
 
-    public abstract void teleportFakeEntity(Entity leashed, Player ...viewers);
+    public abstract void teleportFakeEntity(Entity leashed, Set<Player> viewers);
+
+    public abstract ItemStack getItemWithNBTsCopy(ItemStack itemToCopy, ItemStack cosmetic);
+
+    public abstract ItemStack getItemSavedWithNBTsUpdated(ItemStack itemCombined, ItemStack itemStack);
+
+    public abstract ItemStack getCustomHead(ItemStack itemStack, String texture);
+
+    protected URL getUrlFromBase64(String base64) throws MalformedURLException {
+        String decoded = new String(Base64.getDecoder().decode(base64));
+        // We simply remove the "beginning" and "ending" part of the JSON, so we're left with only the URL. You could use a proper
+        // JSON parser for this, but that's not worth it. The String will always start exactly with this stuff anyway
+        return new URL(decoded.substring("{\"textures\":{\"SKIN\":{\"url\":\"".length(), decoded.length() - "\"}}}".length()));
+    }
 }

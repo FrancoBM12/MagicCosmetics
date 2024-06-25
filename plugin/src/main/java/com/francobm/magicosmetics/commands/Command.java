@@ -7,11 +7,14 @@ import com.francobm.magicosmetics.cache.*;
 import com.francobm.magicosmetics.cache.inventories.Menu;
 import com.francobm.magicosmetics.files.FileCreator;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.*;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -161,6 +164,11 @@ public class Command implements CommandExecutor, TabCompleter {
             Player target;
             if(args.length >= 1){
                 switch (args[0].toLowerCase()){
+                    case "test":
+                        Player t = Bukkit.getPlayer(args[1]);
+                        if(t == null) return true;
+                        player.addPassenger(t);
+                        return true;
                     case "unlock":
                         if(args.length < 2){
                             return true;
@@ -436,6 +444,10 @@ public class Command implements CommandExecutor, TabCompleter {
                             return true;
                         }
                         //cosmetics npc 1 <cosmetic-id> <color>
+                        if(args.length == 2 && args[1].equalsIgnoreCase("save")){
+                            plugin.getNPCsLoader().save();
+                            return true;
+                        }
                         if(args.length < 3){
                             plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + plugin.getMessages().getString("commands.npc-usage"));
                             return true;
@@ -461,6 +473,8 @@ public class Command implements CommandExecutor, TabCompleter {
             }
             if(player.hasPermission("magicosmetics.cosmetics.use")) {
                 plugin.getCosmeticsManager().openMenu(player, plugin.getMainMenu());
+                if(plugin.getOnExecuteCosmetics().isEmpty()) return true;
+                player.performCommand(plugin.getOnExecuteCosmetics());
             }
             return true;
         }
@@ -505,7 +519,6 @@ public class Command implements CommandExecutor, TabCompleter {
         }
         if(arguments.size() == 0) return arguments;
         List<String> result = new ArrayList<>();
-        List<String> subArgs = new ArrayList<>();
         switch (args.length){
             case 1:
                 for(String a : arguments){
@@ -520,55 +533,39 @@ public class Command implements CommandExecutor, TabCompleter {
                     case "add":
                     case "addall":
                     case "remove":
-                        return  null;
+                        return null;
                     case "npc":
                         if(!plugin.isCitizens()) return null;
-                        for(String a : plugin.getCitizens().getNPCs()){
-                            if(a.toLowerCase().startsWith(args[1].toLowerCase()))
-                                result.add(a);
-                        }
+                        result.add("save");
+                        result.addAll(plugin.getCitizens().getNPCs());
                         return result;
                     case "unequip":
                     case "use":
                         if(!sender.hasPermission("magicosmetics.equip")) return null;
                         result.add("all");
-                        for(String a : Cosmetic.cosmetics.keySet()){
-                            if(a.toLowerCase().startsWith(args[1].toLowerCase()))
-                                result.add(a);
-                        }
+                        result.addAll(Cosmetic.cosmetics.keySet());
                         return result;
                     case "open":
                         if(!sender.hasPermission("magicosmetics.menus")) return null;
-                        for(String a : Menu.inventories.keySet()){
-                            if(a.toLowerCase().startsWith(args[1].toLowerCase()))
-                                result.add(a);
-                        }
+                        result.addAll(Menu.inventories.keySet());
                         return result;
                     case "zones":
                         if(!sender.hasPermission("magicosmetics.zones")) return null;
-                        subArgs.add("add");
-                        subArgs.add("remove");
-                        subArgs.add("setNPC");
-                        subArgs.add("setBalloon");
-                        subArgs.add("setSpray");
-                        subArgs.add("setEnter");
-                        subArgs.add("setExit");
-                        subArgs.add("giveCorns");
-                        subArgs.add("enable");
-                        subArgs.add("disable");
-                        subArgs.add("save");
-                        for(String a : subArgs){
-                            if(a.toLowerCase().startsWith(args[1].toLowerCase()))
-                                result.add(a);
-                        }
+                        result.add("add");
+                        result.add("remove");
+                        result.add("setNPC");
+                        result.add("setBalloon");
+                        result.add("setSpray");
+                        result.add("setEnter");
+                        result.add("setExit");
+                        result.add("giveCorns");
+                        result.add("enable");
+                        result.add("disable");
+                        result.add("save");
                         return result;
                     case "token":
                         if(!sender.hasPermission("magicosmetics.tokens")) return null;
-                        subArgs.add("give");
-                        for(String a : subArgs){
-                            if(a.toLowerCase().startsWith(args[1].toLowerCase()))
-                                result.add(a);
-                        }
+                        result.add("give");
                         return result;
                     case "tint":
                         if(!sender.hasPermission("magicosmetics.tint")) return null;
@@ -581,10 +578,7 @@ public class Command implements CommandExecutor, TabCompleter {
                     case "remove":
                     case "npc":
                         if(!sender.hasPermission("magicosmetics.cosmetics")) return null;
-                        for(String a : Cosmetic.cosmetics.keySet()){
-                            if(a.toLowerCase().startsWith(args[2].toLowerCase()))
-                                result.add(a);
-                        }
+                        result.addAll(Cosmetic.cosmetics.keySet());
                         return result;
                     case "use":
                     case "equip":
@@ -595,10 +589,7 @@ public class Command implements CommandExecutor, TabCompleter {
                     case "zones":
                         if(!sender.hasPermission("magicosmetics.zones")) return null;
                         if(args[1].equalsIgnoreCase("add")) return new ArrayList<>();
-                        for(String a : Zone.zones.keySet()){
-                            if(a.toLowerCase().startsWith(args[2].toLowerCase()))
-                                result.add(a);
-                        }
+                        result.addAll(Zone.zones.keySet());
                         return result;
                     case "token":
                         return null;
@@ -606,10 +597,7 @@ public class Command implements CommandExecutor, TabCompleter {
             case 4:
                 if(args[0].equalsIgnoreCase("token") && args[1].equalsIgnoreCase("give")){
                     if(!sender.hasPermission("magicosmetics.tokens")) return null;
-                    for(String a : Token.tokens.keySet()){
-                        if(a.toLowerCase().startsWith(args[3].toLowerCase()))
-                            result.add(a);
-                    }
+                    result.addAll(Token.tokens.keySet());
                     return result;
                 }
                 if(args[0].equalsIgnoreCase("npc")){

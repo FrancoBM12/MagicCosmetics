@@ -13,6 +13,8 @@ softdepend:
   - Citizens
   - MythicMobs
   - SkinsRestorer
+  - Denizen
+  - My_Worlds
 authors: [FrancoBM]
 description: magic cosmetics for this server.
 website: FrancoBM#2980
