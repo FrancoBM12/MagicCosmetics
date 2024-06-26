@@ -87,10 +87,16 @@ public class Hat extends Cosmetic implements CosmeticInventory {
         if(isCosmetic(originalItem)) return null;
         if(!overlaps){
             if(originalItem == null || originalItem.getType().isAir()) {
-                player.getInventory().setHelmet(getItemPlaceholders(player));
-                return null;
+                if(currentItemSaved == null || currentItemSaved.getType().isAir()) {
+                    player.getInventory().setHelmet(getItemPlaceholders(player));
+                    return null;
+                }
             }
-            ItemStack helmet = currentItemSaved != null ? currentItemSaved.clone() : null;
+            ItemStack helmet;
+            if(player.getInventory().getHelmet() != null && player.getInventory().getHelmet().isSimilar(currentItemSaved))
+                helmet = player.getInventory().getHelmet().clone();
+            else
+                helmet = currentItemSaved != null ? currentItemSaved.clone() : null;
             currentItemSaved = originalItem;
             player.getInventory().setHelmet(currentItemSaved);
             return helmet;
@@ -105,7 +111,12 @@ public class Hat extends Cosmetic implements CosmeticInventory {
     public void leftItem() {
         if(currentItemSaved == null) return;
         if(!overlaps){
-            player.setItemOnCursor(currentItemSaved.clone());
+            if(player.getInventory().getHelmet() == null || player.getInventory().getHelmet().getType().isAir()) return;
+            if(isCosmetic(player.getInventory().getHelmet())) return;
+            if(player.getInventory().getHelmet().isSimilar(currentItemSaved))
+                player.setItemOnCursor(currentItemSaved.clone());
+            else
+                player.setItemOnCursor(player.getInventory().getHelmet().clone());
             currentItemSaved = null;
             player.getInventory().setHelmet(getItemPlaceholders(player));
             return;
@@ -121,7 +132,13 @@ public class Hat extends Cosmetic implements CosmeticInventory {
     public ItemStack leftItemAndGet() {
         if(currentItemSaved == null) return null;
         if(!overlaps) {
-            ItemStack getItem = currentItemSaved.clone();
+            if(player.getInventory().getHelmet() == null || player.getInventory().getHelmet().getType().isAir()) return null;
+            if(isCosmetic(player.getInventory().getHelmet())) return null;
+            ItemStack getItem;
+            if(player.getInventory().getHelmet().isSimilar(currentItemSaved))
+                getItem = currentItemSaved.clone();
+            else
+                getItem = player.getInventory().getHelmet().clone();
             currentItemSaved = null;
             player.getInventory().setHelmet(getItemPlaceholders(player));
             return getItem;

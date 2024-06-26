@@ -412,12 +412,7 @@ public class PlayerListener implements Listener {
                     return;
                 }*/
                 event.setCancelled(true);
-                if(event.getCursor().getType().isAir()) {
-                    if(playerData.getWStick().getCurrentItemSaved() != null){
-                        playerData.getWStick().leftItem();
-                    }
-                    return;
-                }
+                event.setResult(Event.Result.DENY);
                 ItemStack returnItem = playerData.getWStick().changeItem(event.getCursor());
                 player.setItemOnCursor(returnItem);
                 return;
@@ -435,13 +430,7 @@ public class PlayerListener implements Listener {
                     return;
                 }
                 event.setCancelled(true);
-                if(event.getCursor().getType().isAir()) {
-                    if(playerData.getHat().getCurrentItemSaved() != null){
-                        playerData.getHat().leftItem();
-                    }
-                    return;
-                }
-                if(event.getCursor().getType().name().endsWith("HELMET") || event.getCursor().getType().name().endsWith("HEAD")) {
+                if(event.getCursor() == null || event.getCursor().getType().isAir() || event.getCursor().getType().name().endsWith("HELMET") || event.getCursor().getType().name().endsWith("HEAD")) {
                     ItemStack returnItem = playerData.getHat().changeItem(event.getCursor());
                     player.setItemOnCursor(returnItem);
                 }
