@@ -37,7 +37,12 @@ public class LuckPerms {
 
     public void removePermission(UUID uniqueId, String permission) {
         luckPermsAPI.getUserManager().modifyUser(uniqueId, user -> {
-            PermissionNode permissionNode = PermissionNode.builder(permission).build();
+            if(plugin.getLuckPermsServer() == null || plugin.getLuckPermsServer().isEmpty()){
+                PermissionNode permissionNode = PermissionNode.builder(permission).build();
+                user.data().remove(permissionNode);
+                return;
+            }
+            PermissionNode permissionNode = PermissionNode.builder(permission).withContext(DefaultContextKeys.SERVER_KEY, plugin.getLuckPermsServer()).build();
             user.data().remove(permissionNode);
         });
     }
