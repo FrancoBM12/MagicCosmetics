@@ -165,9 +165,6 @@ public class Command implements CommandExecutor, TabCompleter {
             if(args.length >= 1){
                 switch (args[0].toLowerCase()){
                     case "test":
-                        Player t = Bukkit.getPlayer(args[1]);
-                        if(t == null) return true;
-                        player.addPassenger(t);
                         return true;
                     case "unlock":
                         if(args.length < 2){

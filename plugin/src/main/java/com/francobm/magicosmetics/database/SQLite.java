@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 import java.io.File;
 import java.sql.*;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class SQLite extends SQL {
     private final File fileSQL;
@@ -41,8 +42,13 @@ public class SQLite extends SQL {
     }
 
     @Override
-    public void loadPlayer(Player player, boolean async) {
-        loadPlayerInfo(player, async);
+    public void loadPlayer(Player player) {
+        loadPlayerInfo(player);
+    }
+
+    @Override
+    public CompletableFuture<Void> loadPlayerAsync(Player player) {
+        return loadPlayerInfoAsync(player);
     }
 
     @Override
@@ -51,8 +57,8 @@ public class SQLite extends SQL {
     }
 
     @Override
-    public void asyncSavePlayer(PlayerData playerData) {
-        asyncSavePlayerInfo(playerData);
+    public CompletableFuture<Void> savePlayerAsync(PlayerData playerData) {
+        return savePlayerInfoAsync(playerData);
     }
 
     @Override
@@ -138,15 +144,15 @@ public class SQLite extends SQL {
         }
     }
 
-    private void asyncSavePlayerInfo(PlayerData player){
-        player.clearCosmeticsToSaveData();
-        player.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+    private CompletableFuture<Void> savePlayerInfoAsync(PlayerData player){
+        return checkInfoAsync(player.getUniqueId()).thenCompose(check -> CompletableFuture.runAsync(() -> {
+            player.clearCosmeticsToSaveData();
+            player.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
             Connection connection = null;
             PreparedStatement preparedStatement = null;
             try{
                 connection = hikariCP.getHikariDataSource().getConnection();
-                if(!checkInfo(player.getUniqueId())){
+                if(!check){
                     String query = "INSERT INTO player_cosmetics (id, UUID, Player, Hat, Bag, WStick, Balloon, Spray, Available) VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?);";
                     preparedStatement = connection.prepareStatement(query);
                     preparedStatement.setString(1, player.getUniqueId().toString());
@@ -176,59 +182,11 @@ public class SQLite extends SQL {
             } finally {
                 closeConnections(preparedStatement, connection, null);
             }
-        });
+        }));
     }
 
-    private void loadPlayerInfo(Player player, boolean async){
+    private void loadPlayerInfo(Player player){
         String queryBuilder = "SELECT * FROM player_cosmetics WHERE UUID = ?";
-        if(async){
-            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-                if(plugin.isCitizens()) {
-                    EntityBag.updateEntityBag(player);
-                    EntityBalloon.updateEntityBalloon(player);
-                }
-                Connection connection = null;
-                PreparedStatement preparedStatement = null;
-                ResultSet resultSet = null;
-                try{
-                    connection = hikariCP.getHikariDataSource().getConnection();
-                    preparedStatement = connection.prepareStatement(queryBuilder);
-                    preparedStatement.setString(1, player.getUniqueId().toString());
-                    resultSet = preparedStatement.executeQuery();
-                    if(resultSet == null){
-                        return;
-                    }
-                    if(resultSet.next()){
-                        String cosmetics = resultSet.getString("Available");
-                        String hat = resultSet.getString("Hat");
-                        String bag = resultSet.getString("Bag");
-                        String wStick = resultSet.getString("WStick");
-                        String balloon = resultSet.getString("Balloon");
-                        String spray = resultSet.getString("Spray");
-
-                        PlayerData playerData = PlayerData.getPlayer(player);
-                        playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
-                        playerData.loadCosmetics(cosmetics);
-                        playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
-                        playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
-                        playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
-                        plugin.getServer().getScheduler().runTask(plugin, () -> {
-                            playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
-                            playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
-                        });
-                        CustomSpray.updateSpray(player);
-                        PlayerBag.updatePlayerBag(player);
-                        PlayerBalloon.updatePlayerBalloon(player);
-                        plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
-                    }
-                }catch (SQLException throwable){
-                    plugin.getLogger().severe("Failed to load async player information: " + throwable.getMessage());
-                } finally {
-                    closeConnections(preparedStatement, connection, resultSet);
-                }
-            });
-            return;
-        }
         if(plugin.isCitizens()) {
             EntityBag.updateEntityBag(player);
             EntityBalloon.updateEntityBalloon(player);
@@ -271,6 +229,54 @@ public class SQLite extends SQL {
         }
     }
 
+    private CompletableFuture<Void> loadPlayerInfoAsync(Player player){
+        return CompletableFuture.runAsync(() -> {
+            String queryBuilder = "SELECT * FROM player_cosmetics WHERE UUID = ?";
+            Connection connection = null;
+            PreparedStatement preparedStatement = null;
+            ResultSet resultSet = null;
+            try{
+                connection = hikariCP.getHikariDataSource().getConnection();
+                preparedStatement = connection.prepareStatement(queryBuilder);
+                preparedStatement.setString(1, player.getUniqueId().toString());
+                resultSet = preparedStatement.executeQuery();
+                if(resultSet == null){
+                    return;
+                }
+                if(resultSet.next()){
+                    String cosmetics = resultSet.getString("Available");
+                    String hat = resultSet.getString("Hat");
+                    String bag = resultSet.getString("Bag");
+                    String wStick = resultSet.getString("WStick");
+                    String balloon = resultSet.getString("Balloon");
+                    String spray = resultSet.getString("Spray");
+
+                    PlayerData playerData = PlayerData.getPlayer(player);
+                    playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
+                    playerData.loadCosmetics(cosmetics);
+                    playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
+                    playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
+                    playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
+                    EntityBag.updateEntityBag(player);
+                    EntityBalloon.updateEntityBalloon(player);
+                    CustomSpray.updateSpray(player);
+                    PlayerBag.updatePlayerBag(player);
+                    PlayerBalloon.updatePlayerBalloon(player);
+                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
+                        playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
+                    });
+                    plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
+                }
+            }catch (SQLException throwable){
+                plugin.getLogger().severe("Failed to load async player information: " + throwable.getMessage());
+            } finally {
+                closeConnections(preparedStatement, connection, resultSet);
+            }
+        });
+    }
+
+
     private boolean checkInfo(UUID uuid){
             Connection connection = null;
             PreparedStatement preparedStatement = null;
@@ -290,6 +296,29 @@ public class SQLite extends SQL {
                 closeConnections(preparedStatement, connection, resultSet);
             }
             return false;
+    }
+
+    private CompletableFuture<Boolean> checkInfoAsync(UUID uuid){
+        return CompletableFuture.supplyAsync(() -> {
+            Connection connection = null;
+            PreparedStatement preparedStatement = null;
+            ResultSet resultSet = null;
+            String queryBuilder = "SELECT * FROM player_cosmetics WHERE UUID = ?";
+            try {
+                connection = hikariCP.getHikariDataSource().getConnection();
+                preparedStatement = connection.prepareStatement(queryBuilder);
+                preparedStatement.setString(1, uuid.toString());
+                resultSet = preparedStatement.executeQuery();
+                if(resultSet != null && resultSet.next()){
+                    return true;
+                }
+            }catch (SQLException throwable){
+                //plugin.getLogger().severe("Player information could not be verified.: " + throwable.getMessage());
+            } finally {
+                closeConnections(preparedStatement, connection, resultSet);
+            }
+            return false;
+        });
     }
 
     @Override

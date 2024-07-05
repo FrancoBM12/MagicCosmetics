@@ -37,7 +37,7 @@ public class Utils {
     private static final Pattern pattern = Pattern.compile("#[a-fA-F0-9]{6}");
 
     public static String getVersion(){
-        return Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
+        return Bukkit.getServer().getBukkitVersion().split("-")[0];
     }
 
     public static boolean existPluginClass(String className) {

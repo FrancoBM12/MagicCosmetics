@@ -285,7 +285,6 @@ public class PlayerData {
     }
 
     public void setCosmetic(CosmeticType cosmeticType, Cosmetic cosmetic){
-        if(cosmetic == null) return;
         switch (cosmeticType){
             case HAT:
                 clearHat();

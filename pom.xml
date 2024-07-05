@@ -22,6 +22,9 @@
         <module>meg4_support</module>
         <module>v1_20_R3</module>
         <module>bungeecord</module>
+        <module>v1_20_R4</module>
+        <module>v1_21_R1</module>
+        <module>velocity</module>
     </modules>
     <build>
         <plugins>

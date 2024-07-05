@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 
 import java.sql.*;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class MySQL extends SQL{
 
@@ -51,8 +52,91 @@ public class MySQL extends SQL{
     }
 
     @Override
-    public void loadPlayer(Player player, boolean async){
-        loadPlayerInfo(player, async);
+    public void loadPlayer(Player player){
+        loadPlayerInfo(player);
+    }
+
+    private void loadPlayerInfo(Player player){
+        String queryBuilder = "SELECT * FROM " + table + " WHERE UUID = ?";
+        if(plugin.isBungee()){
+            EntityBag.updateEntityBag(player);
+            EntityBalloon.updateEntityBalloon(player);
+            Connection connection = null;
+            PreparedStatement statement = null;
+            ResultSet resultSet = null;
+            try {
+                connection = hikariCP.getHikariDataSource().getConnection();
+                statement = connection.prepareStatement(queryBuilder);
+                statement.setString(1, player.getUniqueId().toString());
+                resultSet = statement.executeQuery();
+                PlayerData playerData = PlayerData.getPlayer(player);
+                if(resultSet == null){
+                    return;
+                }
+                if(resultSet.next()){
+                    String cosmetics = resultSet.getString("Available");
+                    String hat = resultSet.getString("Hat");
+                    String bag = resultSet.getString("Bag");
+                    String wStick = resultSet.getString("WStick");
+                    String balloon = resultSet.getString("Balloon");
+                    String spray = resultSet.getString("Spray");
+                    playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
+                    playerData.loadCosmetics(cosmetics);
+                    playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
+                    playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
+                    playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
+                    playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
+                    playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
+                    CustomSpray.updateSpray(player);
+                    PlayerBag.updatePlayerBag(player);
+                    PlayerBalloon.updatePlayerBalloon(player);
+                    plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
+                }
+            }catch (SQLException throwable){
+                plugin.getLogger().severe("Failed to load player information: " + throwable.getMessage());
+            } finally {
+                closeConnections(statement, connection, resultSet);
+            }
+            return;
+        }
+        EntityBag.updateEntityBag(player);
+        EntityBalloon.updateEntityBalloon(player);
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+            connection = hikariCP.getHikariDataSource().getConnection();
+            statement = connection.prepareStatement(queryBuilder);
+            statement.setString(1, player.getUniqueId().toString());
+            resultSet = statement.executeQuery();
+            PlayerData playerData = PlayerData.getPlayer(player);
+            if(resultSet == null){
+                return;
+            }
+            if(resultSet.next()){
+                String cosmetics = resultSet.getString("Available");
+                String hat = resultSet.getString("Hat");
+                String bag = resultSet.getString("Bag");
+                String wStick = resultSet.getString("WStick");
+                String balloon = resultSet.getString("Balloon");
+                String spray = resultSet.getString("Spray");
+                playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
+                playerData.loadCosmetics(cosmetics);
+                playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
+                playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
+                playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
+                playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
+                playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
+                CustomSpray.updateSpray(player);
+                PlayerBag.updatePlayerBag(player);
+                PlayerBalloon.updatePlayerBalloon(player);
+                plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
+            }
+        }catch (SQLException throwable){
+            plugin.getLogger().severe("Failed to load player information: " + throwable.getMessage());
+        } finally {
+            closeConnections(statement, connection, resultSet);
+        }
     }
 
     @Override
@@ -141,18 +225,69 @@ public class MySQL extends SQL{
     }
 
     @Override
-    public void asyncSavePlayer(PlayerData playerData) {
-        asyncSavePlayerInfo(playerData);
+    public CompletableFuture<Void> loadPlayerAsync(Player player) {
+        return loadPlayerInfoAsync(player);
     }
 
-    private void asyncSavePlayerInfo(PlayerData player){
+    private CompletableFuture<Void> loadPlayerInfoAsync(Player player) {
+        return CompletableFuture.runAsync(() -> {
+            String queryBuilder = "SELECT * FROM " + table + " WHERE UUID = ?";
+            Connection connection = null;
+            PreparedStatement statement = null;
+            ResultSet resultSet = null;
+            try {
+                connection = hikariCP.getHikariDataSource().getConnection();
+                statement = connection.prepareStatement(queryBuilder);
+                statement.setString(1, player.getUniqueId().toString());
+                resultSet = statement.executeQuery();
+                PlayerData playerData = PlayerData.getPlayer(player);
+                if(resultSet == null){
+                    return;
+                }
+                if(resultSet.next()){
+                    String cosmetics = resultSet.getString("Available");
+                    String hat = resultSet.getString("Hat");
+                    String bag = resultSet.getString("Bag");
+                    String wStick = resultSet.getString("WStick");
+                    String balloon = resultSet.getString("Balloon");
+                    String spray = resultSet.getString("Spray");
+                    playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
+                    playerData.loadCosmetics(cosmetics);
+                    playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
+                    playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
+                    playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
+                    EntityBag.updateEntityBag(player);
+                    EntityBalloon.updateEntityBalloon(player);
+                    CustomSpray.updateSpray(player);
+                    PlayerBag.updatePlayerBag(player);
+                    PlayerBalloon.updatePlayerBalloon(player);
+                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
+                        playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
+                    });
+                    plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
+                }
+            }catch (SQLException throwable){
+                plugin.getLogger().severe("Failed to load async player information: " + throwable.getMessage());
+            } finally {
+                closeConnections(statement, connection, resultSet);
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> savePlayerAsync(PlayerData playerData) {
+        return savePlayerInfoAsync(playerData);
+    }
+
+    private CompletableFuture<Void> savePlayerInfoAsync(PlayerData player){
         player.clearCosmeticsToSaveData();
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+        return checkInfoAsync(player.getUniqueId()).thenCompose(check -> CompletableFuture.runAsync(() -> {
             Connection connection = null;
             PreparedStatement statement = null;
             try{
                 connection = hikariCP.getHikariDataSource().getConnection();
-                if(!checkInfo(player.getUniqueId())){
+                if(!check){
                     String query = "INSERT INTO " + table + " (id, UUID, Player, Hat, Bag, WStick, Balloon, Spray, Available) VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?);";
                     statement = connection.prepareStatement(query);
                     statement.setString(1, player.getUniqueId().toString());
@@ -184,179 +319,30 @@ public class MySQL extends SQL{
             } finally {
                 closeConnections(statement, connection, null);
             }
-        });
+        }));
     }
 
-    private void loadPlayerInfo(Player player, boolean async){
-        String queryBuilder = "SELECT * FROM " + table + " WHERE UUID = ?";
-        if(plugin.isBungee()){
-            if(async){
-                plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
-                    EntityBag.updateEntityBag(player);
-                    EntityBalloon.updateEntityBalloon(player);
-                    Connection connection = null;
-                    PreparedStatement statement = null;
-                    ResultSet resultSet = null;
-                    try {
-                        connection = hikariCP.getHikariDataSource().getConnection();
-                        statement = connection.prepareStatement(queryBuilder);
-                        statement.setString(1, player.getUniqueId().toString());
-                        resultSet = statement.executeQuery();
-                        if(resultSet == null){
-                            return;
-                        }
-                        if(resultSet.next()){
-                            String cosmetics = resultSet.getString("Available");
-                            String hat = resultSet.getString("Hat");
-                            String bag = resultSet.getString("Bag");
-                            String wStick = resultSet.getString("WStick");
-                            String balloon = resultSet.getString("Balloon");
-                            String spray = resultSet.getString("Spray");
-
-                            PlayerData playerData = PlayerData.getPlayer(player);
-                            playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
-                            playerData.loadCosmetics(cosmetics);
-                            playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
-                            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                                playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
-                                playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
-                            });
-                            playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
-                            playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
-                            CustomSpray.updateSpray(player);
-                            PlayerBag.updatePlayerBag(player);
-                            PlayerBalloon.updatePlayerBalloon(player);
-                            plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
-                        }
-                    }catch (SQLException throwable){
-                        plugin.getLogger().severe("Failed to load async player information: " + throwable.getMessage());
-                    } finally {
-                        closeConnections(statement, connection, resultSet);
-                    }
-                }, 20L);
-                return;
-            }
-            EntityBag.updateEntityBag(player);
-            EntityBalloon.updateEntityBalloon(player);
+    private CompletableFuture<Boolean> checkInfoAsync(UUID uuid){
+        return CompletableFuture.supplyAsync(() -> {
+            String queryBuilder = "SELECT * FROM " + table + " WHERE UUID = ?";
             Connection connection = null;
-            PreparedStatement statement = null;
+            PreparedStatement preparedStatement = null;
             ResultSet resultSet = null;
             try {
                 connection = hikariCP.getHikariDataSource().getConnection();
-                statement = connection.prepareStatement(queryBuilder);
-                statement.setString(1, player.getUniqueId().toString());
-                resultSet = statement.executeQuery();
-                PlayerData playerData = PlayerData.getPlayer(player);
-                if(resultSet == null){
-                    return;
-                }
-                if(resultSet.next()){
-                    String cosmetics = resultSet.getString("Available");
-                    String hat = resultSet.getString("Hat");
-                    String bag = resultSet.getString("Bag");
-                    String wStick = resultSet.getString("WStick");
-                    String balloon = resultSet.getString("Balloon");
-                    String spray = resultSet.getString("Spray");
-                    playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
-                    playerData.loadCosmetics(cosmetics);
-                    playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
-                    playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
-                    playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
-                    playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
-                    playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
-                    CustomSpray.updateSpray(player);
-                    PlayerBag.updatePlayerBag(player);
-                    PlayerBalloon.updatePlayerBalloon(player);
-                    plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
+                preparedStatement = connection.prepareStatement(queryBuilder);
+                preparedStatement.setString(1, uuid.toString());
+                resultSet = preparedStatement.executeQuery();
+                if(resultSet != null && resultSet.next()){
+                    return true;
                 }
             }catch (SQLException throwable){
-                plugin.getLogger().severe("Failed to load player information: " + throwable.getMessage());
+                plugin.getLogger().severe("Player information could not be verified.: " + throwable.getMessage());
             } finally {
-                closeConnections(statement, connection, resultSet);
+                closeConnections(preparedStatement, connection, resultSet);
             }
-            return;
-        }
-        if(async){
-            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-                EntityBag.updateEntityBag(player);
-                EntityBalloon.updateEntityBalloon(player);
-                Connection connection = null;
-                PreparedStatement statement = null;
-                ResultSet resultSet = null;
-                try {
-                    connection = hikariCP.getHikariDataSource().getConnection();
-                    statement = connection.prepareStatement(queryBuilder);
-                    statement.setString(1, player.getUniqueId().toString());
-                    resultSet = statement.executeQuery();
-                    PlayerData playerData = PlayerData.getPlayer(player);
-                    if(resultSet == null){
-                        return;
-                    }
-                    if(resultSet.next()){
-                        String cosmetics = resultSet.getString("Available");
-                        String hat = resultSet.getString("Hat");
-                        String bag = resultSet.getString("Bag");
-                        String wStick = resultSet.getString("WStick");
-                        String balloon = resultSet.getString("Balloon");
-                        String spray = resultSet.getString("Spray");
-                        playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
-                        playerData.loadCosmetics(cosmetics);
-                        playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
-                        playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
-                        playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
-                        playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
-                        playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
-                        CustomSpray.updateSpray(player);
-                        PlayerBag.updatePlayerBag(player);
-                        PlayerBalloon.updatePlayerBalloon(player);
-                        plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
-                    }
-                }catch (SQLException throwable){
-                    plugin.getLogger().severe("Failed to load async player information: " + throwable.getMessage());
-                } finally {
-                    closeConnections(statement, connection, resultSet);
-                }
-            });
-            return;
-        }
-        EntityBag.updateEntityBag(player);
-        EntityBalloon.updateEntityBalloon(player);
-        Connection connection = null;
-        PreparedStatement statement = null;
-        ResultSet resultSet = null;
-        try {
-            connection = hikariCP.getHikariDataSource().getConnection();
-            statement = connection.prepareStatement(queryBuilder);
-            statement.setString(1, player.getUniqueId().toString());
-            resultSet = statement.executeQuery();
-            PlayerData playerData = PlayerData.getPlayer(player);
-            if(resultSet == null){
-                return;
-            }
-            if(resultSet.next()){
-                String cosmetics = resultSet.getString("Available");
-                String hat = resultSet.getString("Hat");
-                String bag = resultSet.getString("Bag");
-                String wStick = resultSet.getString("WStick");
-                String balloon = resultSet.getString("Balloon");
-                String spray = resultSet.getString("Spray");
-                playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
-                playerData.loadCosmetics(cosmetics);
-                playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
-                playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
-                playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
-                playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
-                playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
-                CustomSpray.updateSpray(player);
-                PlayerBag.updatePlayerBag(player);
-                PlayerBalloon.updatePlayerBalloon(player);
-                plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
-            }
-        }catch (SQLException throwable){
-            plugin.getLogger().severe("Failed to load player information: " + throwable.getMessage());
-        } finally {
-            closeConnections(statement, connection, resultSet);
-        }
+            return false;
+        });
     }
 
     private boolean checkInfo(UUID uuid){

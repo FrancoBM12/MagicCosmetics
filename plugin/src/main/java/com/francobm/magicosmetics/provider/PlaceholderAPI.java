@@ -10,9 +10,12 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class PlaceholderAPI extends PlaceholderExpansion {
     private final MagicCosmetics plugin = MagicCosmetics.getInstance();
+    private final Pattern pattern = Pattern.compile("\\{([^}]*?)}");
 
     public PlaceholderAPI(){
         register();
@@ -110,11 +113,11 @@ public class PlaceholderAPI extends PlaceholderExpansion {
         }
 
         if(identifier.startsWith("get_")){
-            String id = identifier.split("_")[1];
-            if(id == null || id.isEmpty()){
-                return null;
+            Matcher matcher = pattern.matcher(identifier);
+            String id = "";
+            if(matcher.find()){
+                id = matcher.group(1);
             }
-            id = id.replace("%", "");
             if(plugin.isPermissions()){
                 return String.valueOf(Cosmetic.getCosmetic(id).hasPermission(player.getPlayer()));
             }
@@ -126,9 +129,10 @@ public class PlaceholderAPI extends PlaceholderExpansion {
         }
 
         if(identifier.startsWith("equipped_")){
-            String id = identifier.split("_")[1];
-            if(id == null || id.isEmpty()){
-                return null;
+            Matcher matcher = pattern.matcher(identifier);
+            String id = "";
+            if(matcher.find()){
+                id = matcher.group(1);
             }
             try{
                 CosmeticType cosmeticType = CosmeticType.valueOf(id.toUpperCase());
@@ -170,11 +174,11 @@ public class PlaceholderAPI extends PlaceholderExpansion {
         }
 
         if(identifier.startsWith("using_")){
-            String id = identifier.split("_")[1];
-            if(id == null || id.isEmpty()){
-                return null;
+            Matcher matcher = pattern.matcher(identifier);
+            String id = "";
+            if(matcher.find()){
+                id = matcher.group(1);
             }
-            id = id.replace("%", "");
             try{
                 CosmeticType cosmeticType = CosmeticType.valueOf(id.toUpperCase());
                 return String.valueOf(playerData.getEquip(cosmeticType) != null);
@@ -184,11 +188,11 @@ public class PlaceholderAPI extends PlaceholderExpansion {
         }
         
         if(identifier.startsWith("player_available_")){
-            String id = identifier.split("_")[2];
-            if(id == null || id.isEmpty()){
-                return null;
+            Matcher matcher = pattern.matcher(identifier);
+            String id = "";
+            if(matcher.find()){
+                id = matcher.group(1);
             }
-            id = id.replace("%", "");
             if(id.equalsIgnoreCase("all")){
                 if(plugin.isPermissions()){
                     return String.valueOf(playerData.getCosmeticsPerm().size());
@@ -204,11 +208,11 @@ public class PlaceholderAPI extends PlaceholderExpansion {
         }
 
         if(identifier.startsWith("available_")){
-            String id = identifier.split("_")[1];
-            if(id == null || id.isEmpty()){
-                return null;
+            Matcher matcher = pattern.matcher(identifier);
+            String id = "";
+            if(matcher.find()){
+                id = matcher.group(1);
             }
-            id = id.replace("%", "");
             if(id.equalsIgnoreCase("all")){
                 return String.valueOf(Cosmetic.cosmetics.size());
             }

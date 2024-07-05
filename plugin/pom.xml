@@ -7,7 +7,7 @@
         <groupId>com.francobm</groupId>
         <version>1.4-SNAPSHOT</version>
     </parent>
-    <version>2.9.8</version>
+    <version>3.0.1</version>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>MagicCosmetics</artifactId>
@@ -31,7 +31,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.4</version>
+                <version>3.6.0</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -43,15 +43,6 @@
                         </configuration>
                     </execution>
                 </executions>
-                <configuration>
-                    <relocations>
-                        <relocation>
-                            <pattern>com.francobm.magicosmetics.bungeecord</pattern>
-                            <!-- Replace 'com.yourpackage' with the package of your plugin ! -->
-                            <shadedPattern>com.francobm.magicosmetics.bungeecord</shadedPattern>
-                        </relocation>
-                    </relocations>
-                </configuration>
             </plugin>
         </plugins>
         <resources>
@@ -134,14 +125,29 @@
             <version>1.4-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>com.francobm.magicosmetics.versions</groupId>
-            <artifactId>v1_20_R3</artifactId>
-            <version>1.4-SNAPSHOT</version>
-        </dependency>
-        <dependency>
             <groupId>com.francobm.magicosmetics</groupId>
             <artifactId>bungeecord</artifactId>
             <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.francobm.magicosmetics</groupId>
+            <artifactId>velocity</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.francobm.magicosmetics.versions</groupId>
+            <artifactId>v1_21_R1</artifactId>
+            <version>1.4-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.francobm.magicosmetics.versions</groupId>
+            <artifactId>v1_20_R4</artifactId>
+            <version>1.4-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.francobm.magicosmetics.versions</groupId>
+            <artifactId>v1_20_R3</artifactId>
+            <version>1.4-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.francobm.magicosmetics.versions</groupId>

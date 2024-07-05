@@ -23,11 +23,12 @@ public class ProxyListener implements PluginMessageListener {
                 String loadCosmetics = in.readUTF();
                 Player p = Bukkit.getPlayer(playerName);
                 if (p == null) return;
-                plugin.getSql().loadPlayer(p, true);
-                plugin.getVersion().getPacketReader().injectPlayer(p);
-                PlayerData playerData = PlayerData.getPlayer(p);
-                if(!loadCosmetics.isEmpty())
+                plugin.getSql().loadPlayerAsync(p).thenAccept(v -> {
+                    plugin.getVersion().getPacketReader().injectPlayer(p);
+                    PlayerData playerData = PlayerData.getPlayer(p);
+                    if(loadCosmetics.isEmpty()) return;
                     playerData.loadCosmetics(loadCosmetics);
+                });
                 break;
             }
             case "save_cosmetics": {
@@ -51,7 +52,7 @@ public class ProxyListener implements PluginMessageListener {
                 if (playerData.isZone()) {
                     playerData.exitZoneSync();
                 }
-                plugin.getSql().asyncSavePlayer(playerData);
+                plugin.getSql().savePlayerAsync(playerData);
                 break;
             }
         }

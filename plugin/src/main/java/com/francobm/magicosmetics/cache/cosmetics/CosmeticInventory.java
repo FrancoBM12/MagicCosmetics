@@ -13,4 +13,8 @@ public interface CosmeticInventory {
     void setCurrentItemSaved(ItemStack currentItemSaved);
 
     boolean isOverlaps();
+
+    ItemStack dropItem(boolean all);
+
+    ItemStack getEquipment();
 }

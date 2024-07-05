@@ -99,35 +99,48 @@ public final class MagicCosmetics extends JavaPlugin {
         // Plugin startup logic
         instance = this;
         switch (Utils.getVersion()){
-            case "v1_16_R3":
+            case "1.16.5":
                 version = new com.francobm.magicosmetics.nms.v1_16_R3.VersionHandler();
                 break;
-            case "v1_17_R1":
+            case "1.17":
+            case "1.17.1":
                 version = new VersionHandler();
                 break;
-            case "v1_18_R1":
+            case "1.18":
+            case "1.18.1":
                 version = new com.francobm.magicosmetics.nms.v1_18_R1.VersionHandler();
                 break;
-            case "v1_18_R2":
+            case "1.18.2":
                 version = new com.francobm.magicosmetics.nms.v1_18_R2.VersionHandler();
                 break;
-            case "v1_19_R1":
+            case "1.19":
+            case "1.19.1":
+            case "1.19.2":
                 version = new com.francobm.magicosmetics.nms.v1_19_R1.VersionHandler();
                 break;
-            case "v1_19_R2":
+            case "1.19.3":
                 version = new com.francobm.magicosmetics.nms.v1_19_R2.VersionHandler();
                 break;
-            case "v1_19_R3":
+            case "1.19.4":
                 version = new com.francobm.magicosmetics.nms.v1_19_R3.VersionHandler();
                 break;
-            case "v1_20_R1":
+            case "1.20":
+            case "1.20.1":
                 version = new com.francobm.magicosmetics.nms.v1_20_R1.VersionHandler();
                 break;
-            case "v1_20_R2":
+            case "1.20.2":
                 version = new com.francobm.magicosmetics.nms.v1_20_R2.VersionHandler();
                 break;
-            case "v1_20_R3":
+            case "1.20.3":
+            case "1.20.4":
                 version = new com.francobm.magicosmetics.nms.v1_20_R3.VersionHandler();
+                break;
+            case "1.20.5":
+            case "1.20.6":
+                version = new com.francobm.magicosmetics.nms.v1_20_R4.VersionHandler();
+                break;
+            case "1.21":
+                version = new com.francobm.magicosmetics.nms.v1_21_R1.VersionHandler();
                 break;
         }
         checkIfProxy();
@@ -198,9 +211,10 @@ public final class MagicCosmetics extends JavaPlugin {
             magicGestures = new MagicGestures();
         }
 
-        if(getServer().getPluginManager().isPluginEnabled("SkinsRestorer") && !isProxy()) {
+        //SkinsRestorer Listener unnecessary.
+        /*if(getServer().getPluginManager().isPluginEnabled("SkinsRestorer") && !isProxy()) {
             new SkinListener();
-        }
+        }*/
 
         ava = MagicCosmetics.getInstance().getMessages().getString("edge.available");
         unAva = MagicCosmetics.getInstance().getMessages().getString("edge.unavailable");
@@ -235,7 +249,7 @@ public final class MagicCosmetics extends JavaPlugin {
         registerListeners();
         for(Player player : Bukkit.getOnlinePlayers()){
             if(player == null || !player.isOnline()) continue;
-            sql.loadPlayer(player, true);
+            sql.loadPlayerAsync(player);
         }
     }
 
@@ -338,6 +352,7 @@ public final class MagicCosmetics extends JavaPlugin {
                 getLogger().info( "Enabling VelocityMode!");
                 setProxy(true);
                 //getServer().getMessenger().registerIncomingPluginChannel(this, "mc:player", new ProxyListener());
+                //getServer().getMessenger().registerOutgoingPluginChannel(this, "mc:player");
                 return;
             }
             YamlConfiguration config = Utils.getPaperConfig(getServer());
@@ -345,6 +360,7 @@ public final class MagicCosmetics extends JavaPlugin {
                 getLogger().info( "Enabling VelocityMode!");
                 setProxy(true);
                 //getServer().getMessenger().registerIncomingPluginChannel(this, "mc:player", new ProxyListener());
+                //getServer().getMessenger().registerOutgoingPluginChannel(this, "mc:player");
             }
         }
     }
@@ -492,7 +508,7 @@ public final class MagicCosmetics extends JavaPlugin {
     }
 
     public User getUser() {
-        return this.user;
+        return new User();
     }
     public void setUser(User user) {
         this.user = user;

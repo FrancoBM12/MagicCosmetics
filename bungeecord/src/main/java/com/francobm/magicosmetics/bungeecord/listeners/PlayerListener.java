@@ -19,7 +19,7 @@ public class PlayerListener implements Listener {
     public void onSwitchServer(ServerSwitchEvent event) {
         ProxiedPlayer player = event.getPlayer();
         plugin.sendLoadPlayerData(player);
-        plugin.getLogger().info(player.getServer().getInfo().getName());
+        //plugin.getLogger().info(player.getServer().getInfo().getName());
     }
 
     @EventHandler
@@ -31,11 +31,11 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onPluginMessage(PluginMessageEvent event) {
         String tag = event.getTag();
-        plugin.getLogger().info("Tag: " + tag);
+        //plugin.getLogger().info("Tag: " + tag);
         if(!tag.equals("Bungeecord")) return;
         ByteArrayDataInput in = ByteStreams.newDataInput(event.getData());
         String subChannel = in.readUTF();
-        plugin.getLogger().info("Tag: " + tag + " subChannel: " + subChannel);
+        //plugin.getLogger().info("Tag: " + tag + " subChannel: " + subChannel);
         if(subChannel.equals("save_cosmetics")){
             String playerName = in.readUTF();
             String cosmetics = in.readUTF();

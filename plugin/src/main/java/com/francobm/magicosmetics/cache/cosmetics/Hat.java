@@ -24,6 +24,7 @@ public class Hat extends Cosmetic implements CosmeticInventory {
     private double offSetY;
     private ItemStack currentItemSaved = null;
     private ItemStack combinedItem = null;
+    private boolean hasDropped;
 
     public Hat(String id, String name, ItemStack itemStack, int modelData, boolean colored, CosmeticType cosmeticType, Color color, boolean overlaps, String permission, boolean texture, boolean hideMenu, boolean useEmote, double offSetY, NamespacedKey namespacedKey) {
         super(id, name, itemStack, modelData, colored, cosmeticType, color, permission, texture, hideMenu, useEmote, namespacedKey);
@@ -93,15 +94,16 @@ public class Hat extends Cosmetic implements CosmeticInventory {
                 }
             }
             ItemStack helmet;
-            if(player.getInventory().getHelmet() != null && player.getInventory().getHelmet().isSimilar(currentItemSaved))
+            if(player.getInventory().getHelmet() != null && player.getInventory().getHelmet().isSimilar(currentItemSaved)) {
                 helmet = player.getInventory().getHelmet().clone();
-            else
+            }else {
                 helmet = currentItemSaved != null ? currentItemSaved.clone() : null;
+            }
+
             currentItemSaved = originalItem;
             player.getInventory().setHelmet(currentItemSaved);
             return helmet;
         }
-        if(originalItem == null || originalItem.getType().isAir()) return null;
         ItemStack helmet = currentItemSaved != null ? MagicCosmetics.getInstance().getVersion().getItemSavedWithNBTsUpdated(combinedItem, currentItemSaved.clone()) : null;
         combinedItem = combinedItems(originalItem);
         player.getInventory().setHelmet(combinedItem);
@@ -147,6 +149,28 @@ public class Hat extends Cosmetic implements CosmeticInventory {
         currentItemSaved = null;
         combinedItem = null;
         player.getInventory().setHelmet(getItemPlaceholders(player));
+        return getItem;
+    }
+
+    @Override
+    public ItemStack dropItem(boolean all) {
+        if(currentItemSaved == null) return null;
+        if(!overlaps) {
+            if(player.getInventory().getHelmet() == null || player.getInventory().getHelmet().getType().isAir()) return null;
+            if(isCosmetic(player.getInventory().getHelmet())) return null;
+            ItemStack getItem = currentItemSaved.clone();
+            int amount = player.getInventory().getHelmet().getAmount();
+            if (!all) {
+                if (amount == 1)
+                    hasDropped = true;
+            }
+            getItem.setAmount(amount);
+            currentItemSaved = getItem;
+            return currentItemSaved;
+        }
+        ItemStack getItem = MagicCosmetics.getInstance().getVersion().getItemSavedWithNBTsUpdated(combinedItem, currentItemSaved.clone());
+        currentItemSaved = null;
+        hasDropped = true;
         return getItem;
     }
 
@@ -250,5 +274,18 @@ public class Hat extends Cosmetic implements CosmeticInventory {
 
     public void setCurrentItemSaved(ItemStack currentItemSaved) {
         this.currentItemSaved = currentItemSaved;
+    }
+
+    public boolean isHasDropped() {
+        return hasDropped;
+    }
+
+    public void setHasDropped(boolean hasDropped) {
+        this.hasDropped = hasDropped;
+    }
+
+    @Override
+    public ItemStack getEquipment() {
+        return player.getInventory().getHelmet();
     }
 }

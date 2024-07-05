@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.concurrent.CompletableFuture;
 
 public abstract class SQL {
     protected MagicCosmetics plugin = MagicCosmetics.getInstance();
@@ -15,11 +16,13 @@ public abstract class SQL {
 
     public abstract void createTable();
 
-    public abstract void loadPlayer(Player player , boolean async);
+    public abstract void loadPlayer(Player player);
+
+    public abstract CompletableFuture<Void> loadPlayerAsync(Player player);
 
     public abstract void savePlayer(PlayerData playerData, boolean closed);
 
-    public abstract void asyncSavePlayer(PlayerData playerData);
+    public abstract CompletableFuture<Void> savePlayerAsync(PlayerData playerData);
 
     public abstract void savePlayers();
 
