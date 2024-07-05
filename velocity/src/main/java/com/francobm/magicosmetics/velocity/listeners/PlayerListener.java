@@ -27,7 +27,7 @@ public class PlayerListener {
         plugin.sendLoadPlayerData(player);
         if(player.getCurrentServer().isEmpty()) return;
         ServerConnection serverConnection = player.getCurrentServer().get();
-        plugin.getLogger().info(serverConnection.getServerInfo().getName());
+        //plugin.getLogger().info(serverConnection.getServerInfo().getName());
     }
 
     @Subscribe
@@ -39,11 +39,11 @@ public class PlayerListener {
     @Subscribe
     public void onPluginMessage(PluginMessageEvent event) {
         ChannelIdentifier channelIdentifier = event.getIdentifier();
-        plugin.getLogger().info("identifier: {}", channelIdentifier.getId());
+        //plugin.getLogger().info("identifier: {}", channelIdentifier.getId());
         if(channelIdentifier != MagicCosmetics.IDENTIFIER) return;
         ByteArrayDataInput in = ByteStreams.newDataInput(event.getData());
         String subChannel = in.readUTF();
-        plugin.getLogger().info("Tag: {} subChannel: {}", channelIdentifier.getId(), subChannel);
+        //plugin.getLogger().info("Tag: {} subChannel: {}", channelIdentifier.getId(), subChannel);
         if(subChannel.equals("save_cosmetics")){
             String playerName = in.readUTF();
             String cosmetics = in.readUTF();
