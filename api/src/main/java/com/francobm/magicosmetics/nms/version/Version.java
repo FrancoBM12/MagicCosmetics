@@ -1,6 +1,7 @@
-package com.francobm.magicosmetics.nms.Version;
+package com.francobm.magicosmetics.nms.version;
 
 import com.francobm.magicosmetics.models.PacketReader;
+import com.francobm.magicosmetics.nms.IRangeManager;
 import com.francobm.magicosmetics.nms.NPC.ItemSlot;
 import com.francobm.magicosmetics.nms.NPC.NPC;
 import com.francobm.magicosmetics.nms.bag.EntityBag;
@@ -82,6 +83,8 @@ public abstract class Version {
     public abstract ItemStack getItemSavedWithNBTsUpdated(ItemStack itemCombined, ItemStack itemStack);
 
     public abstract ItemStack getCustomHead(ItemStack itemStack, String texture);
+
+    public abstract IRangeManager createRangeManager(Entity entity);
 
     protected URL getUrlFromBase64(String base64) throws MalformedURLException {
         String decoded = new String(Base64.getDecoder().decode(base64));

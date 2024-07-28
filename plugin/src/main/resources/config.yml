@@ -4,7 +4,7 @@ npc-rotation: 3
 equip-message: true
 save-on-quit: true
 bossbar-color: YELLOW
-bungeecord: false
+proxy: false
 luckperms-server: ''
 permissions: true
 zones-hide-items: true

@@ -1,7 +1,9 @@
 package com.francobm.magicosmetics.nms.v1_19_R3.cache;
 
 import com.francobm.magicosmetics.MagicCosmetics;
+import com.francobm.magicosmetics.nms.IRangeManager;
 import com.francobm.magicosmetics.nms.bag.PlayerBag;
+import com.google.common.collect.ImmutableList;
 import com.mojang.datafixers.util.Pair;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelPipeline;
@@ -34,9 +36,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class PlayerBagHandler extends PlayerBag {
     private final EntityArmorStand armorStand;
     private final double distance;
+    private final EntityPlayer entityPlayer;
 
-    public PlayerBagHandler(Player p, double distance, float height, ItemStack backPackItem, ItemStack backPackItemForMe){
-        viewers = new CopyOnWriteArrayList<>(new ArrayList<>());
+    public PlayerBagHandler(Player p, IRangeManager rangeManager, double distance, float height, ItemStack backPackItem, ItemStack backPackItemForMe){
         hideViewers = new CopyOnWriteArrayList<>(new ArrayList<>());
         this.uuid = p.getUniqueId();
         this.distance = distance;
@@ -44,8 +46,9 @@ public class PlayerBagHandler extends PlayerBag {
         this.ids = new ArrayList<>();
         this.backPackItem = backPackItem;
         this.backPackItemForMe = backPackItemForMe;
-        playerBags.put(uuid, this);
+        this.rangeManager = rangeManager;
         Player player = getPlayer();
+        entityPlayer = ((CraftPlayer) player).getHandle();
         WorldServer world = ((CraftWorld) player.getWorld()).getHandle();
 
         armorStand = new EntityArmorStand(EntityTypes.d, world);
@@ -53,6 +56,13 @@ public class PlayerBagHandler extends PlayerBag {
         armorStand.j(true); //Invisible
         armorStand.m(true); //Invulnerable
         armorStand.u(true); //Marker
+
+        armorStand.k(entityPlayer);
+        net.minecraft.world.entity.Entity entity = entityPlayer;
+        List<net.minecraft.world.entity.Entity> orderedPassengers = new ArrayList<>();
+        orderedPassengers.add(armorStand);
+        orderedPassengers.addAll(entity.r.stream().filter((entity1) -> entity1 != armorStand).collect(ImmutableList.toImmutableList()));
+        entity.r = ImmutableList.copyOf(orderedPassengers);
     }
 
     @Override
@@ -60,49 +70,23 @@ public class PlayerBagHandler extends PlayerBag {
         if(hideViewers.contains(player.getUniqueId())) return;
         Player owner = getPlayer();
         if(owner == null) return;
-        if(viewers.contains(player.getUniqueId())) {
-            if(!owner.getWorld().equals(player.getWorld())) {
-                remove(player);
-                return;
-            }
-            if(owner.getLocation().distanceSquared(player.getLocation()) > distance) {
-                remove(player);
-            }
-            return;
-        }
-        if(!owner.getWorld().equals(player.getWorld())) return;
-        if(owner.getLocation().distanceSquared(player.getLocation()) > distance) return;
         Location location = owner.getLocation();
         armorStand.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
 
-        sendPackets(player, getBackPackSpawn());
-        addPassenger(player, lendEntityId == -1 ? owner.getEntityId() : lendEntityId, armorStand.af());
-        setItemOnHelmet(player, backPackItem);
-        viewers.add(player.getUniqueId());
+        sendPackets(player, getBackPackSpawn(backPackItem));
     }
 
     @Override
     public void spawnSelf(Player player) {
         Player owner = getPlayer();
         if(owner == null) return;
-        if(viewers.contains(player.getUniqueId())) {
-            if(!owner.getWorld().equals(player.getWorld())) {
-                remove(player);
-                return;
-            }
-            if(owner.getLocation().distance(player.getLocation()) > distance) {
-                remove(player);
-            }
-            return;
-        }
-        if(!owner.getWorld().equals(player.getWorld())) return;
-        if(owner.getLocation().distance(player.getLocation()) > distance) return;
+
+        Location location = owner.getLocation();
         armorStand.j(true); //Invisible true
         armorStand.u(true); //Marker
-        Location location = owner.getLocation();
         armorStand.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
 
-        sendPackets(player, getBackPackSpawn());
+        sendPackets(player, getBackPackSpawn(backPackItemForMe == null ? backPackItem : backPackItemForMe));
         if(height > 0){
             for(int i = 0; i < height; i++) {
                 EntityAreaEffectCloud entityAreaEffectCloud = new EntityAreaEffectCloud(EntityTypes.c, ((CraftWorld)player.getWorld()).getHandle());
@@ -124,12 +108,11 @@ public class PlayerBagHandler extends PlayerBag {
             addPassenger(player, lendEntityId == -1 ? owner.getEntityId() : lendEntityId, armorStand.af());
         }
         setItemOnHelmet(player, backPackItemForMe == null ? backPackItem : backPackItemForMe);
-        viewers.add(player.getUniqueId());
     }
 
     @Override
     public void spawn(boolean exception) {
-        for (Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : getPlayersInRange()) {
             if(exception && player.getUniqueId().equals(uuid)) continue;
             spawn(player);
         }
@@ -137,15 +120,15 @@ public class PlayerBagHandler extends PlayerBag {
 
     @Override
     public void remove() {
-        for(UUID uuid : viewers){
-            Player player = Bukkit.getPlayer(uuid);
-            if(player == null) {
-                viewers.remove(uuid);
-                continue;
-            }
+        for (Player player : getPlayersInRange()) {
             remove(player);
         }
-        playerBags.remove(uuid);
+        net.minecraft.world.entity.Entity entity = entityPlayer;
+        if (entity.r.size() == 1 && entity.r.get(0) == entity) {
+            entity.r = ImmutableList.of();
+        } else {
+            entity.r = entity.r.stream().filter((entity1) -> entity1 != armorStand).collect(ImmutableList.toImmutableList());
+        }
     }
 
     @Override
@@ -153,23 +136,16 @@ public class PlayerBagHandler extends PlayerBag {
         if(player.getUniqueId().equals(uuid)) {
             sendPackets(player, getBackPackDismount(true));
             ids.clear();
-            viewers.remove(player.getUniqueId());
             return;
         }
         sendPackets(player, getBackPackDismount(false));
-        viewers.remove(player.getUniqueId());
     }
 
     @Override
     public void addPassenger(boolean exception) {
         List<Packet<?>> backPack = getBackPackMountPacket(lendEntityId == -1 ? getPlayer().getEntityId() : lendEntityId, armorStand.af());
-        for(UUID uuid : viewers){
-            if(exception && uuid.equals(this.uuid)) continue;
-            Player player = Bukkit.getPlayer(uuid);
-            if(player == null) {
-                viewers.remove(uuid);
-                continue;
-            }
+        for(Player player : getPlayersInRange()){
+            if(exception && player.getUniqueId().equals(this.uuid)) continue;
             sendPackets(player, backPack);
         }
     }
@@ -180,35 +156,58 @@ public class PlayerBagHandler extends PlayerBag {
     }
 
     @Override
-    public void setItemOnHelmet(ItemStack itemStack, boolean all) {
-        Player owner = getPlayer();
-        if(owner == null) return;
-        ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> pairs = new ArrayList<>();
-        pairs.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(itemStack)));
-        if(all) {
-            for (UUID uuid : viewers) {
-                if(this.uuid.equals(uuid)) continue;
-                Player player = Bukkit.getPlayer(uuid);
-                if(player == null) {
-                    viewers.remove(uuid);
-                    continue;
-                }
-                sendPackets(player, getBackPackHelmetPacket(pairs));
-            }
-            return;
-        }
-        sendPackets(owner, getBackPackHelmetPacket(pairs));
-    }
-
-    @Override
     public void setItemOnHelmet(Player player, ItemStack itemStack) {
         sendPackets(player, getBackPackHelmetPacket(itemStack));
     }
 
-    private List<Packet<?>> getBackPackSpawn() {
+    @Override
+    public void lookEntity(float yaw, float pitch, boolean all) {
+        Player owner = getPlayer();
+        if(owner == null) return;
+        if(all) {
+            for (Player player : getPlayersInRange()) {
+                sendPackets(player, getBackPackRotationPackets(yaw));
+            }
+            return;
+        }
+        sendPackets(owner, getBackPackRotationPackets(yaw));
+    }
+
+    private <T> T createDataSerializer(UnsafeFunction<PacketDataSerializer, T> callback) {
+        PacketDataSerializer data = new PacketDataSerializer(Unpooled.buffer());
+        T result = null;
+        try {
+            result = callback.apply(data);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            data.release();
+        }
+        return result;
+    }
+
+    @FunctionalInterface
+    private interface UnsafeFunction<K, T> {
+        T apply(K k) throws Exception;
+    }
+
+    public double getDistance() {
+        return distance;
+    }
+
+    @Override
+    public Entity getEntity() {
+        return armorStand.getBukkitEntity();
+    }
+
+    private List<Packet<?>> getBackPackSpawn(ItemStack backpackItem) {
+        ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
+        list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(backpackItem)));
         PacketPlayOutSpawnEntity spawnEntity = new PacketPlayOutSpawnEntity(armorStand);
         PacketPlayOutEntityMetadata entityMetadata = new PacketPlayOutEntityMetadata(armorStand.af(), armorStand.aj().c());
-        return Arrays.asList(spawnEntity, entityMetadata);
+        PacketPlayOutMount mountEntity = new PacketPlayOutMount(entityPlayer);
+        PacketPlayOutEntityEquipment equip = new PacketPlayOutEntityEquipment(armorStand.af(), list);
+        return Arrays.asList(spawnEntity, entityMetadata, equip, mountEntity);
     }
 
     private List<Packet<?>> getCloudsSpawn(EntityAreaEffectCloud entityAreaEffectCloud) {
@@ -247,51 +246,6 @@ public class PlayerBagHandler extends PlayerBag {
 
     private List<Packet<?>> getBackPackHelmetPacket(ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> pairs) {
         return Collections.singletonList(new PacketPlayOutEntityEquipment(armorStand.af(), pairs));
-    }
-
-    @Override
-    public void lookEntity(float yaw, float pitch, boolean all) {
-        Player owner = getPlayer();
-        if(owner == null) return;
-        if(all) {
-            for (UUID uuid : viewers) {
-                Player player = Bukkit.getPlayer(uuid);
-                if(player == null) {
-                    viewers.remove(uuid);
-                    continue;
-                }
-                sendPackets(player, getBackPackRotationPackets(yaw));
-            }
-            return;
-        }
-        sendPackets(owner, getBackPackRotationPackets(yaw));
-    }
-
-    private <T> T createDataSerializer(UnsafeFunction<PacketDataSerializer, T> callback) {
-        PacketDataSerializer data = new PacketDataSerializer(Unpooled.buffer());
-        T result = null;
-        try {
-            result = callback.apply(data);
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            data.release();
-        }
-        return result;
-    }
-
-    @FunctionalInterface
-    private interface UnsafeFunction<K, T> {
-        T apply(K k) throws Exception;
-    }
-
-    public double getDistance() {
-        return distance;
-    }
-
-    @Override
-    public Entity getEntity() {
-        return armorStand.getBukkitEntity();
     }
 
     private List<Packet<?>> getBackPackRotationPackets(float yaw) {

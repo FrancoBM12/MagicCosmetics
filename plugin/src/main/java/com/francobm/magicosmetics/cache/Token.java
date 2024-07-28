@@ -3,6 +3,7 @@ package com.francobm.magicosmetics.cache;
 import com.francobm.magicosmetics.api.Cosmetic;
 import com.francobm.magicosmetics.api.TokenType;
 import com.francobm.magicosmetics.files.FileCreator;
+import com.francobm.magicosmetics.utils.Utils;
 import com.francobm.magicosmetics.utils.XMaterial;
 import com.francobm.magicosmetics.MagicCosmetics;
 import org.bukkit.enchantments.Enchantment;
@@ -68,17 +69,17 @@ public class Token {
         if(token == null) return false;
         PlayerData playerData = PlayerData.getPlayer(player);
         if(itemStack.getAmount() < token.getItemStack().getAmount()){
-            plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("insufficient-tokens"));
+            Utils.sendMessage(player, plugin.prefix + plugin.getMessages().getString("insufficient-tokens"));
             return false;
         }
         if(plugin.isPermissions()){
             Cosmetic cosmetic =  Cosmetic.getCosmetic(token.getCosmetic());
             if(!cosmetic.hasPermission(player)) return true;
-            plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
+            Utils.sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
             return false;
         }
         if(playerData.getCosmeticById(token.getCosmetic()) != null){
-            plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
+            Utils.sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
             return false;
         }
         return true;

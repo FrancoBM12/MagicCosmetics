@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class MySQL extends SQL{
 
+    private final HikariCP hikariCP;
     private final String table;
 
     public MySQL() {
@@ -27,8 +28,8 @@ public class MySQL extends SQL{
         String username = config.getString("MySQL.user");
         String password = config.getString("MySQL.password");
         String database = config.getString("MySQL.database");
-        String options = config.getString("MySQL.options");;
-        table = config.getString("MySQL.table");;
+        String options = config.getString("MySQL.options");
+        table = config.getString("MySQL.table");
         hikariCP = new HikariCP(hostname, port, username, password, database, options);
         hikariCP.setProperties(this);
         createTable();
@@ -58,47 +59,6 @@ public class MySQL extends SQL{
 
     private void loadPlayerInfo(Player player){
         String queryBuilder = "SELECT * FROM " + table + " WHERE UUID = ?";
-        if(plugin.isBungee()){
-            EntityBag.updateEntityBag(player);
-            EntityBalloon.updateEntityBalloon(player);
-            Connection connection = null;
-            PreparedStatement statement = null;
-            ResultSet resultSet = null;
-            try {
-                connection = hikariCP.getHikariDataSource().getConnection();
-                statement = connection.prepareStatement(queryBuilder);
-                statement.setString(1, player.getUniqueId().toString());
-                resultSet = statement.executeQuery();
-                PlayerData playerData = PlayerData.getPlayer(player);
-                if(resultSet == null){
-                    return;
-                }
-                if(resultSet.next()){
-                    String cosmetics = resultSet.getString("Available");
-                    String hat = resultSet.getString("Hat");
-                    String bag = resultSet.getString("Bag");
-                    String wStick = resultSet.getString("WStick");
-                    String balloon = resultSet.getString("Balloon");
-                    String spray = resultSet.getString("Spray");
-                    playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
-                    playerData.loadCosmetics(cosmetics);
-                    playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
-                    playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
-                    playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
-                    playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
-                    playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
-                    CustomSpray.updateSpray(player);
-                    PlayerBag.updatePlayerBag(player);
-                    PlayerBalloon.updatePlayerBalloon(player);
-                    plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
-                }
-            }catch (SQLException throwable){
-                plugin.getLogger().severe("Failed to load player information: " + throwable.getMessage());
-            } finally {
-                closeConnections(statement, connection, resultSet);
-            }
-            return;
-        }
         EntityBag.updateEntityBag(player);
         EntityBalloon.updateEntityBalloon(player);
         Connection connection = null;
@@ -128,7 +88,6 @@ public class MySQL extends SQL{
                 playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
                 playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
                 CustomSpray.updateSpray(player);
-                PlayerBag.updatePlayerBag(player);
                 PlayerBalloon.updatePlayerBalloon(player);
                 plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
             }
@@ -225,12 +184,12 @@ public class MySQL extends SQL{
     }
 
     @Override
-    public CompletableFuture<Void> loadPlayerAsync(Player player) {
+    public CompletableFuture<PlayerData> loadPlayerAsync(Player player) {
         return loadPlayerInfoAsync(player);
     }
 
-    private CompletableFuture<Void> loadPlayerInfoAsync(Player player) {
-        return CompletableFuture.runAsync(() -> {
+    private CompletableFuture<PlayerData> loadPlayerInfoAsync(Player player) {
+        return CompletableFuture.supplyAsync(() -> {
             String queryBuilder = "SELECT * FROM " + table + " WHERE UUID = ?";
             Connection connection = null;
             PreparedStatement statement = null;
@@ -242,7 +201,7 @@ public class MySQL extends SQL{
                 resultSet = statement.executeQuery();
                 PlayerData playerData = PlayerData.getPlayer(player);
                 if(resultSet == null){
-                    return;
+                    return playerData;
                 }
                 if(resultSet.next()){
                     String cosmetics = resultSet.getString("Available");
@@ -259,19 +218,20 @@ public class MySQL extends SQL{
                     EntityBag.updateEntityBag(player);
                     EntityBalloon.updateEntityBalloon(player);
                     CustomSpray.updateSpray(player);
-                    PlayerBag.updatePlayerBag(player);
                     PlayerBalloon.updatePlayerBalloon(player);
                     plugin.getServer().getScheduler().runTask(plugin, () -> {
                         playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
                         playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
                     });
                     plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
+                    return playerData;
                 }
             }catch (SQLException throwable){
                 plugin.getLogger().severe("Failed to load async player information: " + throwable.getMessage());
             } finally {
                 closeConnections(statement, connection, resultSet);
             }
+            return null;
         });
     }
 

@@ -56,7 +56,7 @@ public class EntityBalloonHandler extends EntityBalloon {
         armorStand.v(true); //Marker
         this.bigHead = bigHead;
         if(isBigHead()){
-            armorStand.d(new Vector3f(armorStand.C().b(), 0, 0));
+            armorStand.d(new Vector3f(armorStand.D().b(), 0, 0));
         }
         leashed = new EntityPufferFish(EntityTypes.aF, world);
         leashed.collides = false;
@@ -229,14 +229,14 @@ public class EntityBalloonHandler extends EntityBalloon {
 
             if (!rotateLoop) {
                 rot += 0.01;
-                armorStand.a(new Vector3f(armorStand.B().b() - 0.5f, armorStand.B().c(), armorStand.B().d() + rotate));
+                armorStand.a(new Vector3f(armorStand.A().b() - 0.5f, armorStand.A().c(), armorStand.A().d() + rotate));
                 //armorStand.setHeadPose(armorStand.getHeadPose().add(0, 0, rotate).subtract(0.008, 0, 0));
                 if (rot > 0.20) {
                     rotateLoop = true;
                 }
             } else {
                 rot -= 0.01;
-                armorStand.a(new Vector3f(armorStand.B().b() + 0.5f, armorStand.B().c(), armorStand.B().d() + rotate));
+                armorStand.a(new Vector3f(armorStand.A().b() + 0.5f, armorStand.A().c(), armorStand.A().d() + rotate));
                 //armorStand.setHeadPose(armorStand.getHeadPose().add(0.008, 0, rotate));//.subtract(0.006, 0, 0));
                 if (rot < -0.20) {
                     rotateLoop = false;
@@ -263,14 +263,14 @@ public class EntityBalloonHandler extends EntityBalloon {
         if(distance1.distanceSquared(distance2) > SQUARED_WALKING){
             if(!heightLoop){
                 height += 0.01;
-                armorStand.a(new Vector3f(armorStand.B().b() - 0.8f, armorStand.B().c(), armorStand.B().d()));
+                armorStand.a(new Vector3f(armorStand.A().b() - 0.8f, armorStand.A().c(), armorStand.A().d()));
                 //((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().subtract(0.022, 0, 0));
                 if(height > 0.10) heightLoop = true;
             }
         }else{
             if (heightLoop) {
                 height -= 0.01;
-                armorStand.a(new Vector3f(armorStand.B().b() + 0.8f, armorStand.B().c(), armorStand.B().d()));
+                armorStand.a(new Vector3f(armorStand.A().b() + 0.8f, armorStand.A().c(), armorStand.A().d()));
                 //((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().add(0.022, 0, 0));
                 if (height < (-0.10 + 0)) heightLoop = false;
                 return;
@@ -329,14 +329,14 @@ public class EntityBalloonHandler extends EntityBalloon {
             if (!rotateLoop) {
                 rot += 0.01;
 
-                armorStand.d(new Vector3f(armorStand.C().b() - 0.5f, armorStand.C().c(), armorStand.C().d() + rotate));
+                armorStand.d(new Vector3f(armorStand.D().b() - 0.5f, armorStand.D().c(), armorStand.D().d() + rotate));
                 //armorStand.setHeadPose(armorStand.getHeadPose().add(0, 0, rotate).subtract(0.008, 0, 0));
                 if (rot > 0.20) {
                     rotateLoop = true;
                 }
             } else {
                 rot -= 0.01;
-                armorStand.d(new Vector3f(armorStand.C().b() + 0.5f, armorStand.C().c(), armorStand.C().d() + rotate));
+                armorStand.d(new Vector3f(armorStand.D().b() + 0.5f, armorStand.D().c(), armorStand.D().d() + rotate));
                 //armorStand.setHeadPose(armorStand.getHeadPose().add(0.008, 0, rotate));//.subtract(0.006, 0, 0));
                 if (rot < -0.20) {
                     rotateLoop = false;
@@ -364,14 +364,14 @@ public class EntityBalloonHandler extends EntityBalloon {
         if(distance1.distanceSquared(distance2) > SQUARED_WALKING){
             if(!heightLoop){
                 height += 0.01;
-                armorStand.d(new Vector3f(armorStand.C().b() - 0.8f, armorStand.C().c(), armorStand.C().d()));
+                armorStand.d(new Vector3f(armorStand.D().b() - 0.8f, armorStand.D().c(), armorStand.D().d()));
                 //((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().subtract(0.022, 0, 0));
                 if(height > 0.10) heightLoop = true;
             }
         }else{
             if (heightLoop) {
                 height -= 0.01;
-                armorStand.d(new Vector3f(armorStand.C().b() + 0.8f, armorStand.C().c(), armorStand.C().d()));
+                armorStand.d(new Vector3f(armorStand.D().b() + 0.8f, armorStand.D().c(), armorStand.D().d()));
                 //((ArmorStand)armorStand.getBukkitEntity()).setHeadPose(((ArmorStand)armorStand.getBukkitEntity()).getHeadPose().add(0.022, 0, 0));
                 if (height < (-0.10 + 0)) heightLoop = false;
                 return;
@@ -394,13 +394,13 @@ public class EntityBalloonHandler extends EntityBalloon {
         if(!rotation) return;
         switch (rotationType){
             case RIGHT:
-                armorStand.a(new Vector3f(armorStand.B().b(), armorStand.B().c() + rotate, armorStand.B().d()));
+                armorStand.a(new Vector3f(armorStand.A().b(), armorStand.A().c() + rotate, armorStand.A().d()));
                 break;
             case UP:
-                armorStand.a(new Vector3f(armorStand.B().b() + rotate, armorStand.B().c(), armorStand.B().d()));
+                armorStand.a(new Vector3f(armorStand.A().b() + rotate, armorStand.A().c(), armorStand.A().d()));
                 break;
             case ALL:
-                armorStand.a(new Vector3f(armorStand.B().b() + rotate, armorStand.B().c() + rotate, armorStand.B().d()));
+                armorStand.a(new Vector3f(armorStand.A().b() + rotate, armorStand.A().c() + rotate, armorStand.A().d()));
                 break;
         }
         for(UUID uuid : players){
@@ -417,13 +417,13 @@ public class EntityBalloonHandler extends EntityBalloon {
         if(!rotation) return;
         switch (rotationType){
             case RIGHT:
-                armorStand.d(new Vector3f(armorStand.C().b(), armorStand.C().c() + rotate, armorStand.C().d()));
+                armorStand.d(new Vector3f(armorStand.D().b(), armorStand.D().c() + rotate, armorStand.D().d()));
                 break;
             case UP:
-                armorStand.d(new Vector3f(armorStand.C().b() + rotate, armorStand.C().c(), armorStand.C().d()));
+                armorStand.d(new Vector3f(armorStand.D().b() + rotate, armorStand.D().c(), armorStand.D().d()));
                 break;
             case ALL:
-                armorStand.d(new Vector3f(armorStand.C().b() + rotate, armorStand.C().c() + rotate, armorStand.C().d()));
+                armorStand.d(new Vector3f(armorStand.D().b() + rotate, armorStand.D().c() + rotate, armorStand.D().d()));
                 break;
         }
         for(UUID uuid : players){

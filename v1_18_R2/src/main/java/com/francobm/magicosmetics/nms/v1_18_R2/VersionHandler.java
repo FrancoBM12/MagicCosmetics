@@ -1,10 +1,11 @@
 package com.francobm.magicosmetics.nms.v1_18_R2;
 
+import com.francobm.magicosmetics.nms.IRangeManager;
 import com.francobm.magicosmetics.nms.v1_18_R2.cache.*;
 import com.francobm.magicosmetics.nms.v1_18_R2.models.PacketReaderHandler;
 import com.francobm.magicosmetics.nms.NPC.ItemSlot;
 import com.francobm.magicosmetics.nms.NPC.NPC;
-import com.francobm.magicosmetics.nms.Version.Version;
+import com.francobm.magicosmetics.nms.version.Version;
 import com.francobm.magicosmetics.nms.bag.EntityBag;
 import com.francobm.magicosmetics.nms.bag.PlayerBag;
 import com.francobm.magicosmetics.nms.balloon.EntityBalloon;
@@ -19,6 +20,8 @@ import net.minecraft.network.chat.ChatMessage;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.DataWatcher;
 import net.minecraft.server.level.EntityPlayer;
+import net.minecraft.server.level.PlayerChunkMap;
+import net.minecraft.server.level.WorldServer;
 import net.minecraft.server.network.PlayerConnection;
 import net.minecraft.world.entity.EntityAreaEffectCloud;
 import net.minecraft.world.entity.EntityLiving;
@@ -110,7 +113,7 @@ public class VersionHandler extends Version {
 
     @Override
     public PlayerBag createPlayerBag(Player player, double distance, float height, ItemStack backPackItem, ItemStack backPackItemForMe) {
-        return new PlayerBagHandler(player, distance, height, backPackItem, backPackItemForMe);
+        return new PlayerBagHandler(player, createRangeManager(player), distance, height, backPackItem, backPackItemForMe);
     }
 
     @Override
@@ -414,5 +417,12 @@ public class VersionHandler extends Version {
         skullMeta.setOwnerProfile(profile);
         itemStack.setItemMeta(skullMeta);
         return itemStack;
+    }
+
+    @Override
+    public IRangeManager createRangeManager(Entity entity) {
+        WorldServer level = ((CraftWorld)entity.getWorld()).getHandle();
+        PlayerChunkMap.EntityTracker trackedEntity = level.k().a.J.get(entity.getEntityId());
+        return new RangeManager(trackedEntity);
     }
 }

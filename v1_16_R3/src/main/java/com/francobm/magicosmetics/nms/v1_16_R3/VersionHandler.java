@@ -1,10 +1,11 @@
 package com.francobm.magicosmetics.nms.v1_16_R3;
 
+import com.francobm.magicosmetics.nms.IRangeManager;
 import com.francobm.magicosmetics.nms.v1_16_R3.cache.*;
 import com.francobm.magicosmetics.nms.v1_16_R3.models.PacketReaderHandler;
 import com.francobm.magicosmetics.nms.NPC.ItemSlot;
 import com.francobm.magicosmetics.nms.NPC.NPC;
-import com.francobm.magicosmetics.nms.Version.Version;
+import com.francobm.magicosmetics.nms.version.Version;
 import com.francobm.magicosmetics.nms.bag.EntityBag;
 import com.francobm.magicosmetics.nms.bag.PlayerBag;
 import com.francobm.magicosmetics.nms.balloon.EntityBalloon;
@@ -96,7 +97,7 @@ public class VersionHandler extends Version {
 
     @Override
     public PlayerBag createPlayerBag(Player player, double distance, float height, ItemStack backPackItem, ItemStack backPackForMe) {
-        return new PlayerBagHandler(player, distance, height, backPackItem, backPackForMe);
+        return new PlayerBagHandler(player, createRangeManager(player), distance, height, backPackItem, backPackForMe);
     }
 
     @Override
@@ -349,5 +350,12 @@ public class VersionHandler extends Version {
         }
         itemStack.setItemMeta(skullMeta);
         return itemStack;
+    }
+
+    @Override
+    public IRangeManager createRangeManager(Entity entity) {
+        WorldServer level = ((CraftWorld)entity.getWorld()).getHandle();
+        PlayerChunkMap.EntityTracker trackedEntity = level.getChunkProvider().playerChunkMap.trackedEntities.get(entity.getEntityId());
+        return new RangeManager(trackedEntity);
     }
 }

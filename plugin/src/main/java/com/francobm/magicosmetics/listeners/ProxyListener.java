@@ -1,6 +1,7 @@
 package com.francobm.magicosmetics.listeners;
 
 import com.francobm.magicosmetics.MagicCosmetics;
+import com.francobm.magicosmetics.api.CosmeticType;
 import com.francobm.magicosmetics.cache.PlayerData;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteStreams;
@@ -17,44 +18,26 @@ public class ProxyListener implements PluginMessageListener {
         if(!channel.equals("mc:player")) return;
         ByteArrayDataInput in = ByteStreams.newDataInput(message);
         String subChannel = in.readUTF();
-        switch (subChannel) {
-            case "load_cosmetics": {
-                String playerName = in.readUTF();
-                String loadCosmetics = in.readUTF();
-                Player p = Bukkit.getPlayer(playerName);
-                if (p == null) return;
-                plugin.getSql().loadPlayerAsync(p).thenAccept(v -> {
-                    plugin.getVersion().getPacketReader().injectPlayer(p);
-                    PlayerData playerData = PlayerData.getPlayer(p);
-                    if(loadCosmetics.isEmpty()) return;
-                    playerData.loadCosmetics(loadCosmetics);
-                });
-                break;
+        if (subChannel.equals("load_cosmetics")) {
+            String playerName = in.readUTF();
+            String loadCosmetics = in.readUTF();
+            String loadUseCosmetics = in.readUTF();
+            String status = in.readUTF();
+            Player p = Bukkit.getPlayer(playerName);
+            if (p == null) return;
+            PlayerData playerData = PlayerData.getPlayer(p);
+            if (status.equals("0")) {
+                plugin.getLogger().info("No se cargaron datos del proxy porque el jugador no contiene nada");
+                return;
             }
-            case "save_cosmetics": {
-                String playerName = in.readUTF();
-                Player p = Bukkit.getPlayer(playerName);
-                if (p == null) return;
-                PlayerData playerData = PlayerData.getPlayer(p);
-                plugin.getVersion().getPacketReader().removePlayer(player);
-                if (playerData.isZone()) {
-                    playerData.exitZoneSync();
-                }
-                playerData.sendSavePlayerData();
-                break;
-            }
-            case "quit": {
-                String playerName = in.readUTF();
-                Player p = Bukkit.getPlayer(playerName);
-                if (p == null) return;
-                plugin.getVersion().getPacketReader().removePlayer(p);
-                PlayerData playerData = PlayerData.getPlayer(p);
-                if (playerData.isZone()) {
-                    playerData.exitZoneSync();
-                }
-                plugin.getSql().savePlayerAsync(playerData);
-                break;
-            }
+            plugin.getLogger().info("Cosmeticos de la base de datos cargados... estableciendo los cosmeticos del proxy");
+            playerData.loadCosmetics(loadCosmetics, loadUseCosmetics);
+        }else if(subChannel.equals("ping")) {
+            String playerName = in.readUTF();
+            Player p = Bukkit.getPlayer(playerName);
+            if (p == null) return;
+            PlayerData playerData = PlayerData.getPlayer(p);
+            playerData.sendLoadPlayerData();
         }
     }
 }

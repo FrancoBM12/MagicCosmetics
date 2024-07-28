@@ -15,6 +15,7 @@ softdepend:
   - SkinsRestorer
   - Denizen
   - My_Worlds
+  - HuskSync
 authors: [FrancoBM]
 description: magic cosmetics for this server.
 website: FrancoBM#2980

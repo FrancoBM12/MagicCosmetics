@@ -7,7 +7,7 @@
         <groupId>com.francobm</groupId>
         <version>1.4-SNAPSHOT</version>
     </parent>
-    <version>3.0.1</version>
+    <version>3.0.4</version>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>MagicCosmetics</artifactId>
@@ -24,8 +24,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <source>11</source>
+                    <target>11</target>
                 </configuration>
             </plugin>
             <plugin>
@@ -99,6 +99,14 @@
         <repository>
             <id>sk89q-repo</id>
             <url>https://maven.enginehub.org/repo/</url>
+        </repository>
+        <repository>
+            <id>william278.net</id>
+            <url>https://repo.william278.net/releases</url>
+        </repository>
+        <repository>
+            <id>OnARandomBox</id>
+            <url>https://repo.onarandombox.com/content/groups/public/</url>
         </repository>
     </repositories>
 
@@ -260,6 +268,24 @@
             <groupId>com.github.FrancoBM12</groupId>
             <artifactId>API-MagicGestures</artifactId>
             <version>1.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.william278.husksync</groupId>
+            <artifactId>husksync-bukkit</artifactId>
+            <version>3.6.6</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.onarandombox.multiversecore</groupId>
+            <artifactId>Multiverse-Core</artifactId>
+            <version>4.3.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.onarandombox.multiverseinventories</groupId> <!-- Don't forget to replace this -->
+            <artifactId>Multiverse-Inventories</artifactId> <!-- Replace this as well -->
+            <version>4.2.4-SNAPSHOT</version> <!-- This too -->
             <scope>provided</scope>
         </dependency>
     </dependencies>

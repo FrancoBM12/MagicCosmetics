@@ -12,13 +12,12 @@ import java.util.concurrent.CompletableFuture;
 
 public abstract class SQL {
     protected MagicCosmetics plugin = MagicCosmetics.getInstance();
-    protected HikariCP hikariCP;
 
     public abstract void createTable();
 
     public abstract void loadPlayer(Player player);
 
-    public abstract CompletableFuture<Void> loadPlayerAsync(Player player);
+    public abstract CompletableFuture<PlayerData> loadPlayerAsync(Player player);
 
     public abstract void savePlayer(PlayerData playerData, boolean closed);
 

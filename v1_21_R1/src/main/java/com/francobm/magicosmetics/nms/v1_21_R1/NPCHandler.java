@@ -30,7 +30,6 @@ import org.bukkit.craftbukkit.v1_21_R1.entity.CraftArmorStand;
 import org.bukkit.craftbukkit.v1_21_R1.entity.CraftLivingEntity;
 import org.bukkit.craftbukkit.v1_21_R1.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftItemStack;
-import org.bukkit.craftbukkit.v1_21_R1.util.CraftLocation;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -47,7 +46,8 @@ public class NPCHandler extends NPC {
         EntityLiving entityPunch = ((CraftLivingEntity)this.punch).getHandle();
         entityPunch.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
         float yaw = location.getYaw() * 256.0F / 360.0F;
-        entityPlayer.c.b(new PacketPlayOutSpawnEntity(entityPunch, 0, CraftLocation.toBlockPosition(location)));
+        PacketPlayOutSpawnEntity packetPlayOutSpawnEntity = new PacketPlayOutSpawnEntity(entityPunch.an(), entityPunch.cz(), location.getX(), location.getY(), location.getZ(), location.getPitch(), location.getYaw(), entityPunch.am(), 0, entityPunch.dr(), entityPunch.ct());
+        entityPlayer.c.b(packetPlayOutSpawnEntity);
         entityPlayer.c.b(new PacketPlayOutEntityHeadRotation(entityPunch, (byte) yaw));
         entityPlayer.c.b(new PacketPlayOutEntityMetadata(entityPunch.an(), entityPunch.ar().c()));
         entityPlayer.c.b(new PacketPlayOutCamera(entityPunch));
@@ -55,48 +55,7 @@ public class NPCHandler extends NPC {
 
     @Override
     public void addNPC(Player player) {
-        MinecraftServer server = ((CraftServer) Bukkit.getServer()).getServer();
-        WorldServer world = ((CraftWorld) player.getWorld()).getHandle();
-        GameProfile gameProfile = new GameProfile(UUID.randomUUID(), player.getName());
-        EntityPlayer npc = new EntityPlayer(server, world, gameProfile, ClientInformation.a());
-
-        EntityArmorStand armorStand = new EntityArmorStand(EntityTypes.d, world);
-        armorStand.b(player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), player.getLocation().getYaw(), 0);
-        armorStand.k(true); //Invisible
-        armorStand.n(true); //Invulnerable
-        npc.b(player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), player.getLocation().getYaw(), 0);
-        //balloon
-        balloon = new EntityArmorStand(EntityTypes.d, world);
-        balloon.n(true); //invulnerable true
-        balloon.k(true); //Invisible true
-
-        EntityArmorStand entityPunch = new EntityArmorStand(EntityTypes.d, world);
-        entityPunch.n(true);
-        entityPunch.k(true);
-        entityPunch.b(player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), player.getLocation().getYaw(), player.getLocation().getPitch());
-        leashed = new EntityPufferFish(EntityTypes.aF, world);
-        ((EntityPufferFish)leashed).b(npc, true);
-        leashed.n(true);
-        leashed.k(true);
-        leashed.d(true); //silent true
-        //balloon
-        //skin
-        try {
-            String[] skin = getFromPlayer(player);
-
-            npc.getBukkitEntity().getProfile().getProperties().put("textures", new Property("textures", skin[0], skin[1]));
-        }catch (NoSuchElementException ignored){
-
-        }
-        //skin
-        // The client settings.
-        ((CraftPlayer)player).getHandle().c.b(new PacketPlayOutEntityMetadata(armorStand.an(), armorStand.ar().c()));
-
-        //
-        this.entity = npc.getBukkitEntity();
-        this.punch = entityPunch.getBukkitEntity();
-        this.armorStand = armorStand.getBukkitEntity();
-        addNPC(this, player);
+        addNPC(player, player.getLocation());
     }
 
     @Override
@@ -107,6 +66,8 @@ public class NPCHandler extends NPC {
         EntityPlayer npc = new EntityPlayer(server, world, gameProfile, ClientInformation.a());
 
         EntityArmorStand armorStand = new EntityArmorStand(EntityTypes.d, world);
+        armorStand.k(true); //Invisible
+        armorStand.n(true); //Invulnerable
         armorStand.b(player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), player.getLocation().getYaw(), 0);
         npc.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
         //balloon
@@ -131,9 +92,6 @@ public class NPCHandler extends NPC {
 
         }
         //skin
-
-        // The client settings.
-
         //
         this.entity = npc.getBukkitEntity();
         this.punch = entityPunch.getBukkitEntity();
@@ -156,16 +114,20 @@ public class NPCHandler extends NPC {
 
     @Override
     public void spawnNPC(Player player) {
+        Location npcLocation = entity.getLocation();
+        Location armorStandLocation = armorStand.getLocation();
         EntityPlayer entityPlayer = ((CraftPlayer)player).getHandle();
         EntityPlayer npc = ((CraftPlayer)this.entity).getHandle();
         EntityArmorStand armorStand = ((CraftArmorStand)this.armorStand).getHandle();
         armorStand.n(true); //invulnerable true
         armorStand.k(true); //Invisible true
         npc.c = entityPlayer.c;
+        PacketPlayOutSpawnEntity npcSpawnPacket = new PacketPlayOutSpawnEntity(npc.an(), npc.cz(), npcLocation.getX(), npcLocation.getY(), npcLocation.getZ(), npcLocation.getPitch(), npcLocation.getYaw(), npc.am(), 0, npc.dr(), npc.ct());
+        PacketPlayOutSpawnEntity armorStandSpawnPacket = new PacketPlayOutSpawnEntity(armorStand.an(), armorStand.cz(), armorStandLocation.getX(), armorStandLocation.getY(), armorStandLocation.getZ(), armorStandLocation.getPitch(), armorStandLocation.getYaw(), armorStand.am(), 0, armorStand.dr(), armorStand.ct());
         entityPlayer.c.b(new ClientboundPlayerInfoUpdatePacket(Enum.valueOf(ClientboundPlayerInfoUpdatePacket.a.class, "ADD_PLAYER"), npc));
-        entityPlayer.c.b(new PacketPlayOutSpawnEntity(npc, 0, CraftLocation.toBlockPosition(entity.getLocation())));
+        entityPlayer.c.b(npcSpawnPacket);
         entityPlayer.c.b(new PacketPlayOutEntityHeadRotation(npc, (byte) (player.getLocation().getYaw() * 256 / 360)));
-        entityPlayer.c.b(new PacketPlayOutSpawnEntity(armorStand, 0, CraftLocation.toBlockPosition(this.armorStand.getLocation())));
+        entityPlayer.c.b(armorStandSpawnPacket);
         //client settings
         entityPlayer.c.b(new PacketPlayOutEntityMetadata(armorStand.an(), armorStand.ar().c()));
         //
@@ -234,8 +196,10 @@ public class NPCHandler extends NPC {
         if(isBigHead()){
             balloon.d(new Vector3f(balloon.C().b(), 0, 0));
         }
-        realPlayer.c.b(new PacketPlayOutSpawnEntity(balloon, 0, CraftLocation.toBlockPosition(balloonPos)));
-        realPlayer.c.b(new PacketPlayOutSpawnEntity(leashed, 0, CraftLocation.toBlockPosition(balloonPosition)));
+        PacketPlayOutSpawnEntity balloonSpawnPacket = new PacketPlayOutSpawnEntity(balloon.an(), balloon.cz(), balloonPos.getX(), balloonPos.getY(), balloonPos.getZ(), balloonPos.getPitch(), balloonPos.getYaw(), balloon.am(), 0, balloon.dr(), balloon.ct());
+        PacketPlayOutSpawnEntity leashedSpawnPacket = new PacketPlayOutSpawnEntity(leashed.an(), leashed.cz(), balloonPosition.getX(), balloonPosition.getY(), balloonPosition.getZ(), balloonPosition.getPitch(), balloonPosition.getYaw(), leashed.am(), 0, leashed.dr(), leashed.ct());
+        realPlayer.c.b(balloonSpawnPacket);
+        realPlayer.c.b(leashedSpawnPacket);
         realPlayer.c.b(new PacketPlayOutEntityMetadata(balloon.an(), balloon.ar().c()));
         realPlayer.c.b(new PacketPlayOutEntityMetadata(leashed.an(), leashed.ar().c()));
         realPlayer.c.b(new PacketPlayOutAttachEntity(leashed, entityPlayer));

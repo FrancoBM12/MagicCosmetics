@@ -54,7 +54,7 @@ public class Spray extends Cosmetic {
 
     public void draw(Player player, BlockFace blockFace, Location location, int rotation) {
         MagicCosmetics plugin = MagicCosmetics.getInstance();
-        clear();
+        remove();
         if(itemImage) {
             ItemStack item = getItemColor(player);
             ItemMeta itemMeta = item.getItemMeta();
@@ -82,13 +82,13 @@ public class Spray extends Cosmetic {
         if(plugin.getSprayCooldown() > 0) {
             if (coolDown > System.currentTimeMillis()) {
                 int seconds = (int) ((coolDown - System.currentTimeMillis()) / 1000);
-                plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("spray-cooldown").replace("%time%", Utils.getTime(seconds)));
+                Utils.sendMessage(player, plugin.prefix + plugin.getMessages().getString("spray-cooldown").replace("%time%", Utils.getTime(seconds)));
                 return;
             }
             long milliseconds = plugin.getSprayCooldown() * 1000L;
             coolDown = System.currentTimeMillis() + milliseconds;
         }
-        clear();
+        remove();
         if(itemImage) {
             ItemStack item = getItemColor(player);
             ItemMeta itemMeta = item.getItemMeta();
@@ -104,20 +104,20 @@ public class Spray extends Cosmetic {
             } else {
                 rotation = 0;
             }
-            plugin.getLogger().info("Rotation: " + rotation);
+            //plugin.getLogger().info("Rotation: " + rotation);
             SprayDrawingEvent event = new SprayDrawingEvent(player, result.getHitBlock(), key);
             Bukkit.getPluginManager().callEvent(event);
             if(event.isCancelled()) return;
             Location frameLoc = result.getHitBlock().getRelative(result.getHitBlockFace()).getLocation();
             Utils.sendAllSound(frameLoc, Sound.getSound("spray"));
             customSpray = plugin.getVersion().createCustomSpray(player, frameLoc, result.getHitBlockFace(), item, null, rotation);
-            active();
+            update();
             bukkitTask = plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
                 if(customSpray == null) {
                     bukkitTask.cancel();
                     return;
                 }
-                clear();
+                remove();
             }, plugin.getSprayStayTime());
             return;
         }
@@ -140,7 +140,7 @@ public class Spray extends Cosmetic {
             Location frameLoc = result.getHitBlock().getRelative(result.getHitBlockFace()).getLocation();
             Utils.sendAllSound(frameLoc, Sound.getSound("spray"));
             customSpray = plugin.getVersion().createCustomSpray(player, frameLoc, result.getHitBlockFace(), map.clone(), mapView, rotation);
-            active();
+            update();
         }
 
         bukkitTask = plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
@@ -148,12 +148,12 @@ public class Spray extends Cosmetic {
                 bukkitTask.cancel();
                 return;
             }
-            clear();
+            remove();
         }, plugin.getSprayStayTime());
     }
 
     @Override
-    public void active() {
+    public void update() {
         if(customSpray == null) return;
         if(customSpray.isPreview()) return;
         customSpray.spawn(false);
@@ -175,7 +175,7 @@ public class Spray extends Cosmetic {
     }
 
     @Override
-    public void clear() {
+    public void remove() {
         if(customSpray != null) {
             customSpray.setPreview(false);
             customSpray.remove();
@@ -214,5 +214,17 @@ public class Spray extends Cosmetic {
 
     public boolean isItemImage() {
         return itemImage;
+    }
+
+    @Override
+    public void spawn(Player player) {
+        if(customSpray == null) return;
+        customSpray.spawn(player);
+    }
+
+    @Override
+    public void despawn(Player player) {
+        if(customSpray == null) return;
+        customSpray.remove(player);
     }
 }

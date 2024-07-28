@@ -86,14 +86,14 @@ public class Balloon extends Cosmetic {
 
     public void active(Entity entity){
         if(entity == null) {
-            clear();
+            remove();
             return;
         }
         if(balloonIA != null) {
             if(invisibleLeash){
                 if(balloonIA.getCustomEntity() == null) {
                     if(entity.isDead()) return;
-                    clear();
+                    remove();
                     balloonIA.spawn(entity.getLocation().clone().add(0, space, 0).add(entity.getLocation().clone().getDirection().normalize().multiply(-1)));
                     balloonIA.detectPlayers(leashed, entity);
                     if (isColored()) {
@@ -106,7 +106,7 @@ public class Balloon extends Cosmetic {
             }
             if(balloonIA.getCustomEntity() == null) {
                 if(entity.isDead()) return;
-                clear();
+                remove();
                 balloonIA.spawn(entity.getLocation().clone().add(0, space, 0).add(entity.getLocation().clone().getDirection().normalize().multiply(-1)));
                 leashed = balloonIA.spawnLeash(balloonIA.getLeashBone().getLocation());
                 balloonIA.detectPlayers(leashed, entity);
@@ -122,7 +122,7 @@ public class Balloon extends Cosmetic {
             if(invisibleLeash) {
                 if(balloonEngine.getBalloonUniqueId() == null){
                     if(entity.isDead()) return;
-                    clear();
+                    remove();
                     armorStand = balloonEngine.spawnModel(entity.getLocation().clone().add(0, space, 0).add(entity.getLocation().clone().getDirection().normalize().multiply(-1)));
                     if (isColored()) {
                         balloonEngine.tintModel(getColor());
@@ -133,7 +133,7 @@ public class Balloon extends Cosmetic {
             }
             if(balloonEngine.getBalloonUniqueId() == null){
                 if(entity.isDead()) return;
-                clear();
+                remove();
                 armorStand = balloonEngine.spawnModel(entity.getLocation().clone().add(0, space, 0).add(entity.getLocation().clone().getDirection().normalize().multiply(-1)));
                 balloonEngine.spawnLeash(entity);
                 if (isColored()) {
@@ -146,7 +146,7 @@ public class Balloon extends Cosmetic {
         if(entityBalloon == null){
             if(entity.isDead()) return;
 
-            clear();
+            remove();
             entityBalloon = MagicCosmetics.getInstance().getVersion().createEntityBalloon(entity, space, distance, bigHead, invisibleLeash);
             entityBalloon.spawn(false);
         }
@@ -166,7 +166,7 @@ public class Balloon extends Cosmetic {
             if(invisibleLeash) {
                 if(balloonIA.getCustomEntity() == null) {
                     if(lendEntity.isDead()) return;
-                    clear();
+                    remove();
                     balloonIA.spawn(lendEntity.getLocation().clone().add(0, space, 0).add(lendEntity.getLocation().clone().getDirection().normalize().multiply(-1)));
                     if (isColored()) {
                         balloonIA.paintBalloon(getColor());
@@ -177,7 +177,7 @@ public class Balloon extends Cosmetic {
             }
             if(balloonIA.getCustomEntity() == null){
                 if(lendEntity.isDead()) return;
-                clear();
+                remove();
                 balloonIA.spawn(lendEntity.getLocation().clone().add(0, space, 0).add(lendEntity.getLocation().clone().getDirection().normalize().multiply(-1)));
                 leashed = balloonIA.spawnLeash(balloonIA.getLeashBone().getLocation());
                 balloonIA.detectPlayers(leashed, player);
@@ -193,7 +193,7 @@ public class Balloon extends Cosmetic {
             if(invisibleLeash) {
                 if(balloonEngine.getBalloonUniqueId() == null){
                     if(lendEntity.isDead()) return;
-                    clear();
+                    remove();
 
                     armorStand = balloonEngine.spawnModel(lendEntity.getLocation().clone().add(0, space, 0).add(lendEntity.getLocation().clone().getDirection().normalize().multiply(-1)));
                     if (isColored()) {
@@ -205,7 +205,7 @@ public class Balloon extends Cosmetic {
             }
             if(balloonEngine.getBalloonUniqueId() == null){
                 if(lendEntity.isDead()) return;
-                clear();
+                remove();
                 armorStand = balloonEngine.spawnModel(lendEntity.getLocation().clone().add(0, space, 0).add(lendEntity.getLocation().clone().getDirection().normalize().multiply(-1)));
                 balloonEngine.spawnLeash(lendEntity);
                 if (isColored()) {
@@ -218,7 +218,7 @@ public class Balloon extends Cosmetic {
         if(playerBalloon == null){
             if(lendEntity.isDead()) return;
 
-            clear();
+            remove();
             playerBalloon = MagicCosmetics.getInstance().getVersion().createPlayerBalloon(player, space, distance, bigHead, invisibleLeash);
             playerBalloon.spawn(false);
         }
@@ -257,13 +257,13 @@ public class Balloon extends Cosmetic {
     }
 
     @Override
-    public void active() {
+    public void update() {
         if(isHideCosmetic()) {
-            clear();
+            remove();
             return;
         }
         if(!removedLendEntity && player.isInvisible() || !removedLendEntity && player.isGliding() || !removedLendEntity && player.hasPotionEffect(PotionEffectType.INVISIBILITY)){
-            clear();
+            remove();
             return;
         }
         if(player == null) {
@@ -274,7 +274,7 @@ public class Balloon extends Cosmetic {
                 if(balloonIA.getCustomEntity() == null) {
                     if(player.isDead()) return;
                     if(player.getGameMode() == GameMode.SPECTATOR) return;
-                    clear();
+                    remove();
                     balloonIA.spawn(player.getLocation().clone().add(0, space, 0).add(player.getLocation().clone().getDirection().normalize().multiply(-1)));
                     if (isColored()) {
                         balloonIA.paintBalloon(getColor());
@@ -286,7 +286,7 @@ public class Balloon extends Cosmetic {
             if(balloonIA.getCustomEntity() == null){
                 if(player.isDead() || !player.isValid()) return;
                 if(player.getGameMode() == GameMode.SPECTATOR) return;
-                clear();
+                remove();
                 balloonIA.spawn(player.getLocation().clone().add(0, space, 0).add(player.getLocation().clone().getDirection().normalize().multiply(-1)));
                 leashed = balloonIA.spawnLeash(balloonIA.getLeashBone().getLocation());
                 balloonIA.detectPlayers(leashed, player);
@@ -302,7 +302,7 @@ public class Balloon extends Cosmetic {
             if(invisibleLeash) {
                 if(balloonEngine.getBalloonUniqueId() == null){
                     if(player.isDead()) return;
-                    clear();
+                    remove();
 
                     armorStand = balloonEngine.spawnModel(player.getLocation().clone().add(0, space, 0).add(player.getLocation().clone().getDirection().normalize().multiply(-1)));
                     if (isColored()) {
@@ -314,7 +314,7 @@ public class Balloon extends Cosmetic {
             }
             if(balloonEngine.getBalloonUniqueId() == null){
                 if(player.isDead()) return;
-                clear();
+                remove();
                 armorStand = balloonEngine.spawnModel(player.getLocation().clone().add(0, space, 0).add(player.getLocation().clone().getDirection().normalize().multiply(-1)));
                 balloonEngine.spawnLeash(player);
                 if (isColored()) {
@@ -328,7 +328,7 @@ public class Balloon extends Cosmetic {
             if(player.isDead()) return;
             if(player.getGameMode() == GameMode.SPECTATOR) return;
 
-            clear();
+            remove();
             playerBalloon = MagicCosmetics.getInstance().getVersion().createPlayerBalloon(player, space, distance, bigHead, invisibleLeash);
             playerBalloon.spawn(false);
         }
@@ -341,7 +341,7 @@ public class Balloon extends Cosmetic {
     }
 
     @Override
-    public void clear() {
+    public void remove() {
         if(balloonEngine != null){
             balloonEngine.remove(armorStand);
         }
@@ -585,5 +585,17 @@ public class Balloon extends Cosmetic {
         super.setLendEntity(lendEntity);
         if(playerBalloon == null) return;
         playerBalloon.setLendEntity(lendEntity);
+    }
+
+    @Override
+    public void spawn(Player player) {
+        if(playerBalloon == null) return;
+        playerBalloon.spawn(player);
+    }
+
+    @Override
+    public void despawn(Player player) {
+        if(playerBalloon == null) return;
+        playerBalloon.remove(player);
     }
 }

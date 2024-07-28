@@ -9,6 +9,7 @@ import com.francobm.magicosmetics.cache.cosmetics.Spray;
 import com.francobm.magicosmetics.cache.cosmetics.WStick;
 import com.francobm.magicosmetics.cache.cosmetics.balloons.Balloon;
 import com.francobm.magicosmetics.events.*;
+import com.francobm.magicosmetics.nms.IRangeManager;
 import com.francobm.magicosmetics.nms.NPC.ItemSlot;
 import com.francobm.magicosmetics.nms.NPC.NPC;
 import com.francobm.magicosmetics.utils.Utils;
@@ -24,9 +25,6 @@ import org.bukkit.entity.Pose;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffectType;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.*;
 
 public class PlayerData {
@@ -54,8 +52,9 @@ public class PlayerData {
     private float speedFly;
     private boolean hideCosmetics;
     private boolean hasInBlackList;
+    private final IRangeManager rangeManager;
 
-    public PlayerData(UUID uniqueId, String name){
+    public PlayerData(UUID uniqueId, String name, IRangeManager rangeManager){
         this.uniqueId = uniqueId;
         this.name = name;
         this.hat = null;
@@ -73,11 +72,12 @@ public class PlayerData {
         this.zone = null;
         this.inventory = new HashMap<>();
         this.offlinePlayer = Bukkit.getOfflinePlayer(uniqueId);
+        this.rangeManager = rangeManager;
     }
 
     public static PlayerData getPlayer(OfflinePlayer player){
         if(!players.containsKey(player.getUniqueId())){
-            PlayerData playerData = new PlayerData(player.getUniqueId(), player.getName());
+            PlayerData playerData = new PlayerData(player.getUniqueId(), player.getName(), null/*MagicCosmetics.getInstance().getVersion().createRangeManager(player.getPlayer())*/);
             players.put(player.getUniqueId(), playerData);
             return playerData;
         }
@@ -97,16 +97,16 @@ public class PlayerData {
 
     public void updateCosmetics(){
         clearCosmeticsInUse(true);
-        if(hat != null && !hat.update()){
+        if(hat != null && !hat.updateProperties()){
             removeHat();
         }
-        if(wStick != null && !wStick.update()) {
+        if(wStick != null && !wStick.updateProperties()) {
             removeWStick();
         }
-        if(balloon != null && !balloon.update()) {
+        if(balloon != null && !balloon.updateProperties()) {
             removeBalloon();
         }
-        if(spray != null && !spray.update()) {
+        if(spray != null && !spray.updateProperties()) {
             removeSpray();
         }
         /*for(Cosmetic cosmetic : cosmetics){
@@ -379,7 +379,7 @@ public class PlayerData {
     public boolean hasCosmeticById(String id) {
         MagicCosmetics plugin = MagicCosmetics.getInstance();
         Cosmetic cosmetic = Cosmetic.getCosmetic(id);
-        if(plugin.isPermissions() && !cosmetic.getPermission().isEmpty() && plugin.isLuckPerms()) {
+        if(plugin.isPermissions() && !cosmetic.getPermission().isEmpty()) {
             return cosmetic.hasPermission(getOfflinePlayer().getPlayer());
         }
         return cosmetics.containsKey(id);
@@ -664,50 +664,34 @@ public class PlayerData {
 
     public void clearHat(){
         Player player = getOfflinePlayer().getPlayer();
-        if(player == null){
-            return;
-        }
-        if(hat == null){
-            return;
-        }
+        if(player == null) return;
+        if(hat == null) return;
         if(hat.isRemovedLendEntity()) return;
-        hat.clear();
+        hat.remove();
     }
 
     public void clearBag(){
         Player player = getOfflinePlayer().getPlayer();
-        if(player == null){
-            return;
-        }
-        if(bag == null){
-            return;
-        }
+        if(player == null) return;
+        if(bag == null) return;
         if(bag.isRemovedLendEntity()) return;
-        bag.clear();
+        bag.remove();
     }
 
     public void clearWStick(){
         Player player = getOfflinePlayer().getPlayer();
-        if(player == null){
-            return;
-        }
-        if(wStick == null){
-            return;
-        }
+        if(player == null) return;
+        if(wStick == null) return;
         if(wStick.isRemovedLendEntity()) return;
-        wStick.clear();
+        wStick.remove();
     }
 
     public void clearBalloon(){
         Player player = getOfflinePlayer().getPlayer();
-        if(player == null){
-            return;
-        }
-        if(balloon == null){
-            return;
-        }
+        if(player == null) return;
+        if(balloon == null) return;
         if(balloon.isRemovedLendEntity()) return;
-        balloon.clear();
+        balloon.remove();
     }
 
     public void clearSpray(){
@@ -719,7 +703,7 @@ public class PlayerData {
             return;
         }
         if(spray.isRemovedLendEntity()) return;
-        spray.clear();
+        spray.remove();
     }
 
     public void clearPreviewHat(){
@@ -782,7 +766,7 @@ public class PlayerData {
         if(previewSpray == null){
             return;
         }
-        previewSpray.clear();
+        previewSpray.remove();
     }
 
     public void activeHat(){
@@ -796,7 +780,7 @@ public class PlayerData {
         if(isZone) return;
         if(MagicCosmetics.getInstance().isItemsAdder()){
             if(MagicCosmetics.getInstance().getItemsAdder().hasEmote(player) && hat.isUseEmote()){
-                hat.active();
+                hat.update();
                 return;
             }
         }
@@ -804,7 +788,7 @@ public class PlayerData {
             clearHat();
             return;
         }
-        hat.active();
+        hat.update();
     }
 
     public void activeBag(){
@@ -818,15 +802,16 @@ public class PlayerData {
         if(isZone) return;
         if(MagicCosmetics.getInstance().isItemsAdder()){
             if(MagicCosmetics.getInstance().getItemsAdder().hasEmote(player) && bag.isUseEmote()){
-                bag.active();
+                bag.update();
                 return;
             }
         }
-        if(player.getPose() == Pose.SLEEPING || player.getPose() == Pose.SWIMMING || player.isGliding() || player.isInvisible() || player.hasPotionEffect(PotionEffectType.INVISIBILITY)){
+        Material material = player.getLocation().getBlock().getType();
+        if(player.getPose() == Pose.SLEEPING || player.getPose() == Pose.SWIMMING || player.isGliding() || player.isInvisible() || player.hasPotionEffect(PotionEffectType.INVISIBILITY) || material  == Material.NETHER_PORTAL || material  == Material.END_PORTAL){
             clearBag();
             return;
         }
-        bag.active();
+        bag.update();
     }
 
     public void activeWStick(){
@@ -840,7 +825,7 @@ public class PlayerData {
         if(isZone) return;
         if(MagicCosmetics.getInstance().isItemsAdder()){
             if(MagicCosmetics.getInstance().getItemsAdder().hasEmote(player) && wStick.isUseEmote()){
-                wStick.active();
+                wStick.update();
                 return;
             }
         }
@@ -848,7 +833,7 @@ public class PlayerData {
             clearWStick();
             return;
         }
-        wStick.active();
+        wStick.update();
     }
 
     public void activeBalloon(){
@@ -862,7 +847,7 @@ public class PlayerData {
         if(isZone) return;
         if(MagicCosmetics.getInstance().isItemsAdder()){
             if(MagicCosmetics.getInstance().getItemsAdder().hasEmote(player) && balloon.isUseEmote()){
-                balloon.active();
+                balloon.update();
                 return;
             }
         }
@@ -870,7 +855,7 @@ public class PlayerData {
             balloon.lendToEntity();
             return;
         }
-        balloon.active();
+        balloon.update();
     }
 
     public void previewDraw(){
@@ -908,7 +893,7 @@ public class PlayerData {
             return;
         }
         if(isZone) return;
-        spray.active();
+        spray.update();
     }
 
     public void activePreviewHat(){
@@ -1018,6 +1003,13 @@ public class PlayerData {
             spray.clearClose();
     }
 
+    public void forceClearCosmeticsInventory() {
+        if(hat != null)
+            hat.forceRemove();
+        if(wStick != null)
+            wStick.forceRemove();
+    }
+
     public void clearCosmeticsInventory() {
         clearHat();
         clearWStick();
@@ -1057,7 +1049,7 @@ public class PlayerData {
             if(helmet != null){
                 if(player.getInventory().firstEmpty() == -1){
                     Utils.sendSound(player, Sound.getSound("on_enter_zone_error"));
-                    plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + plugin.getMessages().getString("zone-exit-by-helmet"));
+                    Utils.sendMessage(player,plugin.prefix + plugin.getMessages().getString("zone-exit-by-helmet"));
                     return false;
                 }
             }
@@ -1066,7 +1058,7 @@ public class PlayerData {
         if(helmet != null) {
             if (player.getInventory().firstEmpty() == -1) {
                 Utils.sendSound(player, Sound.getSound("on_enter_zone_error"));
-                plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + plugin.getMessages().getString("zone-exit-by-helmet"));
+                Utils.sendMessage(player,plugin.prefix + plugin.getMessages().getString("zone-exit-by-helmet"));
                 return false;
             }
         }
@@ -1085,7 +1077,7 @@ public class PlayerData {
             if (!offHand.getType().isAir()) {
                 if (player.getInventory().firstEmpty() == -1) {
                     Utils.sendSound(player, Sound.getSound("on_enter_zone_error"));
-                    plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("zone-exit-by-offhand"));
+                    Utils.sendMessage(player, plugin.prefix + plugin.getMessages().getString("zone-exit-by-offhand"));
                     return false;
                 }
             }
@@ -1094,7 +1086,7 @@ public class PlayerData {
         if(!offHand.getType().isAir()) {
             if(player.getInventory().firstEmpty() == -1){
                 Utils.sendSound(player, Sound.getSound("on_enter_zone_error"));
-                plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + plugin.getMessages().getString("zone-exit-by-offhand"));
+                Utils.sendMessage(player,plugin.prefix + plugin.getMessages().getString("zone-exit-by-offhand"));
                 return false;
             }
         }
@@ -1289,7 +1281,7 @@ public class PlayerData {
                 plugin.getVersion().setCamera(player, player);
                 player.teleport(zone.getExit());
                 setZone(null);
-                plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("exit-color-without-perm"));
+                Utils.sendMessage(player, plugin.prefix + plugin.getMessages().getString("exit-color-without-perm"));
                 return;
             }
             if(plugin.isPermissions()){
@@ -1357,7 +1349,7 @@ public class PlayerData {
             }
             if(count != 0){
                 if(count == 4){
-                    plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + plugin.getMessages().getString("exit-all-cosmetics"));
+                    Utils.sendMessage(player,plugin.prefix + plugin.getMessages().getString("exit-all-cosmetics"));
                     isZone = false;
                     sneak = false;
                     spectator = false;
@@ -1368,7 +1360,7 @@ public class PlayerData {
                     setZone(null);
                     return;
                 }
-                plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + plugin.getMessages().getString("exit-some-cosmetics").replace("%count%", String.valueOf(count)));
+                Utils.sendMessage(player,plugin.prefix + plugin.getMessages().getString("exit-some-cosmetics").replace("%count%", String.valueOf(count)));
             }
             isZone = false;
             sneak = false;
@@ -1434,17 +1426,17 @@ public class PlayerData {
                     return false;
                 }
                 if(mainHand.getAmount() < token.getItemStack().getAmount()){
-                    plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("insufficient-tokens"));
+                    Utils.sendMessage(player, plugin.prefix + plugin.getMessages().getString("insufficient-tokens"));
                     return false;
                 }
                 if(!cosmetic.getPermission().isEmpty() && plugin.isLuckPerms()){
                     if(cosmetic.hasPermission(player)){
-                        plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
+                        Utils.sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
                         return false;
                     }
                 }else {
                     if (playerData.getCosmeticById(token.getCosmetic()) != null) {
-                        plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
+                        Utils.sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
                         return false;
                     }
                 }
@@ -1466,17 +1458,17 @@ public class PlayerData {
                     return false;
                 }
                 if(offHand.getAmount() < token.getItemStack().getAmount()){
-                    plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("insufficient-tokens"));
+                    Utils.sendMessage(player, plugin.prefix + plugin.getMessages().getString("insufficient-tokens"));
                     return false;
                 }
                 if(!cosmetic.getPermission().isEmpty() && plugin.isLuckPerms()){
                     if(cosmetic.hasPermission(player)){
-                        plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
+                        Utils.sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
                         return false;
                     }
                 }else {
                     if (playerData.getCosmeticById(token.getCosmetic()) != null) {
-                        plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
+                        Utils.sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
                         return false;
                     }
                 }
@@ -1500,17 +1492,17 @@ public class PlayerData {
                 return false;
             }
             if(itemStack.getAmount() < token.getItemStack().getAmount()){
-                plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("insufficient-tokens"));
+                Utils.sendMessage(player, plugin.prefix + plugin.getMessages().getString("insufficient-tokens"));
                 return false;
             }
             if(!cosmetic.getPermission().isEmpty() && plugin.isLuckPerms()){
                 if(cosmetic.hasPermission(player)){
-                    plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
+                    Utils.sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
                     return false;
                 }
             }else {
                 if (playerData.getCosmeticById(token.getCosmetic()) != null) {
-                    plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
+                    Utils.sendMessage(player, plugin.prefix + plugin.getMessages().getString("already-token"));
                     return false;
                 }
             }
@@ -1664,21 +1656,65 @@ public class PlayerData {
         this.hasInBlackList = hasInBlackList;
     }
 
+    //sync
+    public void loadCosmetics(String loadCosmetics, String loadUseCosmetics) {
+        MagicCosmetics plugin = MagicCosmetics.getInstance();
+        loadCosmetics(loadCosmetics);
+        String[] cosmetics = loadUseCosmetics.split(";");
+        String hat = cosmetics[0];
+        String bag = cosmetics[1];
+        String wStick = cosmetics[2];
+        String balloon = cosmetics[3];
+        String spray = cosmetics[4];
+        //Bukkit.getLogger().info("Cosmetics: " + loadUseCosmetics);
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            setCosmetic(CosmeticType.HAT, getCosmeticById(hat));
+            setCosmetic(CosmeticType.WALKING_STICK, getCosmeticById(wStick));
+        });
+        setCosmetic(CosmeticType.BAG, getCosmeticById(bag));
+        setCosmetic(CosmeticType.BALLOON, getCosmeticById(balloon));
+        setCosmetic(CosmeticType.SPRAY, getCosmeticById(spray));
+    }
+
+    public String getCosmeticsInUse() {
+        return (hat != null ? hat.getId() : "0") + ";" +
+                (bag != null ? bag.getId() : "0") + ";" +
+                (wStick != null ? wStick.getId() : "0") + ";" +
+                (balloon != null ? balloon.getId() : "0") + ";" +
+                (spray != null ? spray.getId() : "0") + ";";
+    }
+    //
+
     //Proxy
+
+    public void sendLoadPlayerData() {
+        ByteArrayDataOutput output = ByteStreams.newDataOutput();
+        output.writeUTF("load_cosmetics"); // the channel could be whatever you want
+        output.writeUTF(getOfflinePlayer().getName());
+        MagicCosmetics plugin = MagicCosmetics.getInstance();
+        plugin.getServer().sendPluginMessage(plugin, "mc:player", output.toByteArray());
+        //plugin.getLogger().info("Send Load Data");
+    }
 
     public void sendSavePlayerData()
     {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
-        try {
-            dataOutputStream.writeUTF("save_cosmetics"); // the channel could be whatever you want
-            dataOutputStream.writeUTF(getOfflinePlayer().getName());
-            dataOutputStream.writeUTF(saveCosmetics());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        getOfflinePlayer().getPlayer().sendPluginMessage( MagicCosmetics.getInstance(), "mc:player", outputStream.toByteArray() );
-        MagicCosmetics.getInstance().getLogger().info("Send Save Data");
+        MagicCosmetics plugin = MagicCosmetics.getInstance();
+        /*if(plugin.isHuskSync()){
+            plugin.getHuskSync().saveDataToPlayer(this);
+            return;
+        }*/
+        if(!plugin.isProxy()) return;
+        ByteArrayDataOutput output = ByteStreams.newDataOutput();
+        output.writeUTF("save_cosmetics"); // the channel could be whatever you want
+        output.writeUTF(getOfflinePlayer().getName());
+        output.writeUTF(saveCosmetics());
+        output.writeUTF(getCosmeticsInUse());
+        plugin.getServer().sendPluginMessage(plugin, "mc:player", output.toByteArray());
+        //plugin.getLogger().info("Send Save Data");
+    }
+
+    public IRangeManager getRangeManager() {
+        return rangeManager;
     }
 
     //

@@ -10,12 +10,22 @@ import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import net.minecraft.network.protocol.game.PacketPlayInArmAnimation;
+import net.minecraft.network.protocol.game.PacketPlayOutEntityDestroy;
 import net.minecraft.network.protocol.game.PacketPlayOutSetSlot;
+import net.minecraft.network.protocol.game.PacketPlayOutSpawnEntity;
 import net.minecraft.server.level.EntityPlayer;
+import net.minecraft.server.level.WorldServer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.entity.LevelEntityGetter;
+import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 import org.bukkit.craftbukkit.v1_19_R1.inventory.CraftItemStack;
+import org.bukkit.entity.Player;
+
+import java.lang.reflect.Method;
 
 public class MCChannelHandler extends ChannelDuplexHandler {
+
     private final EntityPlayer player;
 
     public MCChannelHandler(EntityPlayer player){
@@ -27,6 +37,14 @@ public class MCChannelHandler extends ChannelDuplexHandler {
             PacketPlayOutSetSlot packetPlayOutSetSlot = (PacketPlayOutSetSlot) msg;
             if(packetPlayOutSetSlot.b() == 0)
                 CallUpdateInvEvent(packetPlayOutSetSlot.c(), packetPlayOutSetSlot.d());
+        }else if(msg instanceof PacketPlayOutSpawnEntity) {
+            PacketPlayOutSpawnEntity otherPacket = (PacketPlayOutSpawnEntity) msg;
+            handleEntitySpawn(otherPacket.b());
+        }else if(msg instanceof PacketPlayOutEntityDestroy) {
+            PacketPlayOutEntityDestroy otherPacket = (PacketPlayOutEntityDestroy) msg;
+            for(int id : otherPacket.b()){
+                handleEntityDespawn(id);
+            }
         }
         super.write(ctx, msg, promise);
     }
@@ -68,5 +86,31 @@ public class MCChannelHandler extends ChannelDuplexHandler {
             return;
         }
         plugin.getServer().getScheduler().runTask(plugin, () -> plugin.getServer().getPluginManager().callEvent(event));
+    }
+
+    private void handleEntitySpawn(int id) {
+        org.bukkit.entity.Entity entity = this.getEntityAsync(this.player.x(), id);
+        if(!(entity instanceof Player)) return;
+        Player otherPlayer = (Player) entity;
+        PlayerData playerData = PlayerData.getPlayer(otherPlayer);
+        if(playerData == null) return;
+        if(playerData.getBag() == null) return;
+        playerData.getBag().spawn(this.player.getBukkitEntity());
+    }
+
+    private void handleEntityDespawn(int id) {
+        org.bukkit.entity.Entity entity = this.getEntityAsync(this.player.x(), id);
+        if(!(entity instanceof Player)) return;
+        Player otherPlayer = (Player) entity;
+        PlayerData playerData = PlayerData.getPlayer(otherPlayer);
+        if(playerData == null) return;
+        if(playerData.getBag() == null) return;
+        playerData.getBag().despawn(this.player.getBukkitEntity());
+    }
+
+    protected org.bukkit.entity.Entity getEntityAsync(WorldServer world, int id) {
+        PersistentEntitySectionManager<Entity> entityManager = world.P;
+        Entity entity = entityManager.d().a(id);
+        return entity == null ? null : entity.getBukkitEntity();
     }
 }

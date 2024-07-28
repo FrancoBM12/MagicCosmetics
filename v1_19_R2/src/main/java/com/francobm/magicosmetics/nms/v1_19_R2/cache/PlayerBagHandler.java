@@ -1,9 +1,15 @@
 package com.francobm.magicosmetics.nms.v1_19_R2.cache;
 
+import com.francobm.magicosmetics.MagicCosmetics;
+import com.francobm.magicosmetics.nms.IRangeManager;
 import com.francobm.magicosmetics.nms.bag.PlayerBag;
+import com.google.common.collect.ImmutableList;
 import com.mojang.datafixers.util.Pair;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelPipeline;
+import net.minecraft.network.NetworkManager;
 import net.minecraft.network.PacketDataSerializer;
+import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.server.level.EntityPlayer;
 import net.minecraft.server.level.WorldServer;
@@ -22,16 +28,18 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.ArrayList;
-import java.util.UUID;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class PlayerBagHandler extends PlayerBag {
     private final EntityArmorStand armorStand;
     private final double distance;
+    private final EntityPlayer entityPlayer;
 
-    public PlayerBagHandler(Player p, double distance, float height, ItemStack backPackItem, ItemStack backPackItemForMe){
-        viewers = new CopyOnWriteArrayList<>(new ArrayList<>());
+    public PlayerBagHandler(Player p, IRangeManager rangeManager, double distance, float height, ItemStack backPackItem, ItemStack backPackItemForMe){
         hideViewers = new CopyOnWriteArrayList<>(new ArrayList<>());
         this.uuid = p.getUniqueId();
         this.distance = distance;
@@ -39,8 +47,9 @@ public class PlayerBagHandler extends PlayerBag {
         this.ids = new ArrayList<>();
         this.backPackItem = backPackItem;
         this.backPackItemForMe = backPackItemForMe;
-        playerBags.put(uuid, this);
+        this.rangeManager = rangeManager;
         Player player = getPlayer();
+        entityPlayer = ((CraftPlayer) player).getHandle();
         WorldServer world = ((CraftWorld) player.getWorld()).getHandle();
 
         armorStand = new EntityArmorStand(EntityTypes.d, world);
@@ -48,7 +57,13 @@ public class PlayerBagHandler extends PlayerBag {
         armorStand.j(true); //Invisible
         armorStand.m(true); //Invulnerable
         armorStand.t(true); //Marker
-        armorStand.al().refresh(((CraftPlayer)player).getHandle());
+
+        armorStand.k(entityPlayer);
+        net.minecraft.world.entity.Entity entity = entityPlayer;
+        List<net.minecraft.world.entity.Entity> orderedPassengers = new ArrayList<>();
+        orderedPassengers.add(armorStand);
+        orderedPassengers.addAll(entity.au.stream().filter((entity1) -> entity1 != armorStand).collect(ImmutableList.toImmutableList()));
+        entity.au = ImmutableList.copyOf(orderedPassengers);
     }
 
     @Override
@@ -56,62 +71,30 @@ public class PlayerBagHandler extends PlayerBag {
         if(hideViewers.contains(player.getUniqueId())) return;
         Player owner = getPlayer();
         if(owner == null) return;
-        if(viewers.contains(player.getUniqueId())) {
-            if(!owner.getWorld().equals(player.getWorld())) {
-                remove(player);
-                return;
-            }
-            if(owner.getLocation().distanceSquared(player.getLocation()) > distance) {
-                remove(player);
-            }
-            return;
-        }
-        if(!owner.getWorld().equals(player.getWorld())) return;
-        if(owner.getLocation().distanceSquared(player.getLocation()) > distance) return;
         Location location = owner.getLocation();
         armorStand.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
 
-        EntityPlayer entityPlayer = ((CraftPlayer)player).getHandle();
-        entityPlayer.b.a(new PacketPlayOutSpawnEntity(armorStand));
-        //client settings
-        armorStand.al().refresh(entityPlayer);
-        addPassenger(player, lendEntityId == -1 ? owner.getEntityId() : lendEntityId, armorStand.ah());
-        setItemOnHelmet(player, backPackItem);
-        viewers.add(player.getUniqueId());
+        sendPackets(player, getBackPackSpawn(backPackItem));
     }
 
     @Override
     public void spawnSelf(Player player) {
         Player owner = getPlayer();
         if(owner == null) return;
-        if(viewers.contains(player.getUniqueId())) {
-            if(!owner.getWorld().equals(player.getWorld())) {
-                remove(player);
-                return;
-            }
-            if(owner.getLocation().distance(player.getLocation()) > distance) {
-                remove(player);
-            }
-            return;
-        }
-        if(!owner.getWorld().equals(player.getWorld())) return;
-        if(owner.getLocation().distance(player.getLocation()) > distance) return;
+
+        Location location = owner.getLocation();
         armorStand.j(true); //Invisible true
         armorStand.t(true); //Marker
-        Location location = owner.getLocation();
         armorStand.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
 
-        EntityPlayer entityPlayer = ((CraftPlayer)player).getHandle();
-        entityPlayer.b.a(new PacketPlayOutSpawnEntity(armorStand));
-        armorStand.al().refresh(entityPlayer);
+        sendPackets(player, getBackPackSpawn(backPackItemForMe == null ? backPackItem : backPackItemForMe));
         if(height > 0){
             for(int i = 0; i < height; i++) {
                 EntityAreaEffectCloud entityAreaEffectCloud = new EntityAreaEffectCloud(EntityTypes.c, ((CraftWorld)player.getWorld()).getHandle());
                 entityAreaEffectCloud.a(0f);
                 entityAreaEffectCloud.j(true);
                 entityAreaEffectCloud.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
-                entityPlayer.b.a(new PacketPlayOutSpawnEntity(entityAreaEffectCloud));
-                entityAreaEffectCloud.al().refresh(entityPlayer);
+                sendPackets(player, getCloudsSpawn(entityAreaEffectCloud));
                 ids.add(entityAreaEffectCloud.ah());
             }
             for(int i = 0; i < height; i++) {
@@ -126,12 +109,11 @@ public class PlayerBagHandler extends PlayerBag {
             addPassenger(player, lendEntityId == -1 ? owner.getEntityId() : lendEntityId, armorStand.ah());
         }
         setItemOnHelmet(player, backPackItemForMe == null ? backPackItem : backPackItemForMe);
-        viewers.add(player.getUniqueId());
     }
 
     @Override
     public void spawn(boolean exception) {
-        for (Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : getPlayersInRange()) {
             if(exception && player.getUniqueId().equals(uuid)) continue;
             spawn(player);
         }
@@ -139,90 +121,44 @@ public class PlayerBagHandler extends PlayerBag {
 
     @Override
     public void remove() {
-        for(UUID uuid : viewers){
-            Player player = Bukkit.getPlayer(uuid);
-            if(player == null) {
-                viewers.remove(uuid);
-                continue;
-            }
+        for (Player player : getPlayersInRange()) {
             remove(player);
         }
-        playerBags.remove(uuid);
+        net.minecraft.world.entity.Entity entity = entityPlayer;
+        if (entity.au.size() == 1 && entity.au.get(0) == entity) {
+            entity.au = ImmutableList.of();
+        } else {
+            entity.au = entity.au.stream().filter((entity1) -> entity1 != armorStand).collect(ImmutableList.toImmutableList());
+        }
     }
 
     @Override
     public void remove(Player player) {
-        PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
         if(player.getUniqueId().equals(uuid)) {
-            for (Integer id : ids) {
-                connection.a(new PacketPlayOutEntityDestroy(id));
-            }
+            sendPackets(player, getBackPackDismount(true));
             ids.clear();
+            return;
         }
-        connection.a(new PacketPlayOutEntityDestroy(armorStand.ah()));
-        viewers.remove(player.getUniqueId());
+        sendPackets(player, getBackPackDismount(false));
     }
 
     @Override
     public void addPassenger(boolean exception) {
-        PacketPlayOutMount packetPlayOutMount = this.createDataSerializer(packetDataSerializer -> {
-            packetDataSerializer.d(lendEntityId == -1 ? getPlayer().getEntityId() : lendEntityId);
-            packetDataSerializer.a(new int[]{armorStand.ah()});
-            return new PacketPlayOutMount(packetDataSerializer);
-        });
-        for(UUID uuid : viewers){
-            if(exception && uuid.equals(this.uuid)) continue;
-            Player player = Bukkit.getPlayer(uuid);
-            if(player == null) {
-                viewers.remove(uuid);
-                continue;
-            }
-            EntityPlayer entityPlayer = ((CraftPlayer)player).getHandle();
-            entityPlayer.b.a(packetPlayOutMount);
+        List<Packet<?>> backPack = getBackPackMountPacket(lendEntityId == -1 ? getPlayer().getEntityId() : lendEntityId, armorStand.ah());
+        for(Player player : getPlayersInRange()){
+            if(exception && player.getUniqueId().equals(this.uuid)) continue;
+            sendPackets(player, backPack);
         }
     }
 
     @Override
     public void addPassenger(Player player, int entity, int passenger) {
-        EntityPlayer entityPlayer = ((CraftPlayer)player).getHandle();
-
-        PacketPlayOutMount packetPlayOutMount = this.createDataSerializer(packetDataSerializer -> {
-            packetDataSerializer.d(entity);
-            packetDataSerializer.a(new int[]{passenger});
-            return new PacketPlayOutMount(packetDataSerializer);
-        });
-        entityPlayer.b.a(packetPlayOutMount);
-    }
-
-    @Override
-    public void setItemOnHelmet(ItemStack itemStack, boolean all) {
-        Player owner = getPlayer();
-        if(owner == null) return;
-        ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
-        list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(itemStack)));
-        if(all) {
-            for (UUID uuid : viewers) {
-                if(this.uuid.equals(uuid)) continue;
-                Player player = Bukkit.getPlayer(uuid);
-                if(player == null) {
-                    viewers.remove(uuid);
-                    continue;
-                }
-                PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
-                connection.a(new PacketPlayOutEntityEquipment(armorStand.ah(), list));
-            }
-            return;
-        }
-        PlayerConnection connection = ((CraftPlayer)owner).getHandle().b;
-        connection.a(new PacketPlayOutEntityEquipment(armorStand.ah(), list));
+        sendPackets(player, getBackPackMountPacket(entity, passenger));
     }
 
     @Override
     public void setItemOnHelmet(Player player, ItemStack itemStack) {
-        PlayerConnection connection = ((CraftPlayer)player).getHandle().b;
-        ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
-        list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(itemStack)));
-        connection.a(new PacketPlayOutEntityEquipment(armorStand.ah(), list));
+        sendPackets(player, getBackPackHelmetPacket(itemStack));
     }
 
     @Override
@@ -230,21 +166,12 @@ public class PlayerBagHandler extends PlayerBag {
         Player owner = getPlayer();
         if(owner == null) return;
         if(all) {
-            for (UUID uuid : viewers) {
-                Player player = Bukkit.getPlayer(uuid);
-                if(player == null) {
-                    viewers.remove(uuid);
-                    continue;
-                }
-                PlayerConnection connection = ((CraftPlayer) player).getHandle().b;
-                connection.a(new PacketPlayOutEntityHeadRotation(armorStand, (byte) (yaw * 256 / 360)));
-                connection.a(new PacketPlayOutEntity.PacketPlayOutEntityLook(armorStand.ah(), (byte) (yaw * 256 / 360), /*(byte) (pitch * 256 / 360)*/(byte)0, true));
+            for (Player player : getPlayersInRange()) {
+                sendPackets(player, getBackPackRotationPackets(yaw));
             }
             return;
         }
-        PlayerConnection connection = ((CraftPlayer) owner).getHandle().b;
-        connection.a(new PacketPlayOutEntityHeadRotation(armorStand, (byte) (yaw * 256 / 360)));
-        connection.a(new PacketPlayOutEntity.PacketPlayOutEntityLook(armorStand.ah(), (byte) (yaw * 256 / 360), /*(byte) (pitch * 256 / 360)*/(byte)0, true));
+        sendPackets(owner, getBackPackRotationPackets(yaw));
     }
 
     private <T> T createDataSerializer(UnsafeFunction<PacketDataSerializer, T> callback) {
@@ -272,5 +199,71 @@ public class PlayerBagHandler extends PlayerBag {
     @Override
     public Entity getEntity() {
         return armorStand.getBukkitEntity();
+    }
+
+    private List<Packet<?>> getBackPackSpawn(ItemStack backpackItem) {
+        ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
+        list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(backpackItem)));
+        PacketPlayOutSpawnEntity spawnEntity = new PacketPlayOutSpawnEntity(armorStand);
+        PacketPlayOutEntityMetadata entityMetadata = new PacketPlayOutEntityMetadata(armorStand.ah(), armorStand.al().c());
+        PacketPlayOutMount mountEntity = new PacketPlayOutMount(entityPlayer);
+        PacketPlayOutEntityEquipment equip = new PacketPlayOutEntityEquipment(armorStand.ah(), list);
+        return Arrays.asList(spawnEntity, entityMetadata, equip, mountEntity);
+    }
+
+    private List<Packet<?>> getCloudsSpawn(EntityAreaEffectCloud entityAreaEffectCloud) {
+        PacketPlayOutSpawnEntity spawnEntity = new PacketPlayOutSpawnEntity(entityAreaEffectCloud);
+        PacketPlayOutEntityMetadata entityMetadata = new PacketPlayOutEntityMetadata(entityAreaEffectCloud.ah(), entityAreaEffectCloud.al().c());
+        return Arrays.asList(spawnEntity, entityMetadata);
+    }
+
+    private List<Packet<?>> getBackPackDismount(boolean removeClouds) {
+        List<Packet<?>> packets = new ArrayList<>();
+        if(!removeClouds) {
+            PacketPlayOutEntityDestroy backPackDestroy = new PacketPlayOutEntityDestroy(armorStand.ah());
+            return Collections.singletonList(backPackDestroy);
+        }
+        for (Integer id : ids) {
+            packets.add(new PacketPlayOutEntityDestroy(id));
+        }
+        packets.add(new PacketPlayOutEntityDestroy(armorStand.ah()));
+        return packets;
+    }
+
+    private List<Packet<?>> getBackPackMountPacket(int entity, int passenger) {
+        PacketPlayOutMount packetPlayOutMount = this.createDataSerializer(packetDataSerializer -> {
+            packetDataSerializer.d(entity);
+            packetDataSerializer.a(new int[]{passenger});
+            return new PacketPlayOutMount(packetDataSerializer);
+        });
+        return Collections.singletonList(packetPlayOutMount);
+    }
+
+    private List<Packet<?>> getBackPackHelmetPacket(ItemStack itemStack) {
+        ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
+        list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(itemStack)));
+        return Collections.singletonList(new PacketPlayOutEntityEquipment(armorStand.ah(), list));
+    }
+
+    private List<Packet<?>> getBackPackHelmetPacket(ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> pairs) {
+        return Collections.singletonList(new PacketPlayOutEntityEquipment(armorStand.ah(), pairs));
+    }
+
+    private List<Packet<?>> getBackPackRotationPackets(float yaw) {
+        PacketPlayOutEntityHeadRotation packetPlayOutEntityHeadRotation = new PacketPlayOutEntityHeadRotation(armorStand, (byte) (yaw * 256 / 360));
+        PacketPlayOutEntity.PacketPlayOutEntityLook packetPlayOutEntityLook = new PacketPlayOutEntity.PacketPlayOutEntityLook(armorStand.ah(), (byte) (yaw * 256 / 360), /*(byte) (pitch * 256 / 360)*/(byte)0, true);
+        return Arrays.asList(packetPlayOutEntityHeadRotation, packetPlayOutEntityLook);
+    }
+
+    private void sendPackets(Player player, List<Packet<?>> packets) {
+        final ChannelPipeline pipeline = getPrivateChannelPipeline(((CraftPlayer) player).getHandle().b);
+        if(pipeline == null) return;
+        for(Packet<?> packet : packets)
+            pipeline.write(packet);
+        pipeline.flush();
+    }
+
+    private ChannelPipeline getPrivateChannelPipeline(PlayerConnection playerConnection) {
+        return playerConnection.b.m.pipeline();
     }
 }

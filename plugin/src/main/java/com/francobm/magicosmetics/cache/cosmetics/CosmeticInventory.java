@@ -14,7 +14,9 @@ public interface CosmeticInventory {
 
     boolean isOverlaps();
 
-    ItemStack dropItem(boolean all);
+    void dropItem(boolean all);
 
     ItemStack getEquipment();
+
+    void forceRemove();
 }

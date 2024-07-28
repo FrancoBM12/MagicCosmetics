@@ -75,7 +75,7 @@ public class Citizens {
             NPC npc = CitizensAPI.getNPCRegistry().getById(ID);
             if(npc == null){
                 if(sender != null)
-                    plugin.getCosmeticsManager().sendMessage(sender, plugin.prefix + plugin.getMessages().getString("invalid-npc-id"));
+                    Utils.sendMessage(sender, plugin.prefix + plugin.getMessages().getString("invalid-npc-id"));
                 return;
             }
             com.francobm.magicosmetics.cache.NPC npcRegistry = plugin.getNPCsLoader().getNPC(ID, NPCType.CITIZENS);
@@ -98,7 +98,7 @@ public class Citizens {
                 entityCache.setCosmetic(cosmetic);
                 plugin.getNPCsLoader().addNPC(ID, NPCType.CITIZENS, entityCache, id);
                 if (plugin.equipMessage && sender != null)
-                    plugin.getCosmeticsManager().sendMessage(sender, plugin.prefix + plugin.getMessages().getString("use-cosmetic").replace("%id%", id).replace("%name%", cosmetic.getName()));
+                    Utils.sendMessage(sender, plugin.prefix + plugin.getMessages().getString("use-cosmetic").replace("%id%", id).replace("%name%", cosmetic.getName()));
                 return;
             }
             EntityCache entityCache = npcRegistry.getEntityCache();
@@ -121,10 +121,10 @@ public class Citizens {
             }
             entityCache.setCosmetic(cosmetic);
             if (plugin.equipMessage && sender != null)
-                plugin.getCosmeticsManager().sendMessage(sender, plugin.prefix + plugin.getMessages().getString("use-cosmetic").replace("%id%", id).replace("%name%", cosmetic.getName()));
+                Utils.sendMessage(sender, plugin.prefix + plugin.getMessages().getString("use-cosmetic").replace("%id%", id).replace("%name%", cosmetic.getName()));
         }catch (NumberFormatException exception){
             if(sender == null) return;
-            plugin.getCosmeticsManager().sendMessage(sender, plugin.prefix + plugin.getMessages().getString("invalid-npc-id"));
+            Utils.sendMessage(sender, plugin.prefix + plugin.getMessages().getString("invalid-npc-id"));
         }
     }
 

@@ -14,10 +14,12 @@ import com.francobm.magicosmetics.files.FileCreator;
 import com.francobm.magicosmetics.listeners.*;
 import com.francobm.magicosmetics.loaders.NPCsLoader;
 import com.francobm.magicosmetics.managers.CosmeticsManager;
-import com.francobm.magicosmetics.nms.Version.Version;
+import com.francobm.magicosmetics.managers.ZonesManager;
+import com.francobm.magicosmetics.nms.version.Version;
 import com.francobm.magicosmetics.nms.v1_17_R1.VersionHandler;
 import com.francobm.magicosmetics.provider.*;
 import com.francobm.magicosmetics.provider.citizens.Citizens;
+import com.francobm.magicosmetics.provider.husksync.HuskSync;
 import com.francobm.magicosmetics.provider.znpcplus.ZNPCsPlus;
 import com.francobm.magicosmetics.utils.MathUtils;
 import com.francobm.magicosmetics.utils.Utils;
@@ -39,6 +41,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class MagicCosmetics extends JavaPlugin {
+
     private static MagicCosmetics instance;
     private FileCreator config;
     private FileCreator messages;
@@ -49,9 +52,13 @@ public final class MagicCosmetics extends JavaPlugin {
     private FileCreator sounds;
     private FileCreator npcs;
     private NPCsLoader NPCsLoader;
+
     private SQL sql;
     public String prefix;
-    public CosmeticsManager cosmeticsManager;
+
+    private CosmeticsManager cosmeticsManager;
+    private ZonesManager zonesManager;
+
     private Version version;
     public boolean wkasdwk;
     private List<BossBar> bossBar;
@@ -69,7 +76,6 @@ public final class MagicCosmetics extends JavaPlugin {
     public String equip = "";
     public BarColor bossBarColor = BarColor.YELLOW;
     public double balloonRotation = 0;
-    private boolean bungee = false;
     private boolean permissions = false;
     private boolean zoneHideItems = true;
     private SprayKeys sprayKey;
@@ -86,6 +92,7 @@ public final class MagicCosmetics extends JavaPlugin {
     private MagicGestures magicGestures;
     private List<String> worldsBlacklist;
     private WorldGuard worldGuard;
+    private HuskSync huskSync;
     private boolean proxy;
 
     @Override
@@ -143,7 +150,7 @@ public final class MagicCosmetics extends JavaPlugin {
                 version = new com.francobm.magicosmetics.nms.v1_21_R1.VersionHandler();
                 break;
         }
-        checkIfProxy();
+        //checkIfProxy();
         if(version == null){
             getLogger().severe(Utils.bsc("VmVyc2lvbjog") + Utils.getVersion() + Utils.bsc("IE5vdCBTdXBwb3J0ZWQh"));
             getServer().getPluginManager().disablePlugin(this);
@@ -161,12 +168,11 @@ public final class MagicCosmetics extends JavaPlugin {
         this.npcs = new FileCreator(this, "npcs");
         this.NPCsLoader = new NPCsLoader();
         createDefaultSpray();
-        if (config.getBoolean("MySQL.enabled")) {
-            sql = new MySQL();
-        } else {
-            sql = new SQLite();
-        }
         if(getCosmetic()) return;
+
+        if(getServer().getPluginManager().getPlugin("HuskSync") != null){
+            huskSync = new HuskSync();
+        }
 
         if (getServer().getPluginManager().getPlugin("ItemsAdder") != null && Utils.existPluginClass("dev.lone.itemsadder.api.FontImages.FontImageWrapper")) {
             itemsAdder = new ItemsAdder();
@@ -216,15 +222,6 @@ public final class MagicCosmetics extends JavaPlugin {
             new SkinListener();
         }*/
 
-        ava = MagicCosmetics.getInstance().getMessages().getString("edge.available");
-        unAva = MagicCosmetics.getInstance().getMessages().getString("edge.unavailable");
-        equip = MagicCosmetics.getInstance().getMessages().getString("edge.equip");
-        if(isOraxen()){
-            ava = getOraxen().replaceFontImages(ava);
-            unAva = getOraxen().replaceFontImages(unAva);
-            equip = getOraxen().replaceFontImages(equip);
-        }
-
         if (!isItemsAdder()) {
             for(String lines : messages.getStringList("bossbar")){
                 if(isOraxen())
@@ -243,6 +240,7 @@ public final class MagicCosmetics extends JavaPlugin {
         }
 
         cosmeticsManager = new CosmeticsManager();
+        zonesManager = new ZonesManager();
         registerData();
         cosmeticsManager.runTasks();
         registerCommands();
@@ -254,6 +252,39 @@ public final class MagicCosmetics extends JavaPlugin {
     }
 
     public void registerData(){
+        if (config.getBoolean("MySQL.enabled")) {
+            sql = new MySQL();
+        } else {
+            sql = new SQLite();
+        }
+        for(BossBar bar : bossBar){
+            bar.removeAll();
+        }
+        bossBar.clear();
+
+        for(String lines : messages.getStringList("bossbar")){
+            if(isItemsAdder())
+                lines = itemsAdder.replaceFontImages(lines);
+            if(isOraxen())
+                lines = oraxen.replaceFontImages(lines);
+            BossBar boss = getServer().createBossBar(lines, bossBarColor, BarStyle.SOLID);
+            boss.setVisible(true);
+            bossBar.add(boss);
+        }
+
+        ava = MagicCosmetics.getInstance().getMessages().getString("edge.available");
+        unAva = MagicCosmetics.getInstance().getMessages().getString("edge.unavailable");
+        equip = MagicCosmetics.getInstance().getMessages().getString("edge.equip");
+        if(isItemsAdder()){
+            ava = itemsAdder.replaceFontImages(ava);
+            unAva = itemsAdder.replaceFontImages(unAva);
+            equip = itemsAdder.replaceFontImages(equip);
+        }
+        if(isOraxen()){
+            ava = oraxen.replaceFontImages(ava);
+            unAva = oraxen.replaceFontImages(unAva);
+            equip = oraxen.replaceFontImages(equip);
+        }
         this.prefix = messages.getString("prefix");
         if(config.contains("leave-wardrobe-gamemode")) {
             try {
@@ -267,10 +298,10 @@ public final class MagicCosmetics extends JavaPlugin {
         if(config.contains("placeholder-api")){
             placeholders = config.getBoolean("placeholder-api");
         }
-        equipMessage = false;
         if(config.contains("permissions")){
             setPermissions(config.getBoolean("permissions"));
         }
+        equipMessage = false;
         if(config.contains("equip-message")){
             equipMessage = config.getBoolean("equip-message");
         }
@@ -281,11 +312,12 @@ public final class MagicCosmetics extends JavaPlugin {
             try {
                 bossBarColor = BarColor.valueOf(config.getString("bossbar-color").toUpperCase());
             }catch (IllegalArgumentException exception){
+                bossBarColor = BarColor.YELLOW;
                 getLogger().severe("Bossbar color in config path: bossbar-color Not Valid!");
             }
         }
-        if(config.contains("bungeecord")){
-            bungee = config.getBoolean("bungeecord");
+        if(config.contains("proxy")){
+            proxy = config.getBoolean("proxy");
         }
         if(config.contains("spray-key")){
             try {
@@ -300,6 +332,7 @@ public final class MagicCosmetics extends JavaPlugin {
         if(config.contains("spray-cooldown")){
             sprayCooldown = config.getInt("spray-cooldown");
         }
+        saveDataDelay = 300;
         if(config.contains("save-data-delay")) {
             saveDataDelay = config.getInt("save-data-delay");
         }
@@ -312,12 +345,19 @@ public final class MagicCosmetics extends JavaPlugin {
         balloonRotation = config.getDouble("balloons-rotation");
         ZoneAction onEnter = null;
         ZoneAction onExit = null;
-        if(zones.contains("on_enter.commands"))
-            onEnter = new ZoneAction("onEnter", zones.getStringList("on_enter.commands"));
-        if(zones.contains("on_exit.commands"))
-            onExit = new ZoneAction("onEnter", zones.getStringList("on_exit.commands"));
-        zoneActions = new ZoneActions(onEnter, onExit);
-        zoneActions.setEnabled(getConfig().getBoolean("zones-actions"));
+        if(zoneActions != null) {
+            zoneActions.getOnEnter().setCommands(zones.getStringList("on_enter.commands"));
+            zoneActions.getOnExit().setCommands(zones.getStringList("on_exit.commands"));
+            zoneActions.setEnabled(config.getBoolean("zones-actions"));
+            zoneActionsListener();
+        }else {
+            if (zones.contains("on_enter.commands"))
+                onEnter = new ZoneAction("onEnter", zones.getStringList("on_enter.commands"));
+            if (zones.contains("on_exit.commands"))
+                onExit = new ZoneAction("onEnter", zones.getStringList("on_exit.commands"));
+            zoneActions = new ZoneActions(onEnter, onExit);
+            zoneActions.setEnabled(getConfig().getBoolean("zones-actions"));
+        }
     }
 
     public void registerListeners(){
@@ -330,10 +370,20 @@ public final class MagicCosmetics extends JavaPlugin {
         if(isCitizens()){
             getServer().getPluginManager().registerEvents(new CitizensListener(), this);
         }
+        if(isHuskSync()){
+            getServer().getPluginManager().registerEvents(huskSync, this);
+        }
         if(worldGuard != null){
             getServer().getPluginManager().registerEvents(worldGuard, this);
         }
+        if(getServer().getPluginManager().isPluginEnabled("Multiverse-Core")){
+            getServer().getPluginManager().registerEvents(new MultiverseCListener(), this);
+        }
         zoneActionsListener();
+        if(isProxy()){
+            getServer().getMessenger().registerIncomingPluginChannel(this, "mc:player", new ProxyListener());
+            getServer().getMessenger().registerOutgoingPluginChannel(this, "mc:player");
+        }
     }
 
     private void checkIfProxy()
@@ -342,8 +392,8 @@ public final class MagicCosmetics extends JavaPlugin {
         if(Files.exists(spigotPath) && YamlConfiguration.loadConfiguration(spigotPath.toFile()).getBoolean("settings.bungeecord")){
             getLogger().info( "Enabling BungeeMode!");
             setProxy(true);
-            //getServer().getMessenger().registerIncomingPluginChannel(this, "mc:player", new ProxyListener());
-            //getServer().getMessenger().registerOutgoingPluginChannel(this, "mc:player");
+            getServer().getMessenger().registerIncomingPluginChannel(this, "mc:player", new ProxyListener());
+            getServer().getMessenger().registerOutgoingPluginChannel(this, "mc:player");
             return;
         }
         Path oldPaperPath = Paths.get("paper.yml");
@@ -351,16 +401,16 @@ public final class MagicCosmetics extends JavaPlugin {
             if(Files.exists(oldPaperPath) && YamlConfiguration.loadConfiguration(oldPaperPath.toFile()).getBoolean("settings.velocity-support.enabled")){
                 getLogger().info( "Enabling VelocityMode!");
                 setProxy(true);
-                //getServer().getMessenger().registerIncomingPluginChannel(this, "mc:player", new ProxyListener());
-                //getServer().getMessenger().registerOutgoingPluginChannel(this, "mc:player");
+                getServer().getMessenger().registerIncomingPluginChannel(this, "mc:player", new ProxyListener());
+                getServer().getMessenger().registerOutgoingPluginChannel(this, "mc:player");
                 return;
             }
             YamlConfiguration config = Utils.getPaperConfig(getServer());
             if(config != null && (config.getBoolean("settings.velocity-support.enabled") || config.getBoolean("proxies.velocity.enabled"))) {
                 getLogger().info( "Enabling VelocityMode!");
                 setProxy(true);
-                //getServer().getMessenger().registerIncomingPluginChannel(this, "mc:player", new ProxyListener());
-                //getServer().getMessenger().registerOutgoingPluginChannel(this, "mc:player");
+                getServer().getMessenger().registerIncomingPluginChannel(this, "mc:player", new ProxyListener());
+                getServer().getMessenger().registerOutgoingPluginChannel(this, "mc:player");
             }
         }
     }
@@ -382,6 +432,10 @@ public final class MagicCosmetics extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
+        if(proxy){
+            getServer().getMessenger().unregisterIncomingPluginChannel(this);
+            getServer().getMessenger().unregisterOutgoingPluginChannel(this);
+        }
         if(cosmeticsManager != null) {
             cosmeticsManager.cancelTasks();
         }
@@ -441,12 +495,12 @@ public final class MagicCosmetics extends JavaPlugin {
         return this.sql;
     }
 
-    public void setSql(SQL sql) {
-        this.sql = sql;
-    }
-
     public CosmeticsManager getCosmeticsManager() {
         return this.cosmeticsManager;
+    }
+
+    public ZonesManager getZonesManager() {
+        return zonesManager;
     }
 
     public Version getVersion() {
@@ -508,7 +562,7 @@ public final class MagicCosmetics extends JavaPlugin {
     }
 
     public User getUser() {
-        return new User();
+        return this.user;
     }
     public void setUser(User user) {
         this.user = user;
@@ -524,14 +578,6 @@ public final class MagicCosmetics extends JavaPlugin {
 
     public ZNPCsPlus getzNPCsPlus() {
         return zNPCsPlus;
-    }
-
-    public boolean isBungee() {
-        return bungee;
-    }
-
-    public void setBungee(boolean bungee) {
-        this.bungee = bungee;
     }
 
     public boolean isPermissions() {
@@ -646,5 +692,13 @@ public final class MagicCosmetics extends JavaPlugin {
 
     public List<String> getWorldsBlacklist() {
         return worldsBlacklist;
+    }
+
+    public HuskSync getHuskSync() {
+        return huskSync;
+    }
+
+    public boolean isHuskSync() {
+        return huskSync != null;
     }
 }

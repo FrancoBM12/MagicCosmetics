@@ -11,6 +11,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Server;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -18,6 +20,7 @@ import org.bukkit.inventory.meta.*;
 import org.bukkit.map.MapPalette;
 import org.bukkit.map.MapView;
 import org.bukkit.profile.PlayerProfile;
+import org.bukkit.util.Vector;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -35,6 +38,8 @@ import java.util.regex.Pattern;
 public class Utils {
 
     private static final Pattern pattern = Pattern.compile("#[a-fA-F0-9]{6}");
+
+    private static final Random random = new Random();
 
     public static String getVersion(){
         return Bukkit.getServer().getBukkitVersion().split("-")[0];
@@ -209,7 +214,8 @@ public class Utils {
     }
 
     public static String ChatColor(String message){
-        if(Bukkit.getVersion().contains("1.16") || Bukkit.getVersion().contains("1.17") || Bukkit.getVersion().contains("1.18") || Bukkit.getVersion().contains("1.19") || Bukkit.getVersion().contains("1.20")){
+        String version = getVersion();
+        if(version.contains("1.16") || version.contains("1.17") || version.contains("1.18") || version.contains("1.19") || version.contains("1.20") || version.contains("1.21")){
             Matcher matcher = pattern.matcher(message);
             while(matcher.find()){
                 String color = message.substring(matcher.start(), matcher.end());
@@ -263,6 +269,35 @@ public class Utils {
         int minor = Integer.parseInt(partes[2]);
         int patch = Integer.parseInt(partes[3]);
         return major > 1 || (major == 1 && (minor > 18 || (minor == 18 && patch > 1)));
+    }
+
+    public static void sendMessage(CommandSender sender, String string){
+        if(sender instanceof ConsoleCommandSender){
+            MagicCosmetics.getInstance().getLogger().info(string);
+            return;
+        }
+        if(sender instanceof Player) {
+            Player player = (Player) sender;
+            player.sendMessage(string);
+        }
+    }
+
+    public static Vector getItemDropVelocity(Player player) {
+        float pitch = player.getLocation().getPitch();
+        float yaw = player.getLocation().getYaw();
+
+        float f1 = (float) Math.sin(Math.toRadians(pitch));
+        float f2 = (float) Math.cos(Math.toRadians(pitch));
+        float f3 = (float) Math.sin(Math.toRadians(yaw));
+        float f4 = (float) Math.cos(Math.toRadians(yaw));
+        float f5 = random.nextFloat() * (float) Math.PI * 2;
+        float f6 = 0.02F * random.nextFloat();
+
+        return new Vector(
+                (-f3 * f2 * 0.3F) + Math.cos(f5) * f6,
+                (-f1 * 0.3F + 0.1F + (random.nextFloat() - random.nextFloat()) * 0.1F),
+                (f4 * f2 * 0.3F) + Math.sin(f5) * f6
+        );
     }
 
 }

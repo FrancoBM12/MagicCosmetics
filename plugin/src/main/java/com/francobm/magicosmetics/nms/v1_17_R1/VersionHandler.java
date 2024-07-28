@@ -1,9 +1,10 @@
 package com.francobm.magicosmetics.nms.v1_17_R1;
 
+import com.francobm.magicosmetics.nms.IRangeManager;
 import com.francobm.magicosmetics.nms.v1_17_R1.cache.*;
 import com.francobm.magicosmetics.nms.NPC.ItemSlot;
 import com.francobm.magicosmetics.nms.NPC.NPC;
-import com.francobm.magicosmetics.nms.Version.Version;
+import com.francobm.magicosmetics.nms.version.Version;
 import com.francobm.magicosmetics.nms.bag.EntityBag;
 import com.francobm.magicosmetics.nms.bag.PlayerBag;
 import com.francobm.magicosmetics.nms.balloon.EntityBalloon;
@@ -19,6 +20,8 @@ import net.minecraft.network.chat.ChatMessage;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.DataWatcher;
 import net.minecraft.server.level.EntityPlayer;
+import net.minecraft.server.level.PlayerChunkMap;
+import net.minecraft.server.level.WorldServer;
 import net.minecraft.server.network.PlayerConnection;
 import net.minecraft.world.entity.EntityLiving;
 import net.minecraft.world.entity.EntityTypes;
@@ -104,7 +107,7 @@ public class VersionHandler extends Version {
 
     @Override
     public PlayerBag createPlayerBag(Player player, double distance, float height, ItemStack backPackItem, ItemStack backPackForMe) {
-        return new PlayerBagHandler(player, distance, height, backPackItem, backPackForMe);
+        return new PlayerBagHandler(player, createRangeManager(player), distance, height, backPackItem, backPackForMe);
     }
 
     @Override
@@ -337,5 +340,12 @@ public class VersionHandler extends Version {
         }
         itemStack.setItemMeta(skullMeta);
         return itemStack;
+    }
+
+    @Override
+    public IRangeManager createRangeManager(Entity entity) {
+        WorldServer level = ((CraftWorld)entity.getWorld()).getHandle();
+        PlayerChunkMap.EntityTracker trackedEntity = level.getChunkProvider().a.G.get(entity.getEntityId());
+        return new RangeManager(trackedEntity);
     }
 }

@@ -1,8 +1,9 @@
 package com.francobm.magicosmetics.nms.v1_20_R3;
 
+import com.francobm.magicosmetics.nms.IRangeManager;
 import com.francobm.magicosmetics.nms.NPC.ItemSlot;
 import com.francobm.magicosmetics.nms.NPC.NPC;
-import com.francobm.magicosmetics.nms.Version.Version;
+import com.francobm.magicosmetics.nms.version.Version;
 import com.francobm.magicosmetics.nms.bag.EntityBag;
 import com.francobm.magicosmetics.nms.bag.PlayerBag;
 import com.francobm.magicosmetics.nms.balloon.EntityBalloon;
@@ -16,6 +17,8 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.DataWatcher;
 import net.minecraft.server.level.EntityPlayer;
+import net.minecraft.server.level.PlayerChunkMap;
+import net.minecraft.server.level.WorldServer;
 import net.minecraft.server.network.PlayerConnection;
 import net.minecraft.world.entity.EntityLiving;
 import net.minecraft.world.entity.EntityTypes;
@@ -107,7 +110,7 @@ public class VersionHandler extends Version {
 
     @Override
     public PlayerBag createPlayerBag(Player player, double distance, float height, ItemStack backPackItem, ItemStack backPackItemForMe) {
-        return new PlayerBagHandler(player, distance, height, backPackItem, backPackItemForMe);
+        return new PlayerBagHandler(player, createRangeManager(player), distance, height, backPackItem, backPackItemForMe);
     }
 
     @Override
@@ -338,5 +341,26 @@ public class VersionHandler extends Version {
         skullMeta.setOwnerProfile(profile);
         itemStack.setItemMeta(skullMeta);
         return itemStack;
+    }
+
+    @Override
+    public IRangeManager createRangeManager(Entity entity) {
+        WorldServer level = ((CraftWorld)entity.getWorld()).getHandle();
+
+        PlayerChunkMap.EntityTracker trackedEntity;
+        try {
+            trackedEntity = level.l().a.K.get(entity.getEntityId());
+        } catch (NoSuchFieldError var8) {
+            net.minecraft.world.entity.Entity nmsEntity = ((CraftEntity)entity).getHandle();
+
+            try {
+                Field trackerField = nmsEntity.getClass().getField("tracker");
+                trackedEntity = (PlayerChunkMap.EntityTracker)trackerField.get(nmsEntity);
+            } catch (IllegalAccessException | NoSuchFieldException var7) {
+                throw new RuntimeException(var7);
+            }
+        }
+
+        return new RangeManager(trackedEntity);
     }
 }

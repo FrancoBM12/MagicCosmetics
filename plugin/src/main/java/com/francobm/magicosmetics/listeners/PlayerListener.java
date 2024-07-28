@@ -7,6 +7,7 @@ import com.francobm.magicosmetics.cache.*;
 import com.francobm.magicosmetics.cache.cosmetics.CosmeticInventory;
 import com.francobm.magicosmetics.events.CosmeticInventoryUpdateEvent;
 import com.francobm.magicosmetics.events.PlayerChangeBlacklistEvent;
+import com.francobm.magicosmetics.utils.Utils;
 import com.francobm.magicosmetics.utils.XMaterial;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -24,20 +25,28 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
+import org.bukkit.event.world.PortalCreateEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
 import java.util.Iterator;
+import java.util.Random;
 
 public class PlayerListener implements Listener {
     private final MagicCosmetics plugin = MagicCosmetics.getInstance();
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event){
-        //if(plugin.isProxy()) return;
         Player player = event.getPlayer();
-        plugin.getSql().loadPlayerAsync(player).thenAccept(v -> {
-            plugin.getVersion().getPacketReader().injectPlayer(player);
+        plugin.getVersion().getPacketReader().injectPlayer(player);
+        if(plugin.isHuskSync()){
+            return;
+        }
+        plugin.getSql().loadPlayerAsync(player).thenAccept(playerData -> {
+            if(plugin.isProxy()) {
+                plugin.getServer().getScheduler().runTask(plugin, playerData::sendLoadPlayerData);
+            }
         });
     }
 
@@ -53,8 +62,8 @@ public class PlayerListener implements Listener {
     public void onQuit(PlayerQuitEvent event){
         Player player = event.getPlayer();
         PlayerData playerData = PlayerData.getPlayer(player);
-        /*if(plugin.isProxy()) {
-            playerData.sendSavePlayerData();
+        /*if(plugin.isHuskSync()){
+            plugin.getHuskSync().saveDataToPlayer(playerData);
             return;
         }*/
         plugin.getVersion().getPacketReader().removePlayer(player);
@@ -73,9 +82,9 @@ public class PlayerListener implements Listener {
             event.setCancelled(true);
         }
         //PlayerBag.refreshPlayerBag(player);
-        if(event.getFrom().getWorld() != null && event.getTo().getWorld() != null && event.getFrom().getWorld().getUID().equals(event.getTo().getWorld().getUID())) {
+        /*if(event.getFrom().getWorld() != null && event.getTo().getWorld() != null && event.getFrom().getWorld().getUID().equals(event.getTo().getWorld().getUID())) {
             if (event.getFrom().distanceSquared(event.getTo()) < 10) return;
-        }
+        }*/
         playerData.clearCosmeticsInUse(false);
     }
 
@@ -116,7 +125,7 @@ public class PlayerListener implements Listener {
     public void onSneak(PlayerToggleSneakEvent event){
         Player player = event.getPlayer();
         if(!event.isSneaking()) return;
-        plugin.getCosmeticsManager().exitZone(player);
+        plugin.getZonesManager().exitZone(player);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -139,12 +148,12 @@ public class PlayerListener implements Listener {
             }
         }
         if(playerData.getHat() != null && playerData.getHat().getCurrentItemSaved() != null){
-            if(!event.getKeepInventory())
+            if(!event.getKeepInventory() && playerData.getHat().isOverlaps())
                 event.getDrops().add(playerData.getHat().leftItemAndGet());
         }
 
         if(playerData.getWStick() != null && playerData.getWStick().getCurrentItemSaved() != null){
-            if(!event.getKeepInventory())
+            if(!event.getKeepInventory() && playerData.getWStick().isOverlaps())
                 event.getDrops().add(playerData.getWStick().leftItemAndGet());
         }
     }
@@ -153,7 +162,7 @@ public class PlayerListener implements Listener {
     public void onItemFrame(PlayerInteractEntityEvent event){
         Player player = event.getPlayer();
         PlayerData playerData = PlayerData.getPlayer(player);
-        //if(event.getHand() != EquipmentSlot.OFF_HAND) return;
+        if(event.getHand() != EquipmentSlot.OFF_HAND) return;
         if(playerData.getWStick() == null) return;
         event.setCancelled(true);
     }
@@ -176,7 +185,7 @@ public class PlayerListener implements Listener {
         if(itemStack != null) {
             if(itemStack.getType() == XMaterial.BLAZE_ROD.parseMaterial()){
                 String nbt = plugin.getVersion().isNBTCosmetic(itemStack);
-                plugin.getLogger().info("NBT: " + nbt);
+                //plugin.getLogger().info("NBT: " + nbt);
                 if(!nbt.startsWith("wand")) return;
                 Zone zone = Zone.getZone(nbt.substring(4));
                 if(zone == null) return;
@@ -209,6 +218,10 @@ public class PlayerListener implements Listener {
                     }
                 }
             }
+            /*
+            if(playerData.getWStick() != null && event.getHand() == EquipmentSlot.OFF_HAND) {
+                event.setCancelled(true);
+            }*/
         }
         if(plugin.getSprayKey() == null) return;
         if(playerData.getSpray() == null) return;
@@ -346,7 +359,7 @@ public class PlayerListener implements Listener {
             if(!cosmeticInventory.isOverlaps()) {
                 cosmeticInventory.setCurrentItemSaved(null);
             }
-            cosmetic.active();
+            cosmetic.update();
             return;
         }
         if(plugin.getMagicCrates() != null && plugin.getMagicCrates().hasInCrate(player)) return;
@@ -414,33 +427,19 @@ public class PlayerListener implements Listener {
                 }
                 if (event.getClick() == ClickType.DROP) {
                     if(playerData.getWStick().getCurrentItemSaved() != null){
-                        ItemStack item = playerData.getWStick().dropItem(false);
-                        event.setCurrentItem(item);
-                        if(playerData.getWStick().isHasDropped()){
-                            playerData.getWStick().setCurrentItemSaved(null);
-                            plugin.getServer().getScheduler().runTaskLater(plugin, () -> playerData.getWStick().active(), 5L);
-                            playerData.getWStick().setHasDropped(false);
-                        }
-                        return;
+                        playerData.getWStick().dropItem(false);
+                        event.setCancelled(playerData.getWStick().isOverlaps());
                     }
-                    event.setCancelled(true);
                     return;
                 }
                 if (event.getClick() == ClickType.CONTROL_DROP) {
                     if(playerData.getWStick().getCurrentItemSaved() != null){
-                        ItemStack item = playerData.getWStick().dropItem(true);
-                        event.setCurrentItem(item);
-                        playerData.getWStick().setCurrentItemSaved(null);
-                        plugin.getServer().getScheduler().runTaskLater(plugin, () -> playerData.getWStick().active(), 5L);
-                        return;
+                        playerData.getWStick().dropItem(true);
+                        event.setCancelled(playerData.getWStick().isOverlaps());
                     }
-                    event.setCancelled(true);
                     return;
                 }
-                /*if(!playerData.getWStick().isOverlaps() && !playerData.getWStick().isCosmetic(event.getCurrentItem())) {
-                    plugin.getServer().getScheduler().runTask(plugin, () -> player.getInventory().setItemInOffHand(null));
-                    return;
-                }*/
+
                 event.setCancelled(true);
                 event.setResult(Event.Result.DENY);
                 ItemStack returnItem = playerData.getWStick().changeItem(event.getCursor());
@@ -465,27 +464,17 @@ public class PlayerListener implements Listener {
                 }
                 if (event.getClick() == ClickType.DROP) {
                     if(playerData.getHat().getCurrentItemSaved() != null){
-                        ItemStack item = playerData.getHat().dropItem(false);
-                        event.setCurrentItem(item);
-                        if(playerData.getHat().isHasDropped()){
-                            playerData.getHat().setCurrentItemSaved(null);
-                            plugin.getServer().getScheduler().runTaskLater(plugin, () -> playerData.getHat().active(), 10L);
-                            playerData.getHat().setHasDropped(false);
-                        }
+                        playerData.getHat().dropItem(false);
+                        event.setCancelled(playerData.getHat().isOverlaps());
                         return;
                     }
-                    event.setCancelled(true);
                     return;
                 }
                 if (event.getClick() == ClickType.CONTROL_DROP) {
                     if(playerData.getHat().getCurrentItemSaved() != null){
-                        ItemStack item = playerData.getHat().dropItem(true);
-                        event.setCurrentItem(item);
-                        playerData.getHat().setCurrentItemSaved(null);
-                        plugin.getServer().getScheduler().runTaskLater(plugin, () -> playerData.getHat().active(), 10L);
-                        return;
+                        playerData.getHat().dropItem(true);
+                        event.setCancelled(playerData.getHat().isOverlaps());
                     }
-                    event.setCancelled(true);
                     return;
                 }
 

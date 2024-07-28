@@ -204,7 +204,7 @@ public class EntityCache {
 
     public void clearBag(){
         if(bag == null) return;
-        bag.clear();
+        bag.remove();
     }
 
     public void clearWStick(){
@@ -224,7 +224,7 @@ public class EntityCache {
         if(balloon == null){
             return;
         }
-        balloon.clear();
+        balloon.remove();
     }
 
     public UUID getUniqueId() {

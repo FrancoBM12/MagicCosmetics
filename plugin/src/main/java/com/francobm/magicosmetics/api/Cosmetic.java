@@ -94,7 +94,7 @@ public abstract class Cosmetic {
         this.namespacedKey = cosmetic.namespacedKey;
     }
 
-    public boolean update() {
+    public boolean updateProperties() {
         Cosmetic cosmetic = getCosmetic(id);
         if(cosmetic == null) return false;
         updateCosmetic(cosmetic);
@@ -558,9 +558,13 @@ public abstract class Cosmetic {
         return colored;
     }
 
-    public abstract void active();
+    public abstract void spawn(Player player);
 
-    public abstract void clear();
+    public abstract void despawn(Player player);
+
+    public abstract void update();
+
+    public abstract void remove();
 
     public abstract void clearClose();
 

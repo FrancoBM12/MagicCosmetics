@@ -4,12 +4,15 @@ import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.api.Cosmetic;
 import com.francobm.magicosmetics.api.CosmeticType;
 import com.francobm.magicosmetics.utils.DefaultAttributes;
+import com.francobm.magicosmetics.utils.Utils;
 import com.google.common.collect.Multimap;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -38,21 +41,20 @@ public class WStick extends Cosmetic implements CosmeticInventory {
     }
 
     @Override
-    public boolean update() {
-        boolean result = super.update();
+    public boolean updateProperties() {
+        boolean result = super.updateProperties();
         if(result)
-            active();
+            update();
         return result;
     }
 
     @Override
-    public void active() {
+    public void update() {
         if(lendEntity != null){
             lendToEntity();
             return;
         }
         if(isHideCosmetic()) {
-            clear();
             return;
         }
         if(!overlaps) {
@@ -153,24 +155,34 @@ public class WStick extends Cosmetic implements CosmeticInventory {
     }
 
     @Override
-    public ItemStack dropItem(boolean all) {
-        if(currentItemSaved == null) return null;
+    public void dropItem(boolean all) {
+        if(currentItemSaved == null) return;
         if(!overlaps) {
-            if(player.getInventory().getItemInOffHand().getType().isAir()) return null;
-            if(isCosmetic(player.getInventory().getItemInOffHand())) return null;
-            ItemStack getItem = currentItemSaved.clone();
-            int amount = player.getInventory().getItemInOffHand().getAmount();
+            if(player.getInventory().getItemInOffHand().getType().isAir()) return;
+            if(isCosmetic(player.getInventory().getItemInOffHand())) return;
+            int amount = currentItemSaved.getAmount();
             if (!all) {
-                if (amount == 1)
-                    hasDropped = true;
+                currentItemSaved.setAmount(amount - 1);
+            }else {
+                currentItemSaved = null;
             }
-            getItem.setAmount(amount);
-            currentItemSaved = getItem;
-            return currentItemSaved;
+            return;
         }
-        ItemStack getItem = MagicCosmetics.getInstance().getVersion().getItemSavedWithNBTsUpdated(combinedItem, currentItemSaved.clone());
-        currentItemSaved = null;
-        return getItem;
+        ItemStack getItem = currentItemSaved.clone();
+        int amount = getItem.getAmount();
+        if (!all) {
+            getItem.setAmount(1);
+            currentItemSaved.setAmount(amount - 1);
+        }else {
+            getItem.setAmount(amount);
+            currentItemSaved = null;
+        }
+        Location location = player.getEyeLocation();
+        location.setY(location.getY() - 0.30000001192092896);
+        Item itemEntity = player.getWorld().dropItem(location, getItem);
+        itemEntity.setThrower(player.getUniqueId());
+        itemEntity.setVelocity(Utils.getItemDropVelocity(player));
+        itemEntity.setPickupDelay(40);
     }
 
     private ItemStack combinedItems(ItemStack originalItem) {
@@ -216,15 +228,11 @@ public class WStick extends Cosmetic implements CosmeticInventory {
     @Override
     public void setHideCosmetic(boolean hideCosmetic) {
         super.setHideCosmetic(hideCosmetic);
-        active();
+        update();
     }
 
     @Override
-    public void clear() {
-        if(isHideCosmetic()){
-            player.getInventory().setItemInOffHand(null);
-            return;
-        }
+    public void remove() {
         if(!overlaps) {
             if(currentItemSaved == null)
                 player.getInventory().setItemInOffHand(null);
@@ -237,6 +245,11 @@ public class WStick extends Cosmetic implements CosmeticInventory {
             return;
         }
         player.getInventory().setItemInOffHand(null);
+    }
+
+    @Override
+    public void forceRemove() {
+        currentItemSaved = null;
     }
 
     @Override
@@ -279,5 +292,15 @@ public class WStick extends Cosmetic implements CosmeticInventory {
     @Override
     public ItemStack getEquipment() {
         return player.getInventory().getItemInOffHand();
+    }
+
+    @Override
+    public void spawn(Player player) {
+        // Nothing to do
+    }
+
+    @Override
+    public void despawn(Player player) {
+        // Nothing to do
     }
 }

@@ -6,6 +6,7 @@ import com.francobm.magicosmetics.api.CosmeticType;
 import com.francobm.magicosmetics.cache.*;
 import com.francobm.magicosmetics.cache.inventories.Menu;
 import com.francobm.magicosmetics.files.FileCreator;
+import com.francobm.magicosmetics.utils.Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandExecutor;
@@ -31,12 +32,12 @@ public class Command implements CommandExecutor, TabCompleter {
                 switch (args[0].toLowerCase()){
                     case "addall":
                         if(args.length < 2){
-                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("commands.add-all-usage"));
+                            Utils.sendMessage(sender,plugin.prefix + messages.getString("commands.add-all-usage"));
                             return true;
                         }
                         target = Bukkit.getPlayer(args[1]);
                         if(target == null){
-                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
+                            Utils.sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
                             return true;
                         }
                         plugin.getCosmeticsManager().addAllCosmetics(sender, target);
@@ -45,12 +46,12 @@ public class Command implements CommandExecutor, TabCompleter {
                         //cosmetics add <player> <id>
                         if(args.length < 3){
 
-                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("commands.add-usage"));
+                            Utils.sendMessage(sender,plugin.prefix + messages.getString("commands.add-usage"));
                             return true;
                         }
                         target = Bukkit.getPlayer(args[1]);
                         if(target == null){
-                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
+                            Utils.sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
                             return true;
                         }
                         plugin.getCosmeticsManager().addCosmetic(sender, target, args[2]);
@@ -58,24 +59,24 @@ public class Command implements CommandExecutor, TabCompleter {
                     case "remove":
                         //cosmetics add <player> <id>
                         if(args.length < 3){
-                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("commands.remove-usage"));
+                            Utils.sendMessage(sender,plugin.prefix + messages.getString("commands.remove-usage"));
                             return true;
                         }
                         target = Bukkit.getPlayer(args[1]);
                         if(target == null){
-                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
+                            Utils.sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
                             return true;
                         }
                         plugin.getCosmeticsManager().removeCosmetic(sender, target, args[2]);
                         return true;
                     case "removeall":
                         if(args.length < 2){
-                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("commands.remove-all-usage"));
+                            Utils.sendMessage(sender,plugin.prefix + messages.getString("commands.remove-all-usage"));
                             return true;
                         }
                         target = Bukkit.getPlayer(args[1]);
                         if(target == null){
-                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
+                            Utils.sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
                             return true;
                         }
                         plugin.getCosmeticsManager().removeAllCosmetics(sender, target);
@@ -86,12 +87,12 @@ public class Command implements CommandExecutor, TabCompleter {
                     case "equip":
                         //cosmetics equip <player> <id> <color> <force>
                         if(args.length < 3){
-                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("commands.equip-usage"));
+                            Utils.sendMessage(sender,plugin.prefix + messages.getString("commands.equip-usage"));
                             return true;
                         }
                         target = Bukkit.getPlayer(args[1]);
                         if(target == null){
-                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
+                            Utils.sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
                             return true;
                         }
                         if(args.length == 4) {
@@ -114,7 +115,7 @@ public class Command implements CommandExecutor, TabCompleter {
                         }
                         target = Bukkit.getPlayer(args[1]);
                         if(target == null){
-                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
+                            Utils.sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
                             return true;
                         }
                         if(args[2].equalsIgnoreCase("all")){
@@ -126,12 +127,12 @@ public class Command implements CommandExecutor, TabCompleter {
                     case "open":
                         //cosmetics open <menu-id> <player>
                         if(args.length < 3){
-                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("commands.menu-usage"));
+                            Utils.sendMessage(sender,plugin.prefix + messages.getString("commands.menu-usage"));
                             return true;
                         }
                         target = Bukkit.getPlayer(args[2]);
                         if(target == null){
-                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
+                            Utils.sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
                             return true;
                         }
                         plugin.getCosmeticsManager().openMenu(target, args[1]);
@@ -139,13 +140,13 @@ public class Command implements CommandExecutor, TabCompleter {
                     case "token":
                         //cosmetics token give <player> <name>
                         if(args.length < 3){
-                            plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + plugin.getMessages().getString("commands.token-usage"));
+                            Utils.sendMessage(sender,plugin.prefix + plugin.getMessages().getString("commands.token-usage"));
                             return true;
                         }
                         if(args[1].equalsIgnoreCase("give")){
                             target = Bukkit.getPlayer(args[2]);
                             if(target == null){
-                                plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
+                                Utils.sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
                                 return true;
                             }
                             plugin.getCosmeticsManager().giveToken(sender, target, args[3]);
@@ -153,7 +154,7 @@ public class Command implements CommandExecutor, TabCompleter {
                         }
                         return true;
                     default:
-                        plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + plugin.getMessages().getString("commands.not-found"));
+                        Utils.sendMessage(sender,plugin.prefix + plugin.getMessages().getString("commands.not-found"));
                         return true;
                 }
             }
@@ -165,6 +166,12 @@ public class Command implements CommandExecutor, TabCompleter {
             if(args.length >= 1){
                 switch (args[0].toLowerCase()){
                     case "test":
+                        target = Bukkit.getPlayer(args[1]);
+                        if(target == null){
+                            Utils.sendMessage(player,plugin.prefix + messages.getString("offline-player"));
+                            return true;
+                        }
+                        player.addPassenger(target);
                         return true;
                     case "unlock":
                         if(args.length < 2){
@@ -177,12 +184,12 @@ public class Command implements CommandExecutor, TabCompleter {
                         return true;
                     case "addall":
                         if(args.length < 2){
-                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("commands.add-all-usage"));
+                            Utils.sendMessage(player,plugin.prefix + messages.getString("commands.add-all-usage"));
                             return true;
                         }
                         target = Bukkit.getPlayer(args[1]);
                         if(target == null){
-                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("offline-player"));
+                            Utils.sendMessage(player,plugin.prefix + messages.getString("offline-player"));
                             return true;
                         }
                         plugin.getCosmeticsManager().addAllCosmetics(player, target);
@@ -191,12 +198,12 @@ public class Command implements CommandExecutor, TabCompleter {
                         //cosmetics add <player> <id>
                         if(args.length < 3){
 
-                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("commands.add-usage"));
+                            Utils.sendMessage(player,plugin.prefix + messages.getString("commands.add-usage"));
                             return true;
                         }
                         target = Bukkit.getPlayer(args[1]);
                         if(target == null){
-                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("offline-player"));
+                            Utils.sendMessage(player,plugin.prefix + messages.getString("offline-player"));
                             return true;
                         }
                         plugin.getCosmeticsManager().addCosmetic(player, target, args[2]);
@@ -204,24 +211,24 @@ public class Command implements CommandExecutor, TabCompleter {
                     case "remove":
                         //cosmetics add <player> <id>
                         if(args.length < 3){
-                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("commands.remove-usage"));
+                            Utils.sendMessage(player,plugin.prefix + messages.getString("commands.remove-usage"));
                             return true;
                         }
                         target = Bukkit.getPlayer(args[1]);
                         if(target == null){
-                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("offline-player"));
+                            Utils.sendMessage(player,plugin.prefix + messages.getString("offline-player"));
                             return true;
                         }
                         plugin.getCosmeticsManager().removeCosmetic(player, target, args[2]);
                         return true;
                     case "removeall":
                         if(args.length < 2){
-                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("commands.remove-all-usage"));
+                            Utils.sendMessage(player,plugin.prefix + messages.getString("commands.remove-all-usage"));
                             return true;
                         }
                         target = Bukkit.getPlayer(args[1]);
                         if(target == null){
-                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("offline-player"));
+                            Utils.sendMessage(player,plugin.prefix + messages.getString("offline-player"));
                             return true;
                         }
                         plugin.getCosmeticsManager().removeAllCosmetics(player, target);
@@ -232,7 +239,7 @@ public class Command implements CommandExecutor, TabCompleter {
                     case "use":
                         //cosmetics use <id> <color>
                         if(args.length < 2){
-                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("commands.use-usage"));
+                            Utils.sendMessage(player,plugin.prefix + messages.getString("commands.use-usage"));
                             return true;
                         }
                         if(args.length == 3) {
@@ -243,21 +250,21 @@ public class Command implements CommandExecutor, TabCompleter {
                         return true;
                     case "preview":
                         if(args.length < 2){
-                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("commands.use-usage"));
+                            Utils.sendMessage(player,plugin.prefix + messages.getString("commands.use-usage"));
                             return true;
                         }
                         plugin.getCosmeticsManager().previewCosmetic(player, args[1]);
                         return true;
                     case "unuse":
                         if(args.length < 2){
-                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("commands.use-usage"));
+                            Utils.sendMessage(player,plugin.prefix + messages.getString("commands.use-usage"));
                             return true;
                         }
                         plugin.getCosmeticsManager().unUseCosmetic(player, args[1]);
                         return true;
                     case "unset":
                         if(args.length < 2){
-                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("commands.use-usage"));
+                            Utils.sendMessage(player,plugin.prefix + messages.getString("commands.use-usage"));
                             return true;
                         }
                         plugin.getCosmeticsManager().unSetCosmetic(player, args[1]);
@@ -275,7 +282,7 @@ public class Command implements CommandExecutor, TabCompleter {
                     case "open":
                         //cosmetics open <menu-id>
                         if(args.length < 2){
-                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + messages.getString("commands.menu-usage"));
+                            Utils.sendMessage(player,plugin.prefix + messages.getString("commands.menu-usage"));
                             return true;
                         }
                         plugin.getCosmeticsManager().openMenu(player, args[1]);
@@ -293,7 +300,7 @@ public class Command implements CommandExecutor, TabCompleter {
                     case "hide":
                         plugin.getCosmeticsManager().hideSelfCosmetic(player, CosmeticType.BAG);
                         return true;
-                    case "hideall":
+                    case "toggle":
                         playerData = PlayerData.getPlayer(player);
                         playerData.toggleHiddeCosmetics();
                         return true;
@@ -301,131 +308,131 @@ public class Command implements CommandExecutor, TabCompleter {
                         //cosmetics zones add <name>
                         if(args.length < 2){
                             for(String msg : plugin.getMessages().getStringList("commands.zones-usage")){
-                                plugin.getCosmeticsManager().sendMessage(player,msg);
+                                Utils.sendMessage(player,msg);
                             }
                             return true;
                         }
                         if(args[1].equalsIgnoreCase("add")){
                             if(args.length < 3){
                                 for(String msg : plugin.getMessages().getStringList("commands.zones-usage")){
-                                    plugin.getCosmeticsManager().sendMessage(player,msg);
+                                    Utils.sendMessage(player,msg);
                                 }
                                 return true;
                             }
-                            plugin.getCosmeticsManager().addZone(player, args[2]);
+                            plugin.getZonesManager().addZone(player, args[2]);
                             return true;
                         }
                         if(args[1].equalsIgnoreCase("remove")){
                             if(args.length < 3){
                                 for(String msg : plugin.getMessages().getStringList("commands.zones-usage")){
-                                    plugin.getCosmeticsManager().sendMessage(player,msg);
+                                    Utils.sendMessage(player,msg);
                                 }
                                 return true;
                             }
-                            plugin.getCosmeticsManager().removeZone(player, args[2]);
+                            plugin.getZonesManager().removeZone(player, args[2]);
                             return true;
                         }
                         if(args[1].equalsIgnoreCase("setnpc")){
                             if(args.length < 3){
                                 for(String msg : plugin.getMessages().getStringList("commands.zones-usage")){
-                                    plugin.getCosmeticsManager().sendMessage(player,msg);
+                                    Utils.sendMessage(player,msg);
                                 }
                                 return true;
                             }
-                            plugin.getCosmeticsManager().setZoneNPC(player, args[2]);
+                            plugin.getZonesManager().setZoneNPC(player, args[2]);
                             return true;
                         }
                         if(args[1].equalsIgnoreCase("setballoon")){
                             if(args.length < 3){
                                 for(String msg : plugin.getMessages().getStringList("commands.zones-usage")){
-                                    plugin.getCosmeticsManager().sendMessage(player,msg);
+                                    Utils.sendMessage(player,msg);
                                 }
                                 return true;
                             }
-                            plugin.getCosmeticsManager().setBalloonNPC(player, args[2]);
+                            plugin.getZonesManager().setBalloonNPC(player, args[2]);
                             return true;
                         }
                         if(args[1].equalsIgnoreCase("setspray")){
                             if(args.length < 3){
                                 for(String msg : plugin.getMessages().getStringList("commands.zones-usage")){
-                                    plugin.getCosmeticsManager().sendMessage(player,msg);
+                                    Utils.sendMessage(player,msg);
                                 }
                                 return true;
                             }
-                            plugin.getCosmeticsManager().setSpray(player, args[2]);
+                            plugin.getZonesManager().setSpray(player, args[2]);
                             return true;
                         }
                         if(args[1].equalsIgnoreCase("setenter")){
                             if(args.length < 3){
                                 for(String msg : plugin.getMessages().getStringList("commands.zones-usage")){
-                                    plugin.getCosmeticsManager().sendMessage(player,msg);
+                                    Utils.sendMessage(player,msg);
                                 }
                                 return true;
                             }
-                            plugin.getCosmeticsManager().setZoneEnter(player, args[2]);
+                            plugin.getZonesManager().setZoneEnter(player, args[2]);
                             return true;
                         }
                         if(args[1].equalsIgnoreCase("setexit")){
                             if(args.length < 3){
                                 for(String msg : plugin.getMessages().getStringList("commands.zones-usage")){
-                                    plugin.getCosmeticsManager().sendMessage(player,msg);
+                                    Utils.sendMessage(player,msg);
                                 }
                                 return true;
                             }
-                            plugin.getCosmeticsManager().setZoneExit(player, args[2]);
+                            plugin.getZonesManager().setZoneExit(player, args[2]);
                             return true;
                         }
                         if(args[1].equalsIgnoreCase("givecorns")){
                             if(args.length < 3){
                                 for(String msg : plugin.getMessages().getStringList("commands.zones-usage")){
-                                    plugin.getCosmeticsManager().sendMessage(player,msg);
+                                    Utils.sendMessage(player,msg);
                                 }
                                 return true;
                             }
-                            plugin.getCosmeticsManager().giveCorn(player, args[2]);
+                            plugin.getZonesManager().giveCorn(player, args[2]);
                             return true;
                         }
                         if(args[1].equalsIgnoreCase("enable")){
                             if(args.length < 3){
                                 for(String msg : plugin.getMessages().getStringList("commands.zones-usage")){
-                                    plugin.getCosmeticsManager().sendMessage(player,msg);
+                                    Utils.sendMessage(player,msg);
                                 }
                                 return true;
                             }
-                            plugin.getCosmeticsManager().enableZone(player, args[2]);
+                            plugin.getZonesManager().enableZone(player, args[2]);
                             return true;
                         }
                         if(args[1].equalsIgnoreCase("disable")){
                             if(args.length < 3){
                                 for(String msg : plugin.getMessages().getStringList("commands.zones-usage")){
-                                    plugin.getCosmeticsManager().sendMessage(player,msg);
+                                    Utils.sendMessage(player,msg);
                                 }
                                 return true;
                             }
-                            plugin.getCosmeticsManager().disableZone(player, args[2]);
+                            plugin.getZonesManager().disableZone(player, args[2]);
                             return true;
                         }
                         if(args[1].equalsIgnoreCase("save")){
                             if(args.length < 3){
                                 for(String msg : plugin.getMessages().getStringList("commands.zones-usage")){
-                                    plugin.getCosmeticsManager().sendMessage(player,msg);
+                                    Utils.sendMessage(player,msg);
                                 }
                                 return true;
                             }
-                            plugin.getCosmeticsManager().saveZone(player, args[2]);
+                            plugin.getZonesManager().saveZone(player, args[2]);
                             return true;
                         }
                         return true;
                     case "token":
                         //cosmetics token give <player> <name>
                         if(args.length < 4){
-                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + plugin.getMessages().getString("commands.token-usage"));
+                            Utils.sendMessage(player,plugin.prefix + plugin.getMessages().getString("commands.token-usage"));
                             return true;
                         }
                         if(args[1].equalsIgnoreCase("give")){
                             target = Bukkit.getPlayer(args[2]);
                             if(target == null){
-                                plugin.getCosmeticsManager().sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
+                                Utils.sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
                                 return true;
                             }
                             plugin.getCosmeticsManager().giveToken(player, target, args[3]);
@@ -437,7 +444,7 @@ public class Command implements CommandExecutor, TabCompleter {
                         return true;
                     case "npc":
                         if(!plugin.isCitizens()){
-                            plugin.getCosmeticsManager().sendMessage(player, plugin.prefix + "&cCitizens is not installed!");
+                            Utils.sendMessage(player, plugin.prefix + "&cCitizens is not installed!");
                             return true;
                         }
                         //cosmetics npc 1 <cosmetic-id> <color>
@@ -446,7 +453,7 @@ public class Command implements CommandExecutor, TabCompleter {
                             return true;
                         }
                         if(args.length < 3){
-                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + plugin.getMessages().getString("commands.npc-usage"));
+                            Utils.sendMessage(player,plugin.prefix + plugin.getMessages().getString("commands.npc-usage"));
                             return true;
                         }
                         try{
@@ -458,13 +465,13 @@ public class Command implements CommandExecutor, TabCompleter {
                     case "tint":
                         //cosmetics tint <color>
                         if(args.length < 2){
-                            plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + plugin.getMessages().getString("commands.tint-usage"));
+                            Utils.sendMessage(player,plugin.prefix + plugin.getMessages().getString("commands.tint-usage"));
                             return true;
                         }
                         plugin.getCosmeticsManager().tintItem(player, args[1]);
                         return true;
                     default:
-                        plugin.getCosmeticsManager().sendMessage(player,plugin.prefix + plugin.getMessages().getString("commands.not-found"));
+                        Utils.sendMessage(player,plugin.prefix + plugin.getMessages().getString("commands.not-found"));
                         return true;
                 }
             }
@@ -504,8 +511,8 @@ public class Command implements CommandExecutor, TabCompleter {
         if(sender.hasPermission("magicosmetics.hide")) {
             arguments.add("hide");
         }
-        if(sender.hasPermission("magicosmetics.hide.all")){
-            arguments.add("hideAll");
+        if(sender.hasPermission("magicosmetics.toggle")){
+            arguments.add("toggle");
         }
         if(sender.hasPermission("magicosmetics.equip")){
             arguments.add("use");
@@ -526,7 +533,7 @@ public class Command implements CommandExecutor, TabCompleter {
             case 2:
                 switch (args[0].toLowerCase()){
                     case "hide":
-                    case "hideall":
+                    case "toggle":
                     case "add":
                     case "addall":
                     case "remove":

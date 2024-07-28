@@ -18,6 +18,8 @@ import java.util.concurrent.CompletableFuture;
 
 public class SQLite extends SQL {
     private final File fileSQL;
+    private final HikariCP hikariCP;
+
     public SQLite() {
         hikariCP = new HikariCP();
         fileSQL = new File(plugin.getDataFolder(), "cosmetics.db");
@@ -47,7 +49,7 @@ public class SQLite extends SQL {
     }
 
     @Override
-    public CompletableFuture<Void> loadPlayerAsync(Player player) {
+    public CompletableFuture<PlayerData> loadPlayerAsync(Player player) {
         return loadPlayerInfoAsync(player);
     }
 
@@ -218,7 +220,6 @@ public class SQLite extends SQL {
                 playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
                 playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
                 CustomSpray.updateSpray(player);
-                PlayerBag.updatePlayerBag(player);
                 PlayerBalloon.updatePlayerBalloon(player);
                 plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
             }
@@ -229,8 +230,8 @@ public class SQLite extends SQL {
         }
     }
 
-    private CompletableFuture<Void> loadPlayerInfoAsync(Player player){
-        return CompletableFuture.runAsync(() -> {
+    private CompletableFuture<PlayerData> loadPlayerInfoAsync(Player player){
+        return CompletableFuture.supplyAsync(() -> {
             String queryBuilder = "SELECT * FROM player_cosmetics WHERE UUID = ?";
             Connection connection = null;
             PreparedStatement preparedStatement = null;
@@ -240,8 +241,9 @@ public class SQLite extends SQL {
                 preparedStatement = connection.prepareStatement(queryBuilder);
                 preparedStatement.setString(1, player.getUniqueId().toString());
                 resultSet = preparedStatement.executeQuery();
+                PlayerData playerData = PlayerData.getPlayer(player);
                 if(resultSet == null){
-                    return;
+                    return playerData;
                 }
                 if(resultSet.next()){
                     String cosmetics = resultSet.getString("Available");
@@ -251,7 +253,6 @@ public class SQLite extends SQL {
                     String balloon = resultSet.getString("Balloon");
                     String spray = resultSet.getString("Spray");
 
-                    PlayerData playerData = PlayerData.getPlayer(player);
                     playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
                     playerData.loadCosmetics(cosmetics);
                     playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
@@ -260,19 +261,20 @@ public class SQLite extends SQL {
                     EntityBag.updateEntityBag(player);
                     EntityBalloon.updateEntityBalloon(player);
                     CustomSpray.updateSpray(player);
-                    PlayerBag.updatePlayerBag(player);
                     PlayerBalloon.updatePlayerBalloon(player);
                     plugin.getServer().getScheduler().runTask(plugin, () -> {
                         playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
                         playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
                     });
                     plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
+                    return playerData;
                 }
             }catch (SQLException throwable){
                 plugin.getLogger().severe("Failed to load async player information: " + throwable.getMessage());
             } finally {
                 closeConnections(preparedStatement, connection, resultSet);
             }
+            return null;
         });
     }
 

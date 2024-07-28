@@ -136,12 +136,10 @@ public class EntityBagHandler extends EntityBag {
     @Override
     public void addPassenger(Player player, Entity entity, Entity passenger) {
         EntityPlayer entityPlayer = ((CraftPlayer)player).getHandle();
-        net.minecraft.world.entity.Entity e = ((CraftEntity)entity).getHandle();
-        net.minecraft.world.entity.Entity pass = ((CraftEntity)passenger).getHandle();
 
         PacketPlayOutMount packetPlayOutMount = this.createDataSerializer(packetDataSerializer -> {
-            packetDataSerializer.d(e.aj());
-            packetDataSerializer.a(new int[]{pass.aj()});
+            packetDataSerializer.c(entity.getEntityId());
+            packetDataSerializer.a(new int[]{passenger.getEntityId()});
             return new PacketPlayOutMount(packetDataSerializer);
         });
         entityPlayer.c.b(packetPlayOutMount);

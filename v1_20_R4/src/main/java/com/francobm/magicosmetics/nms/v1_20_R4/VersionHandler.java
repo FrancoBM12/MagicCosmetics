@@ -1,8 +1,9 @@
 package com.francobm.magicosmetics.nms.v1_20_R4;
 
+import com.francobm.magicosmetics.nms.IRangeManager;
 import com.francobm.magicosmetics.nms.NPC.ItemSlot;
 import com.francobm.magicosmetics.nms.NPC.NPC;
-import com.francobm.magicosmetics.nms.Version.Version;
+import com.francobm.magicosmetics.nms.version.Version;
 import com.francobm.magicosmetics.nms.bag.EntityBag;
 import com.francobm.magicosmetics.nms.bag.PlayerBag;
 import com.francobm.magicosmetics.nms.balloon.EntityBalloon;
@@ -12,17 +13,13 @@ import com.francobm.magicosmetics.nms.v1_20_R4.cache.*;
 import com.francobm.magicosmetics.nms.v1_20_R4.models.PacketReaderHandler;
 import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Pair;
-import net.minecraft.core.DefaultedMappedRegistry;
-import net.minecraft.core.IRegistry;
-import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.core.component.DataComponentPatch;
-import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.DataWatcher;
 import net.minecraft.server.level.EntityPlayer;
+import net.minecraft.server.level.PlayerChunkMap;
+import net.minecraft.server.level.WorldServer;
 import net.minecraft.server.network.PlayerConnection;
 import net.minecraft.world.entity.EntityLiving;
 import net.minecraft.world.entity.EntityTypes;
@@ -115,7 +112,7 @@ public class VersionHandler extends Version {
 
     @Override
     public PlayerBag createPlayerBag(Player player, double distance, float height, ItemStack backPackItem, ItemStack backPackItemForMe) {
-        return new PlayerBagHandler(player, distance, height, backPackItem, backPackItemForMe);
+        return new PlayerBagHandler(player, createRangeManager(player), distance, height, backPackItem, backPackItemForMe);
     }
 
     @Override
@@ -358,5 +355,26 @@ public class VersionHandler extends Version {
         skullMeta.setOwnerProfile(profile);
         itemStack.setItemMeta(skullMeta);
         return itemStack;
+    }
+
+    @Override
+    public IRangeManager createRangeManager(Entity entity) {
+        WorldServer level = ((CraftWorld)entity.getWorld()).getHandle();
+
+        PlayerChunkMap.EntityTracker trackedEntity;
+        try {
+            trackedEntity = level.l().a.J.get(entity.getEntityId());
+        } catch (NoSuchFieldError var8) {
+            net.minecraft.world.entity.Entity nmsEntity = ((CraftEntity)entity).getHandle();
+
+            try {
+                Field trackerField = nmsEntity.getClass().getField("tracker");
+                trackedEntity = (PlayerChunkMap.EntityTracker)trackerField.get(nmsEntity);
+            } catch (IllegalAccessException | NoSuchFieldException var7) {
+                throw new RuntimeException(var7);
+            }
+        }
+
+        return new RangeManager(trackedEntity);
     }
 }

@@ -2,6 +2,7 @@ package com.francobm.magicosmetics.database;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.bukkit.Bukkit;
 
 public class HikariCP {
 
@@ -29,6 +30,7 @@ public class HikariCP {
         HikariConfig config = new HikariConfig();
         try{
             if(sql.getDatabaseType() == DatabaseType.MYSQL){
+                //String mysql = "jdbc:mysql://" + username + ":" + password + "@" + hostname + ":" + port + "/" + database + "?" + options;
                 String mysql = "jdbc:mysql://" + hostname + ":" + port + "/" + database + "?" + options;
                 config.setJdbcUrl(mysql);
                 config.setUsername(username);
@@ -50,7 +52,7 @@ public class HikariCP {
             }
             hikariDataSource = new HikariDataSource(config);
         }catch (Exception e){
-            e.printStackTrace();
+            Bukkit.getLogger().warning("Problem with HikariCP:" +  e.getMessage());
         }
     }
 
