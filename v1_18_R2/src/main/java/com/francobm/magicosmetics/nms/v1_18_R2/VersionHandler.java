@@ -112,7 +112,7 @@ public class VersionHandler extends Version {
     }
 
     @Override
-    public PlayerBag createPlayerBag(Player player, double distance, float height, ItemStack backPackItem, ItemStack backPackItemForMe) {
+    public PlayerBag createPlayerBag(Player player, double distance, float height, ItemStack backPackItem, ItemStack backPackItemForMe, boolean isDisplay) {
         return new PlayerBagHandler(player, createRangeManager(player), distance, height, backPackItem, backPackItemForMe);
     }
 
@@ -215,7 +215,7 @@ public class VersionHandler extends Version {
             entityPlayer.b.a(new PacketPlayOutSpawnEntity(entityAreaEffectCloud));
             entityPlayer.b.a(new PacketPlayOutEntityMetadata(entityAreaEffectCloud.ae(), entityAreaEffectCloud.ai(), true));
             list.add(entityAreaEffectCloud.ae());
-            Bukkit.getLogger().info("bounding-box: " + entityAreaEffectCloud.cw().e);
+            //Bukkit.getLogger().info("bounding-box: " + entityAreaEffectCloud.cw().e);
         }
         for(int i = 0; i < clouds; i++) {
             if(i == 0){

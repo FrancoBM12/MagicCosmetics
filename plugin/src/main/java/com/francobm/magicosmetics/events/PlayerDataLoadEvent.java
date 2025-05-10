@@ -17,7 +17,6 @@ public class PlayerDataLoadEvent extends Event {
     private final Set<Cosmetic> equippedCosmetics;
 
     public PlayerDataLoadEvent(PlayerData playerData, Set<Cosmetic> equippedCosmetics){
-        super(true);
         this.playerData = playerData;
         this.equippedCosmetics = equippedCosmetics;
     }

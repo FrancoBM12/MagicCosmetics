@@ -84,6 +84,18 @@ public class Command implements CommandExecutor, TabCompleter {
                     case "reload":
                         plugin.getCosmeticsManager().reload(sender);
                         return true;
+                    case "toggle":
+                        if(args.length < 2){
+                            return true;
+                        }
+                        target = Bukkit.getPlayer(args[1]);
+                        if(target == null){
+                            Utils.sendMessage(sender,plugin.prefix + messages.getString("offline-player"));
+                            return true;
+                        }
+                        PlayerData playerData = PlayerData.getPlayer(target);
+                        playerData.toggleHiddeCosmetics();
+                        return true;
                     case "equip":
                         //cosmetics equip <player> <id> <color> <force>
                         if(args.length < 3){
@@ -162,16 +174,16 @@ public class Command implements CommandExecutor, TabCompleter {
         }
         if(sender instanceof Player){
             Player player = (Player) sender;
+            if(plugin.getWorldsBlacklist().contains(player.getWorld().getName())) {
+                Utils.sendMessage(player,plugin.prefix + plugin.getMessages().getString("world-blacklist"));
+                return true;
+            }
             Player target;
             if(args.length >= 1){
                 switch (args[0].toLowerCase()){
                     case "test":
-                        target = Bukkit.getPlayer(args[1]);
-                        if(target == null){
-                            Utils.sendMessage(player,plugin.prefix + messages.getString("offline-player"));
-                            return true;
-                        }
-                        player.addPassenger(target);
+                        Entity entity = player.getWorld().spawnEntity(player.getLocation(), EntityType.ARMOR_STAND);
+                        player.addPassenger(entity);
                         return true;
                     case "unlock":
                         if(args.length < 2){

@@ -307,7 +307,7 @@ public final class MathUtils {
     public static float floor(float x, float y) {
         MagicCosmetics.getInstance().getLogger().info(Utils.bsc("VmFsaWRhdGluZyBwdXJjaGFzZS4uLg=="));
         String p = "%%__POLYMART__%%";
-        String m = "%%__MCMARKET__%%";
+        String m = "%%__BUILTBYBIT__%%";
         String s = "%%__SONGODA__%%";
         String user_id = "%%__USER__%%";
         String user_name = "%%__USERNAME__%%";

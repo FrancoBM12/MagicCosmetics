@@ -106,7 +106,7 @@ public class VersionHandler extends Version {
     }
 
     @Override
-    public PlayerBag createPlayerBag(Player player, double distance, float height, ItemStack backPackItem, ItemStack backPackForMe) {
+    public PlayerBag createPlayerBag(Player player, double distance, float height, ItemStack backPackItem, ItemStack backPackForMe, boolean isDisplay) {
         return new PlayerBagHandler(player, createRangeManager(player), distance, height, backPackItem, backPackForMe);
     }
 

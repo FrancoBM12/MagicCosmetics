@@ -112,7 +112,8 @@ public class Zone {
             if(zone.contains("zones." + key + ".corn1")){
                 String c1 = zone.getString("zones." + key + ".corn1");
                 if(c1.equalsIgnoreCase("Location is Null!!")){
-                    MagicCosmetics.getInstance().getLogger().info("Location of Corn1 is Null!");
+                    MagicCosmetics.getInstance().getLogger().info("Location of Corn1 is Null... skipping zone " + key);
+                    continue;
                 }else{
                     corn1 = Utils.convertStringToLocation(c1);
                 }
@@ -120,7 +121,8 @@ public class Zone {
             if(zone.contains("zones." + key + ".corn2")){
                 String c2 = zone.getString("zones." + key + ".corn2");
                 if(c2.equalsIgnoreCase("Location is Null!!")){
-                    MagicCosmetics.getInstance().getLogger().info("Location of Corn2 is Null!");
+                    MagicCosmetics.getInstance().getLogger().info("Location of Corn2 is Null... skipping zone " + key);
+                    continue;
                 }else{
                     corn2 = Utils.convertStringToLocation(c2);
                 }

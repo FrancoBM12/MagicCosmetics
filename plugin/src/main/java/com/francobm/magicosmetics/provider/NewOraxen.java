@@ -10,7 +10,12 @@ import io.th0rgal.oraxen.font.Glyph;
 import io.th0rgal.oraxen.items.ItemBuilder;
 import org.bukkit.inventory.ItemStack;
 
-public class NewOraxen extends CompatibilityProvider<MagicCosmetics> implements Oraxen {
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class NewOraxen extends CompatibilityProvider<MagicCosmetics> implements Oraxen, ResourcePlugin {
+
+    Pattern pattern = Pattern.compile(":\\w+:");
 
     public void register(){
         CompatibilitiesManager.addCompatibility("MagicCosmetics", NewOraxen.class);
@@ -21,6 +26,11 @@ public class NewOraxen extends CompatibilityProvider<MagicCosmetics> implements 
         ItemBuilder itemBuilder = OraxenItems.getItemById(id);
         if(itemBuilder == null) return null;
         return itemBuilder.build();
+    }
+
+    @Override
+    public String replaceFontImageWithoutColor(String id) {
+        return replaceFontImages(id);
     }
 
     public ItemStack getItemStackByItem(ItemStack itemStack){
@@ -36,11 +46,25 @@ public class NewOraxen extends CompatibilityProvider<MagicCosmetics> implements 
         if(oraxenPlugin == null) return id;
         FontManager fontManager = oraxenPlugin.getFontManager();
         if(fontManager == null) return id;
-        for(Glyph glyph : fontManager.getGlyphs()){
-            if(glyph.getCharacter().isEmpty()) continue;
-            if(!id.contains(glyph.getName())) continue;
-            id = id.replace(glyph.getName(), glyph.getCharacter());
+        Matcher matcher = pattern.matcher(id);
+        while (matcher.find()) {
+            String placeholder = matcher.group();
+            String glyphName = placeholder.replace(":", "");
+            Glyph glyph = fontManager.getGlyphFromID(glyphName);
+            if(glyph == null) continue;
+            id = id.replace(placeholder, glyph.getCharacter());
         }
+
         return id;
+    }
+
+    @Override
+    public String getProviderName() {
+        return "Oraxen";
+    }
+
+    @Override
+    public String getPathName() {
+        return "oraxen";
     }
 }

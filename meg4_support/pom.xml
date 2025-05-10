@@ -53,10 +53,9 @@
         <dependency>
             <groupId>com.ticxo.modelengine</groupId>
             <artifactId>ModelEngine</artifactId>
-            <version>R4.0.3</version>
+            <version>R4.0.7</version>
             <scope>provided</scope>
         </dependency>
-
     </dependencies>
 
 </project>

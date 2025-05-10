@@ -2,11 +2,13 @@ package com.francobm.magicosmetics.listeners;
 
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.api.Cosmetic;
+import com.francobm.magicosmetics.api.CosmeticType;
 import com.francobm.magicosmetics.api.SprayKeys;
 import com.francobm.magicosmetics.cache.*;
 import com.francobm.magicosmetics.cache.cosmetics.CosmeticInventory;
 import com.francobm.magicosmetics.events.CosmeticInventoryUpdateEvent;
 import com.francobm.magicosmetics.events.PlayerChangeBlacklistEvent;
+import com.francobm.magicosmetics.events.PlayerDataLoadEvent;
 import com.francobm.magicosmetics.utils.Utils;
 import com.francobm.magicosmetics.utils.XMaterial;
 import org.bukkit.Location;
@@ -40,7 +42,7 @@ public class PlayerListener implements Listener {
     public void onJoin(PlayerJoinEvent event){
         Player player = event.getPlayer();
         plugin.getVersion().getPacketReader().injectPlayer(player);
-        if(plugin.isHuskSync()){
+        if(plugin.isHuskSync() || plugin.isMpdb()){
             return;
         }
         plugin.getSql().loadPlayerAsync(player).thenAccept(playerData -> {
@@ -48,6 +50,12 @@ public class PlayerListener implements Listener {
                 plugin.getServer().getScheduler().runTask(plugin, playerData::sendLoadPlayerData);
             }
         });
+    }
+
+    @EventHandler
+    public void onLoadData(PlayerDataLoadEvent event){
+        PlayerData playerData = event.getPlayerData();
+        playerData.verifyWorldBlackList(plugin);
     }
 
     @EventHandler
@@ -73,7 +81,7 @@ public class PlayerListener implements Listener {
         plugin.getSql().savePlayerAsync(playerData);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onTeleport(PlayerTeleportEvent event){
         Player player = event.getPlayer();
         PlayerData playerData = PlayerData.getPlayer(player);
@@ -81,11 +89,12 @@ public class PlayerListener implements Listener {
             if(!playerData.isSpectator()) return;
             event.setCancelled(true);
         }
+
+        playerData.clearCosmeticsInUse(false);
         //PlayerBag.refreshPlayerBag(player);
         /*if(event.getFrom().getWorld() != null && event.getTo().getWorld() != null && event.getFrom().getWorld().getUID().equals(event.getTo().getWorld().getUID())) {
             if (event.getFrom().distanceSquared(event.getTo()) < 10) return;
         }*/
-        playerData.clearCosmeticsInUse(false);
     }
 
     @EventHandler
@@ -113,12 +122,18 @@ public class PlayerListener implements Listener {
     public void onDrop(PlayerDropItemEvent event){
         Player player = event.getPlayer();
         PlayerData playerData = PlayerData.getPlayer(player);
-        if(playerData.getSpray() == null) return;
-        if(plugin.getSprayKey() == null)  return;
-        if (!plugin.getSprayKey().isKey(SprayKeys.SHIFT_Q)) return;
-        if (!player.isSneaking()) return;
-        event.setCancelled(true);
-        playerData.draw(plugin.getSprayKey());
+        if(playerData.getSpray() != null) {
+            if (plugin.getSprayKey() == null) return;
+            if (!plugin.getSprayKey().isKey(SprayKeys.SHIFT_Q)) return;
+            if (!player.isSneaking()) return;
+            event.setCancelled(true);
+            playerData.draw(plugin.getSprayKey());
+        }
+        if(!Utils.isNewerThan1206()) return;
+        //Method to prevent duplicated items when dropping
+        String nbt = plugin.getVersion().isNBTCosmetic(event.getItemDrop().getItemStack());
+        if(nbt == null || nbt.isEmpty()) return;
+        event.getItemDrop().remove();
     }
 
     @EventHandler
@@ -158,7 +173,7 @@ public class PlayerListener implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onItemFrame(PlayerInteractEntityEvent event){
         Player player = event.getPlayer();
         PlayerData playerData = PlayerData.getPlayer(player);
@@ -174,6 +189,33 @@ public class PlayerListener implements Listener {
         PlayerData playerData = PlayerData.getPlayer(player);
         if(playerData.getWStick() == null) return;
         if(!playerData.getWStick().isCosmetic(event.getItemInHand())) return;
+        event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onInteractDupe(PlayerInteractEvent event){
+        if(event.getHand() != EquipmentSlot.OFF_HAND) return;
+        if(Utils.isNewerThan1206()) {
+            if(!(event.getAction() == Action.RIGHT_CLICK_BLOCK || event.getAction() == Action.RIGHT_CLICK_AIR)) {
+                Player player = event.getPlayer();
+                PlayerData playerData = PlayerData.getPlayer(player);
+                if (playerData.getWStick() == null) return;
+                ItemStack itemStack = event.getItem();
+                if (itemStack == null) return;
+                String nbt = plugin.getVersion().isNBTCosmetic(itemStack);
+                if (nbt == null || nbt.isEmpty()) return;
+                event.setCancelled(true);
+                return;
+            }
+        }
+        if(event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        Player player = event.getPlayer();
+        PlayerData playerData = PlayerData.getPlayer(player);
+        if(playerData.getWStick() == null) return;
+        ItemStack itemStack = event.getItem();
+        if(itemStack == null) return;
+        String nbt = plugin.getVersion().isNBTCosmetic(itemStack);
+        if(nbt == null || nbt.isEmpty()) return;
         event.setCancelled(true);
     }
 
@@ -309,43 +351,31 @@ public class PlayerListener implements Listener {
     /**
      * remove te item when drop
      */
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void playerDrop(PlayerDropItemEvent event){
         Player player = event.getPlayer();
         Item item = event.getItemDrop();
         PlayerData playerData = PlayerData.getPlayer(player);
         if(playerData.getHat() != null) {
             if (playerData.getHat().isCosmetic(item.getItemStack())){
+                event.setCancelled(false);
                 item.remove();
             }
         }
         if(playerData.getWStick() != null){
             if (playerData.getWStick().isCosmetic(item.getItemStack())) {
+                event.setCancelled(false);
                 item.remove();
             }
         }
     }
 
-    @EventHandler
+
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onChangeWorld(PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
-        World world = player.getWorld();
         PlayerData playerData = PlayerData.getPlayer(player);
-        if(playerData == null) return;
-        if(playerData.getEquippedCount() < 1) return;
-        if(plugin.getWorldsBlacklist().contains(world.getName())) {
-            if(playerData.isHasInBlackList()) return;
-            playerData.setHasInBlackList(true);
-            playerData.hideAllCosmetics();
-            PlayerChangeBlacklistEvent callEvent = new PlayerChangeBlacklistEvent(player, playerData.isHasInBlackList());
-            plugin.getServer().getPluginManager().callEvent(callEvent);
-            return;
-        }
-        if(!playerData.isHasInBlackList()) return;
-        playerData.setHasInBlackList(false);
-        playerData.showAllCosmetics();
-        PlayerChangeBlacklistEvent callEvent = new PlayerChangeBlacklistEvent(player, playerData.isHasInBlackList());
-        plugin.getServer().getPluginManager().callEvent(callEvent);
+        playerData.verifyWorldBlackList(plugin);
     }
 
     @EventHandler
@@ -396,7 +426,7 @@ public class PlayerListener implements Listener {
         player.getInventory().addItem(oldItem);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onInventory(InventoryClickEvent event){
         Player player = (Player) event.getWhoClicked();
         PlayerData playerData = PlayerData.getPlayer(player);
@@ -417,32 +447,20 @@ public class PlayerListener implements Listener {
                     player.setItemOnCursor(null);
             }
             if(event.getSlotType() == InventoryType.SlotType.QUICKBAR && event.getSlot() == 40){
-                if(event.getClick() == ClickType.SHIFT_LEFT || event.getClick() == ClickType.SHIFT_RIGHT) {
+                if(event.getClick() == ClickType.SHIFT_LEFT || event.getClick() == ClickType.SHIFT_RIGHT || event.getClick() == ClickType.RIGHT || (playerData.getWStick().isCosmetic(event.getCurrentItem()) && event.getCursor() == null && playerData.getWStick().getCurrentItemSaved() == null || playerData.getWStick().isCosmetic(event.getCurrentItem()) && event.getCursor() != null && event.getCursor().getType().isAir() && playerData.getWStick().getCurrentItemSaved() == null)) {
                     event.setCancelled(true);
-                    return;
-                }
-                if(event.getClick() == ClickType.RIGHT) {
-                    event.setCancelled(true);
-                    return;
-                }
-                if (event.getClick() == ClickType.DROP) {
-                    if(playerData.getWStick().getCurrentItemSaved() != null){
-                        playerData.getWStick().dropItem(false);
-                        event.setCancelled(playerData.getWStick().isOverlaps());
-                    }
-                    return;
-                }
-                if (event.getClick() == ClickType.CONTROL_DROP) {
-                    if(playerData.getWStick().getCurrentItemSaved() != null){
-                        playerData.getWStick().dropItem(true);
-                        event.setCancelled(playerData.getWStick().isOverlaps());
-                    }
                     return;
                 }
 
+                if (event.getClick() == ClickType.DROP || event.getClick() == ClickType.CONTROL_DROP) {
+                    if(playerData.getWStick().getCurrentItemSaved() != null){
+                        playerData.getWStick().dropItem(event.getClick() == ClickType.CONTROL_DROP);
+                        event.setCancelled(playerData.getWStick().isOverlaps());
+                    }
+                    return;
+                }
                 event.setCancelled(true);
-                event.setResult(Event.Result.DENY);
-                ItemStack returnItem = playerData.getWStick().changeItem(event.getCursor());
+                ItemStack returnItem = playerData.getWStick().changeItem(event.getCursor() != null && event.getCursor().getType().isAir() ? null : event.getCursor());
                 player.setItemOnCursor(returnItem);
                 return;
             }
@@ -454,33 +472,23 @@ public class PlayerListener implements Listener {
                     player.setItemOnCursor(null);
             }
             if(event.getSlotType() == InventoryType.SlotType.ARMOR && event.getSlot() == 39){
-                if(event.getClick() == ClickType.SHIFT_LEFT || event.getClick() == ClickType.SHIFT_RIGHT) {
+                if(event.getClick() == ClickType.SHIFT_LEFT || event.getClick() == ClickType.SHIFT_RIGHT || event.getClick() == ClickType.RIGHT || (playerData.getHat().isCosmetic(event.getCurrentItem()) && event.getCursor() == null && playerData.getHat().getCurrentItemSaved() == null || playerData.getHat().isCosmetic(event.getCurrentItem()) && event.getCursor() != null && event.getCursor().getType().isAir() && playerData.getHat().getCurrentItemSaved() == null)) {
                     event.setCancelled(true);
                     return;
                 }
-                if (event.getClick() == ClickType.RIGHT) {
-                    event.setCancelled(true);
-                    return;
-                }
-                if (event.getClick() == ClickType.DROP) {
+
+                if (event.getClick() == ClickType.DROP || event.getClick() == ClickType.CONTROL_DROP) {
                     if(playerData.getHat().getCurrentItemSaved() != null){
-                        playerData.getHat().dropItem(false);
+                        playerData.getHat().dropItem(event.getClick() == ClickType.CONTROL_DROP);
                         event.setCancelled(playerData.getHat().isOverlaps());
-                        return;
-                    }
-                    return;
-                }
-                if (event.getClick() == ClickType.CONTROL_DROP) {
-                    if(playerData.getHat().getCurrentItemSaved() != null){
-                        playerData.getHat().dropItem(true);
-                        event.setCancelled(playerData.getHat().isOverlaps());
+                        //plugin.getLogger().info("Hat Cosmetic Dropped");
                     }
                     return;
                 }
 
                 event.setCancelled(true);
                 if(event.getCursor() == null || event.getCursor().getType().isAir() || event.getCursor().getType().name().endsWith("HELMET") || event.getCursor().getType().name().endsWith("HEAD") || player.hasPermission("magicosmetics.hat.use")) {
-                    ItemStack returnItem = playerData.getHat().changeItem(event.getCursor());
+                    ItemStack returnItem = playerData.getHat().changeItem(event.getCursor() != null && event.getCursor().getType().isAir() ? null : event.getCursor());
                     player.setItemOnCursor(returnItem);
                 }
             }

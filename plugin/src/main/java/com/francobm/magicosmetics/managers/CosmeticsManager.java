@@ -6,6 +6,7 @@ import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.cache.*;
 import com.francobm.magicosmetics.cache.cosmetics.backpacks.Bag;
 import com.francobm.magicosmetics.cache.inventories.Menu;
+import com.francobm.magicosmetics.cache.inventories.PaginatedMenu;
 import com.francobm.magicosmetics.cache.inventories.menus.*;
 import com.francobm.magicosmetics.cache.items.Items;
 import com.francobm.magicosmetics.database.MySQL;
@@ -57,6 +58,8 @@ public class CosmeticsManager {
             zones.set("on_enter.commands", Collections.singletonList("[console] say &aThe %player% has entered the wardrobe"));
         if(!zones.contains("on_exit.commands"))
             zones.set("on_exit.commands", Collections.singletonList("[player] say &cThe %player% has come out of the wardrobe"));
+        if(!messages.contains("world-blacklist"))
+            messages.set("world-blacklist", "&cYou cant use this command in this world!");
         if(!messages.contains("already-all-unlocked")){
             messages.set("already-all-unlocked", "&cThe player already has all the cosmetics unlocked!");
         }
@@ -75,9 +78,10 @@ public class CosmeticsManager {
         if(!messages.contains("exit-color-without-perm")) {
             messages.set("exit-color-without-perm", "&cOne or more cosmetics have colors that you dont have access to, so they have become unequipped!");
         }
-        if(!config.contains("placeholder-api")){
+        if(!config.contains("show-all-cosmetics-in-menu"))
+            config.set("show-all-cosmetics-in-menu", true);
+        if(!config.contains("placeholder-api"))
             config.set("placeholder-api", false);
-        }
         if(!config.contains("luckperms-server"))
             config.set("luckperms-server", "");
         if(!config.contains("main-menu"))
@@ -432,6 +436,10 @@ public class CosmeticsManager {
     }
 
     public void equipCosmetic(Player player, String id, String colorHex, boolean force){
+        if(plugin.getWorldsBlacklist().contains(player.getWorld().getName())) {
+            Utils.sendMessage(player,plugin.prefix + plugin.getMessages().getString("world-blacklist"));
+            return;
+        }
         PlayerData playerData = PlayerData.getPlayer(player);
         if(plugin.getUser() == null) return;
         if(force){
@@ -519,6 +527,10 @@ public class CosmeticsManager {
     }
 
     public void openMenu(Player player, String id){
+        if(plugin.getWorldsBlacklist().contains(player.getWorld().getName())) {
+            Utils.sendMessage(player,plugin.prefix + plugin.getMessages().getString("world-blacklist"));
+            return;
+        }
         PlayerData playerData = PlayerData.getPlayer(player);
         Menu menu = Menu.inventories.get(id);
         if(menu == null){
@@ -532,21 +544,22 @@ public class CosmeticsManager {
                 return;
             }
         }
+        PaginatedMenu paginatedMenu = null;
         switch (menu.getContentMenu().getInventoryType()){
             case HAT:
-                new HatMenu(playerData, menu).open();
+                paginatedMenu = new HatMenu(playerData, menu);
                 break;
             case BAG:
-                new BagMenu(playerData, menu).open();
+                paginatedMenu = new BagMenu(playerData, menu);
                 break;
             case WALKING_STICK:
-                new WStickMenu(playerData, menu).open();
+                paginatedMenu = new WStickMenu(playerData, menu);
                 break;
             case BALLOON:
-                new BalloonMenu(playerData, menu).open();
+                paginatedMenu = new BalloonMenu(playerData, menu);
                 break;
             case SPRAY:
-                new SprayMenu(playerData, menu).open();
+                paginatedMenu = new SprayMenu(playerData, menu);
                 break;
             case FREE:
                 new FreeMenu(playerData, menu).open();
@@ -559,6 +572,9 @@ public class CosmeticsManager {
                 ((TokenMenu)menu).getClone(playerData).open();
                 break;
         }
+        if(paginatedMenu == null) return;
+        paginatedMenu.setShowAllCosmeticsInMenu(plugin.isShowAllCosmeticsInMenu());
+        paginatedMenu.open();
     }
 
     public void openMenuColor(Player player, String id, Color color, Cosmetic cosmetic){

@@ -92,8 +92,9 @@ public class WStick extends Cosmetic implements CosmeticInventory {
     public ItemStack changeItem(ItemStack originalItem) {
         if(isCosmetic(originalItem)) return null;
         if(!overlaps){
-            if((originalItem == null || originalItem.getType().isAir())) {
+            if((originalItem == null)) {
                 if(currentItemSaved == null || currentItemSaved.getType().isAir()){
+                    currentItemSaved = null;
                     player.getInventory().setItemInOffHand(getItemPlaceholders(player));
                     return null;
                 }
@@ -108,7 +109,6 @@ public class WStick extends Cosmetic implements CosmeticInventory {
             return offhand;
         }
         ItemStack offhand = currentItemSaved != null ? MagicCosmetics.getInstance().getVersion().getItemSavedWithNBTsUpdated(combinedItem, currentItemSaved.clone()) : null;
-        if(originalItem.equals(offhand)) return null;
         combinedItem = combinedItems(originalItem);
         player.getInventory().setItemInOffHand(combinedItem);
         return offhand;
@@ -228,7 +228,10 @@ public class WStick extends Cosmetic implements CosmeticInventory {
     @Override
     public void setHideCosmetic(boolean hideCosmetic) {
         super.setHideCosmetic(hideCosmetic);
-        update();
+        if(hideCosmetic)
+            remove();
+        else
+            update();
     }
 
     @Override

@@ -8,6 +8,7 @@ import net.william278.husksync.data.Data;
 import net.william278.husksync.data.DataSnapshot;
 import net.william278.husksync.data.Identifier;
 import net.william278.husksync.event.BukkitDataSaveEvent;
+import net.william278.husksync.event.BukkitPreSyncEvent;
 import net.william278.husksync.event.BukkitSyncCompleteEvent;
 import net.william278.husksync.user.BukkitUser;
 import net.william278.husksync.user.OnlineUser;
@@ -15,6 +16,7 @@ import net.william278.husksync.user.User;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -40,23 +42,23 @@ public class HuskSync implements Listener {
     public void loadDataToPlayer(Player player) {
         huskSyncAPI.getUser(player.getUniqueId()).thenAccept((optionalUser) -> {
             if(!optionalUser.isPresent()) {
-                Bukkit.getLogger().severe("OU HuskSync: Could not find user for UUID: " + player.getUniqueId());
+                //Bukkit.getLogger().severe("OU HuskSync: Could not find user for UUID: " + player.getUniqueId());
                 return;
             }
             huskSyncAPI.getCurrentData(optionalUser.get()).thenAccept((dataToPlayer) -> {
                 if(!dataToPlayer.isPresent()) {
-                    Bukkit.getLogger().severe("DTP HuskSync: Could not find user for UUID: " + player.getUniqueId());
+                    //Bukkit.getLogger().severe("DTP HuskSync: Could not find user for UUID: " + player.getUniqueId());
                     return;
                 }
                 PlayerData playerData = PlayerData.getPlayer(player);
                 DataSnapshot.Unpacked snapshot = dataToPlayer.get();
                 Optional<CosmeticData> optionalCosmeticData = (Optional<CosmeticData>) snapshot.getData(COSMETICS_ID);
                 if(!optionalCosmeticData.isPresent()) {
-                    Bukkit.getLogger().severe("OCD HuskSync: Could not find user for UUID: " + playerData.getUniqueId());
+                    //Bukkit.getLogger().severe("OCD HuskSync: Could not find user for UUID: " + playerData.getUniqueId());
                     return;
                 }
                 CosmeticData cosmeticData = optionalCosmeticData.get();
-                Bukkit.getLogger().info("CosmeticData: " + cosmeticData.getCosmetics() + " - " + cosmeticData.getCosmeticsInUse());
+                //Bukkit.getLogger().info("CosmeticData: " + cosmeticData.getCosmetics() + " - " + cosmeticData.getCosmeticsInUse());
                 playerData.loadCosmetics(cosmeticData.getCosmetics(), cosmeticData.getCosmeticsInUse());
             });
         });
@@ -65,24 +67,24 @@ public class HuskSync implements Listener {
     public void saveDataToPlayer(PlayerData playerData) {
         huskSyncAPI.getUser(playerData.getUniqueId()).thenAccept((optionalUser) ->{
             if(!optionalUser.isPresent()) {
-                Bukkit.getLogger().severe("S OU HuskSync: Could not find user for UUID: " + playerData.getUniqueId());
+                //Bukkit.getLogger().severe("S OU HuskSync: Could not find user for UUID: " + playerData.getUniqueId());
                 return;
             }
             User user = optionalUser.get();
             huskSyncAPI.getCurrentData(user).thenAccept(optionalSnapshot -> {
                if(!optionalSnapshot.isPresent()) {
-                   Bukkit.getLogger().severe("S OS HuskSync: Could not find user for UUID: " + playerData.getUniqueId());
+                   //Bukkit.getLogger().severe("S OS HuskSync: Could not find user for UUID: " + playerData.getUniqueId());
                    return;
                }
                DataSnapshot.Unpacked snapshot = optionalSnapshot.get();
                if(snapshot.getData(COSMETICS_ID).isPresent()){
-                   Bukkit.getLogger().info("CosmeticData Already Exist data");
+                   //Bukkit.getLogger().info("CosmeticData Already Exist data");
                    return;
                }
                snapshot.setData(COSMETICS_ID, new CosmeticData(playerData.saveCosmetics(), playerData.getCosmeticsInUse()));
                snapshot.setSaveCause(DataSnapshot.SaveCause.API);
                huskSyncAPI.setCurrentData(user, snapshot);
-               Bukkit.getLogger().info("CosmeticData save data");
+               //Bukkit.getLogger().info("CosmeticData save data");
             });
         });
     }
@@ -96,21 +98,27 @@ public class HuskSync implements Listener {
                 CosmeticData cosmeticData = (CosmeticData) unpacked.getData(COSMETICS_ID).get();
                 cosmeticData.setCosmetics(playerData.saveCosmetics());
                 cosmeticData.setCosmeticsInUse(playerData.getCosmeticsInUse());
+                cosmeticData.setCosmeticsLoaded(!(event.getSaveCause().name().equals(DataSnapshot.SaveCause.DISCONNECT.name()) || event.getSaveCause().name().equals(DataSnapshot.SaveCause.SERVER_SHUTDOWN.name())));
+                //plugin.getLogger().info("HS: Save existing cosmetics to player");
                 return;
             }
             unpacked.setData(COSMETICS_ID, new CosmeticData(playerData.saveCosmetics(), playerData.getCosmeticsInUse()));
+            //plugin.getLogger().info("HS: Save cosmetics to player");
         });
     }
 
+
     /*
-    @EventHandler
-    public void onSyncComplete(BukkitSyncCompleteEvent event) {
-        OnlineUser onlineUser = event.getUser();
-        Player player = Bukkit.getPlayer(onlineUser.getUsername());
-        plugin.getSql().loadPlayerAsync(player).thenAccept(playerData -> {
-            if(!onlineUser.getData(COSMETICS_ID).isPresent()) return;
-            CosmeticData cosmeticData = (CosmeticData) onlineUser.getData(COSMETICS_ID).get();
-            playerData.loadCosmetics(cosmeticData.getCosmetics(), cosmeticData.getCosmeticsInUse());
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onSyncComplete(BukkitPreSyncEvent event) {
+        if(event.getSaveCause().name().equals(DataSnapshot.SaveCause.DISCONNECT.name()) || event.getSaveCause().name().equals(DataSnapshot.SaveCause.SERVER_SHUTDOWN.name())) {
+            plugin.getLogger().info("HS: Sync Complete");
+            return;
+        }
+        plugin.getLogger().info("SaveCause: " + event.getSaveCause().name());
+        event.editData(unpacked -> {
+            unpacked.getData().remove(COSMETICS_ID);
+            plugin.getLogger().info("HS: Not Sync Cosmetics With Other Save Cause");
         });
     }*/
 }

@@ -68,6 +68,7 @@ public class Hat extends Cosmetic implements CosmeticInventory {
             }
             if(itemStack == null || itemStack.getType().isAir() || isCosmetic(itemStack)) {
                 //Equip Helmet Without combined.
+                currentItemSaved = null;
                 player.getInventory().setHelmet(getItemPlaceholders(player));
                 return;
             }
@@ -93,8 +94,9 @@ public class Hat extends Cosmetic implements CosmeticInventory {
     public ItemStack changeItem(ItemStack originalItem) {
         if(isCosmetic(originalItem)) return null;
         if(!overlaps){
-            if(originalItem == null || originalItem.getType().isAir()) {
+            if(originalItem == null) {
                 if(currentItemSaved == null || currentItemSaved.getType().isAir()) {
+                    currentItemSaved = null;
                     player.getInventory().setHelmet(getItemPlaceholders(player));
                     return null;
                 }
@@ -105,7 +107,6 @@ public class Hat extends Cosmetic implements CosmeticInventory {
             }else {
                 helmet = currentItemSaved != null ? currentItemSaved.clone() : null;
             }
-
             currentItemSaved = originalItem;
             player.getInventory().setHelmet(currentItemSaved);
             return helmet;
@@ -161,6 +162,7 @@ public class Hat extends Cosmetic implements CosmeticInventory {
     @Override
     public void dropItem(boolean all) {
         if(currentItemSaved == null) return;
+        //Bukkit.getLogger().info("Current Item Saved: " + currentItemSaved.getType().name());
         if(!overlaps) {
             if(player.getInventory().getHelmet() == null || player.getInventory().getHelmet().getType().isAir()) return;
             if(isCosmetic(player.getInventory().getHelmet())) return;
@@ -198,6 +200,7 @@ public class Hat extends Cosmetic implements CosmeticInventory {
         if(cosmeticMeta == null || itemSaveMeta == null) return cosmeticItem;
         if(!itemSaveMeta.getItemFlags().isEmpty())
             cosmeticMeta.addItemFlags(itemSaveMeta.getItemFlags().toArray(new ItemFlag[0]));
+        itemSaveMeta.getEnchants().forEach((enchantment, level) -> cosmeticMeta.addEnchant(enchantment, level, true));
         List<String> lore = cosmeticMeta.hasLore() ? cosmeticMeta.getLore() : new ArrayList<>();
         if(itemSaveMeta.getLore() != null && !itemSaveMeta.getLore().isEmpty()) {
             lore.add("");
@@ -280,7 +283,7 @@ public class Hat extends Cosmetic implements CosmeticInventory {
     }
 
     public double getOffSetY() {
-        return offSetY;
+        return isHideCosmetic() ? 0 : offSetY;
     }
 
     public ItemStack getCurrentItemSaved() {

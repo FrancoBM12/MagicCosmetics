@@ -12,6 +12,7 @@ import com.francobm.magicosmetics.events.*;
 import com.francobm.magicosmetics.nms.IRangeManager;
 import com.francobm.magicosmetics.nms.NPC.ItemSlot;
 import com.francobm.magicosmetics.nms.NPC.NPC;
+import com.francobm.magicosmetics.provider.ItemsAdder;
 import com.francobm.magicosmetics.utils.Utils;
 import com.francobm.magicosmetics.utils.XMaterial;
 import com.francobm.magicosmetics.MagicCosmetics;
@@ -192,6 +193,7 @@ public class PlayerData {
         this.hat = hat;
         if(this.hat == null) return;
         this.hat.setPlayer(offlinePlayer.getPlayer());
+        this.hat.setHideCosmetic(hideCosmetics);
         activeHat();
     }
 
@@ -203,6 +205,7 @@ public class PlayerData {
         this.bag = bag;
         if(this.bag == null) return;
         this.bag.setPlayer(offlinePlayer.getPlayer());
+        this.bag.setHideCosmetic(hideCosmetics);
     }
 
     public WStick getWStick() {
@@ -213,6 +216,7 @@ public class PlayerData {
         this.wStick = wStick;
         if(this.wStick == null) return;
         this.wStick.setPlayer(offlinePlayer.getPlayer());
+        this.wStick.setHideCosmetic(hideCosmetics);
         activeWStick();
     }
 
@@ -224,6 +228,7 @@ public class PlayerData {
         this.balloon = balloon;
         if(this.balloon == null) return;
         this.balloon.setPlayer(offlinePlayer.getPlayer());
+        this.balloon.setHideCosmetic(hideCosmetics);
     }
 
     public Cosmetic getSpray() {
@@ -234,6 +239,7 @@ public class PlayerData {
         this.spray = spray;
         if(this.spray == null) return;
         this.spray.setPlayer(offlinePlayer.getPlayer());
+        this.spray.setHideCosmetic(hideCosmetics);
     }
 
     public void removeCosmetic(String cosmeticId){
@@ -456,7 +462,7 @@ public class PlayerData {
                 return;
             case BAG:
                 Bag bag = (Bag) cosmetic;
-                Bag newBag = new Bag(bag.getId(), bag.getName(), bag.getItemStack().clone(), bag.getModelData(), bag.getBagForMe(), bag.isColored(), bag.getSpace(), bag.getCosmeticType(), bag.getColor(), bag.getDistance(), bag.getPermission(), bag.isTexture(), bag.isHideMenu(), bag.getHeight(), bag.isUseEmote(), bag.getBackPackEngine() != null ? bag.getBackPackEngine().getClone() : null, bag.getNamespacedKey());
+                Bag newBag = new Bag(bag.getId(), bag.getName(), bag.getItemStack().clone(), bag.getModelData(), bag.getBagForMe(), bag.isColored(), bag.getSpace(), bag.getCosmeticType(), bag.getColor(), bag.getDistance(), bag.getPermission(), bag.isTexture(), bag.isHideMenu(), bag.getHeight(), bag.isUseEmote(), bag.getBackPackEngine() != null ? bag.getBackPackEngine().getClone() : null, bag.getNamespacedKey(), bag.isDisplay());
                 newBag.setColorBlocked(cosmetic.isColorBlocked());
                 newBag.setPlayer(player);
                 cosmetics.put(cosmetic.getId(), newBag);
@@ -778,8 +784,10 @@ public class PlayerData {
             return;
         }
         if(isZone) return;
-        if(MagicCosmetics.getInstance().isItemsAdder()){
-            if(MagicCosmetics.getInstance().getItemsAdder().hasEmote(player) && hat.isUseEmote()){
+        MagicCosmetics plugin = MagicCosmetics.getInstance();
+        if(plugin.isResourcePlugin() && plugin.getResourcePlugin() instanceof ItemsAdder) {
+            ItemsAdder itemsAdder = (ItemsAdder) plugin.getResourcePlugin();
+            if(itemsAdder.hasEmote(player) && hat.isUseEmote()){
                 hat.update();
                 return;
             }
@@ -800,8 +808,10 @@ public class PlayerData {
             return;
         }
         if(isZone) return;
-        if(MagicCosmetics.getInstance().isItemsAdder()){
-            if(MagicCosmetics.getInstance().getItemsAdder().hasEmote(player) && bag.isUseEmote()){
+        MagicCosmetics plugin = MagicCosmetics.getInstance();
+        if(plugin.isResourcePlugin() && plugin.getResourcePlugin() instanceof ItemsAdder) {
+            ItemsAdder itemsAdder = (ItemsAdder) plugin.getResourcePlugin();
+            if(itemsAdder.hasEmote(player) && bag.isUseEmote()){
                 bag.update();
                 return;
             }
@@ -823,8 +833,10 @@ public class PlayerData {
             return;
         }
         if(isZone) return;
-        if(MagicCosmetics.getInstance().isItemsAdder()){
-            if(MagicCosmetics.getInstance().getItemsAdder().hasEmote(player) && wStick.isUseEmote()){
+        MagicCosmetics plugin = MagicCosmetics.getInstance();
+        if(plugin.isResourcePlugin() && plugin.getResourcePlugin() instanceof ItemsAdder) {
+            ItemsAdder itemsAdder = (ItemsAdder) plugin.getResourcePlugin();
+            if(itemsAdder.hasEmote(player) && wStick.isUseEmote()){
                 wStick.update();
                 return;
             }
@@ -845,8 +857,10 @@ public class PlayerData {
             return;
         }
         if(isZone) return;
-        if(MagicCosmetics.getInstance().isItemsAdder()){
-            if(MagicCosmetics.getInstance().getItemsAdder().hasEmote(player) && balloon.isUseEmote()){
+        MagicCosmetics plugin = MagicCosmetics.getInstance();
+        if(plugin.isResourcePlugin() && plugin.getResourcePlugin() instanceof ItemsAdder) {
+            ItemsAdder itemsAdder = (ItemsAdder) plugin.getResourcePlugin();
+            if(itemsAdder.hasEmote(player) && balloon.isUseEmote()){
                 balloon.update();
                 return;
             }
@@ -1136,14 +1150,14 @@ public class PlayerData {
             exitZone();
             return;
         }
-        if(plugin.isItemsAdder()){
-            if(plugin.getItemsAdder().hasEmote(player)){
-                plugin.getItemsAdder().stopEmote(player);
+        if(plugin.isResourcePlugin()){
+            if(plugin.getResourcePlugin() instanceof ItemsAdder) {
+                ItemsAdder itemsAdder = (ItemsAdder) plugin.getResourcePlugin();
+                if(itemsAdder.hasEmote(player)){
+                    itemsAdder.stopEmote(player);
+                }
             }
-            title = plugin.getItemsAdder().replaceFontImages(title);
-        }
-        if(plugin.isOraxen()){
-            title = plugin.getOraxen().replaceFontImages(title);
+            title = plugin.getResourcePlugin().replaceFontImages(title);
         }
         ZoneExitEvent exitEvent;
         if(!removeHelmet()){
@@ -1184,15 +1198,15 @@ public class PlayerData {
         }
         player.sendTitle(title, "", 15, 7, 15);
         clearCosmeticsInUse(true);
+        for(BossBar bossBar : plugin.getBossBar()){
+            if(bossBar.getPlayers().contains(player)) continue;
+            bossBar.addPlayer(player);
+        }
         plugin.getServer().getScheduler().runTaskLater(plugin, (task) -> {
             if(hat != null)
                 hat.setHideCosmetic(true);
             if(wStick != null)
                 wStick.setHideCosmetic(true);
-            for(BossBar bossBar : plugin.getBossBar()){
-                if(bossBar.getPlayers().contains(player)) continue;
-                bossBar.addPlayer(player);
-            }
             saveItems();
             if(player.getGameMode() == GameMode.SPECTATOR) {
                 //player.setSpectatorTarget(zone.getSpec());
@@ -1250,19 +1264,16 @@ public class PlayerData {
         plugin.getServer().getPluginManager().callEvent(event);
         if(event.isCancelled()) return;
         String title = plugin.getMessages().getString("title-zone.exit");
-        if(plugin.isItemsAdder()){
-            title = plugin.getItemsAdder().replaceFontImages(title);
-        }
-        if(plugin.isOraxen()){
-            title = plugin.getOraxen().replaceFontImages(title);
+        if(plugin.isResourcePlugin()){
+            title = plugin.getResourcePlugin().replaceFontImages(title);
         }
         player.sendTitle(title, "", 15, 7, 15);
         Utils.showPlayer(player);
         sneak = true;
+        for(BossBar bossBar : plugin.getBossBar()){
+            bossBar.removePlayer(player);
+        }
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            for(BossBar bossBar : plugin.getBossBar()){
-                bossBar.removePlayer(player);
-            }
             loadItems();
             if(plugin.gameMode == null){
                 player.setGameMode(gameMode);
@@ -1670,8 +1681,8 @@ public class PlayerData {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             setCosmetic(CosmeticType.HAT, getCosmeticById(hat));
             setCosmetic(CosmeticType.WALKING_STICK, getCosmeticById(wStick));
+            setCosmetic(CosmeticType.BAG, getCosmeticById(bag));
         });
-        setCosmetic(CosmeticType.BAG, getCosmeticById(bag));
         setCosmetic(CosmeticType.BALLOON, getCosmeticById(balloon));
         setCosmetic(CosmeticType.SPRAY, getCosmeticById(spray));
     }
@@ -1715,6 +1726,26 @@ public class PlayerData {
 
     public IRangeManager getRangeManager() {
         return rangeManager;
+    }
+
+    public void verifyWorldBlackList(MagicCosmetics plugin) {
+        if(getEquippedCount() < 1) return;
+        Player player = getOfflinePlayer().getPlayer();
+        if(player == null) return;
+        World world = player.getWorld();
+        if(plugin.getWorldsBlacklist().contains(world.getName())) {
+            if(isHasInBlackList()) return;
+            setHasInBlackList(true);
+            hideAllCosmetics();
+            PlayerChangeBlacklistEvent callEvent = new PlayerChangeBlacklistEvent(player, isHasInBlackList());
+            plugin.getServer().getPluginManager().callEvent(callEvent);
+            return;
+        }
+        if(!isHasInBlackList()) return;
+        setHasInBlackList(false);
+        showAllCosmetics();
+        PlayerChangeBlacklistEvent callEvent = new PlayerChangeBlacklistEvent(player, isHasInBlackList());
+        plugin.getServer().getPluginManager().callEvent(callEvent);
     }
 
     //

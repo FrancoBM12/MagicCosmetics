@@ -15,7 +15,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-public class ItemsAdder {
+public class ItemsAdder implements ResourcePlugin {
 
     public boolean existModel(String namespaceId) {
         return CustomEntity.isInRegistry(namespaceId);
@@ -33,6 +33,11 @@ public class ItemsAdder {
         CustomStack customStack = CustomStack.getInstance(id);
         if(customStack == null) return null;
         return customStack.getItemStack();
+    }
+
+    @Override
+    public ItemStack getItemStackById(String id) {
+        return getCustomItemStack(id);
     }
 
     public String replaceFontImageWithoutColor(String id){
@@ -99,5 +104,15 @@ public class ItemsAdder {
         }
         Bag bag = (Bag) playerData.getBag();
         customPlayer.addPassenger((LivingEntity) bag.getBag().getEntity());
+    }
+
+    @Override
+    public String getProviderName() {
+        return "ItemsAdder";
+    }
+
+    @Override
+    public String getPathName() {
+        return "item-adder";
     }
 }

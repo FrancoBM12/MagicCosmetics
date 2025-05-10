@@ -41,6 +41,10 @@ public class Utils {
 
     private static final Random random = new Random();
 
+    public static boolean isNewerThan1206() {
+        return getVersion().contains("1.20.6") || getVersion().contains("1.21");
+    }
+
     public static String getVersion(){
         return Bukkit.getServer().getBukkitVersion().split("-")[0];
     }

@@ -46,9 +46,10 @@ public class WorldGuard implements Listener {
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event){
         Player player = event.getPlayer();
+        PlayerData playerData = PlayerData.getPlayer(player);
+        if(playerData.isHasInBlackList()) return;
         org.bukkit.Location to = event.getTo();
         if(to == null) return;
-        PlayerData playerData = PlayerData.getPlayer(player);
         Location location = BukkitAdapter.adapt(to);
         ApplicableRegionSet applicableRegionSet = com.sk89q.worldguard.WorldGuard.getInstance().getPlatform().getRegionContainer().createQuery().getApplicableRegions(location);
         StateFlag.State flagState = applicableRegionSet.queryState(null, customFlag);

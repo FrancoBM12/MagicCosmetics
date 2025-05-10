@@ -40,11 +40,8 @@ public class Slots {
                 setNum1(true);
                 if(MagicCosmetics.getInstance().getMessages().contains("edge.row-1")){
                     String space = MagicCosmetics.getInstance().getMessages().getString("edge.row-1");
-                    if(MagicCosmetics.getInstance().isItemsAdder()){
-                        space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
-                    }
-                    if(MagicCosmetics.getInstance().isOraxen()){
-                        space = MagicCosmetics.getInstance().getOraxen().replaceFontImages(space);
+                    if(MagicCosmetics.getInstance().isResourcePlugin()){
+                        space = MagicCosmetics.getInstance().getResourcePlugin().replaceFontImages(space);
                     }
                     return space;
                 }
@@ -56,11 +53,8 @@ public class Slots {
                 setNum2(true);
                 if(MagicCosmetics.getInstance().getMessages().contains("edge.row-2")){
                     String space = MagicCosmetics.getInstance().getMessages().getString("edge.row-2");
-                    if(MagicCosmetics.getInstance().isItemsAdder()){
-                        space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
-                    }
-                    if(MagicCosmetics.getInstance().isOraxen()){
-                        space = MagicCosmetics.getInstance().getOraxen().replaceFontImages(space);
+                    if(MagicCosmetics.getInstance().isResourcePlugin()){
+                        space = MagicCosmetics.getInstance().getResourcePlugin().replaceFontImages(space);
                     }
                     return space;
                 }
@@ -72,20 +66,14 @@ public class Slots {
                 setNum3(true);
                 if(MagicCosmetics.getInstance().getMessages().contains("edge.row-3")){
                     String space = MagicCosmetics.getInstance().getMessages().getString("edge.row-3");
-                    if(MagicCosmetics.getInstance().isItemsAdder()){
-                        space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
-                    }
-                    if(MagicCosmetics.getInstance().isOraxen()){
-                        space = MagicCosmetics.getInstance().getOraxen().replaceFontImages(space);
+                    if(MagicCosmetics.getInstance().isResourcePlugin()){
+                        space = MagicCosmetics.getInstance().getResourcePlugin().replaceFontImages(space);
                     }
                     return space;
                 }
                 String space = MagicCosmetics.getInstance().getMessages().getString("edge.space-1");
-                if(MagicCosmetics.getInstance().isItemsAdder()){
-                    space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
-                }
-                if(MagicCosmetics.getInstance().isOraxen()){
-                    space = MagicCosmetics.getInstance().getOraxen().replaceFontImages(space);
+                if(MagicCosmetics.getInstance().isResourcePlugin()){
+                    space = MagicCosmetics.getInstance().getResourcePlugin().replaceFontImages(space);
                 }
                 return space;
             }
@@ -95,20 +83,14 @@ public class Slots {
                 setNum4(true);
                 if(MagicCosmetics.getInstance().getMessages().contains("edge.row-4")){
                     String space = MagicCosmetics.getInstance().getMessages().getString("edge.row-4");
-                    if(MagicCosmetics.getInstance().isItemsAdder()){
-                        space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
-                    }
-                    if(MagicCosmetics.getInstance().isOraxen()){
-                        space = MagicCosmetics.getInstance().getOraxen().replaceFontImages(space);
+                    if(MagicCosmetics.getInstance().isResourcePlugin()){
+                        space = MagicCosmetics.getInstance().getResourcePlugin().replaceFontImages(space);
                     }
                     return space;
                 }
                 String space = MagicCosmetics.getInstance().getMessages().getString("edge.space-2");
-                if(MagicCosmetics.getInstance().isItemsAdder()){
-                    space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
-                }
-                if(MagicCosmetics.getInstance().isOraxen()){
-                    space = MagicCosmetics.getInstance().getOraxen().replaceFontImages(space);
+                if(MagicCosmetics.getInstance().isResourcePlugin()){
+                    space = MagicCosmetics.getInstance().getResourcePlugin().replaceFontImages(space);
                 }
                 return space;
             }
@@ -118,20 +100,14 @@ public class Slots {
                 setNum5(true);
                 if(MagicCosmetics.getInstance().getMessages().contains("edge.row-5")){
                     String space = MagicCosmetics.getInstance().getMessages().getString("edge.row-5");
-                    if(MagicCosmetics.getInstance().isItemsAdder()){
-                        space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
-                    }
-                    if(MagicCosmetics.getInstance().isOraxen()){
-                        space = MagicCosmetics.getInstance().getOraxen().replaceFontImages(space);
+                    if(MagicCosmetics.getInstance().isResourcePlugin()){
+                        space = MagicCosmetics.getInstance().getResourcePlugin().replaceFontImages(space);
                     }
                     return space;
                 }
                 String space = MagicCosmetics.getInstance().getMessages().getString("edge.space-3");
-                if(MagicCosmetics.getInstance().isItemsAdder()){
-                    space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
-                }
-                if(MagicCosmetics.getInstance().isOraxen()){
-                    space = MagicCosmetics.getInstance().getOraxen().replaceFontImages(space);
+                if(MagicCosmetics.getInstance().isResourcePlugin()){
+                    space = MagicCosmetics.getInstance().getResourcePlugin().replaceFontImages(space);
                 }
                 return space;
             }
@@ -141,11 +117,8 @@ public class Slots {
                 setNum6(true);
                 if(MagicCosmetics.getInstance().getMessages().contains("edge.row-6")){
                     String space = MagicCosmetics.getInstance().getMessages().getString("edge.row-6");
-                    if(MagicCosmetics.getInstance().isItemsAdder()){
-                        space = MagicCosmetics.getInstance().getItemsAdder().replaceFontImages(space);
-                    }
-                    if(MagicCosmetics.getInstance().isOraxen()){
-                        space = MagicCosmetics.getInstance().getOraxen().replaceFontImages(space);
+                    if(MagicCosmetics.getInstance().isResourcePlugin()){
+                        space = MagicCosmetics.getInstance().getResourcePlugin().replaceFontImages(space);
                     }
                     return space;
                 }

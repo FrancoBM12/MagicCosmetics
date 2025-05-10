@@ -59,11 +59,8 @@ public abstract class Menu implements InventoryHolder {
         int menus_count = 0;
         for(String key : menu.getConfigurationSection("menus.panels").getKeys(false)){
             String character = menu.getString("menus.panels." + key);
-            if(plugin.isItemsAdder()){
-                character = plugin.getItemsAdder().replaceFontImageWithoutColor(character);
-            }
-            if(plugin.isOraxen()) {
-                character = plugin.getOraxen().replaceFontImages(character);
+            if(plugin.isResourcePlugin()) {
+                character = plugin.getResourcePlugin().replaceFontImageWithoutColor(character);
             }
             panels.put(key, new Panel(key, character));
         }
@@ -91,11 +88,8 @@ public abstract class Menu implements InventoryHolder {
             }
             if(menu.contains("menus." + key + ".title")){
                 title = menu.getString("menus." + key + ".title");
-                if(plugin.isItemsAdder()){
-                    title = plugin.getItemsAdder().replaceFontImages(title);
-                }
-                if(plugin.isOraxen()){
-                    title = plugin.getOraxen().replaceFontImages(title);
+                if(plugin.isResourcePlugin()){
+                    title = plugin.getResourcePlugin().replaceFontImages(title);
                 }
             }
             if(menu.contains("menus." + key + ".size")){

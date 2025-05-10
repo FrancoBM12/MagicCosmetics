@@ -27,10 +27,10 @@ public class ProxyListener implements PluginMessageListener {
             if (p == null) return;
             PlayerData playerData = PlayerData.getPlayer(p);
             if (status.equals("0")) {
-                plugin.getLogger().info("No se cargaron datos del proxy porque el jugador no contiene nada");
+                //plugin.getLogger().info("No se cargaron datos del proxy porque el jugador no contiene nada");
                 return;
             }
-            plugin.getLogger().info("Cosmeticos de la base de datos cargados... estableciendo los cosmeticos del proxy");
+            //plugin.getLogger().info("Cosmeticos de la base de datos cargados... estableciendo los cosmeticos del proxy");
             playerData.loadCosmetics(loadCosmetics, loadUseCosmetics);
         }else if(subChannel.equals("ping")) {
             String playerName = in.readUTF();

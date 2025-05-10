@@ -3,7 +3,6 @@ package com.francobm.magicosmetics.nms.v1_20_R1.cache;
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.nms.IRangeManager;
 import com.francobm.magicosmetics.nms.bag.PlayerBag;
-import com.google.common.collect.ImmutableList;
 import com.mojang.datafixers.util.Pair;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelPipeline;
@@ -39,6 +38,7 @@ public class PlayerBagHandler extends PlayerBag {
     private final EntityPlayer entityPlayer;
 
     public PlayerBagHandler(Player p, IRangeManager rangeManager, double distance, float height, ItemStack backPackItem, ItemStack backPackItemForMe){
+        this.hideViewers = new CopyOnWriteArrayList<>(new ArrayList<>());
         this.uuid = p.getUniqueId();
         this.distance = distance;
         this.height = height;
@@ -51,17 +51,11 @@ public class PlayerBagHandler extends PlayerBag {
         WorldServer world = ((CraftWorld) player.getWorld()).getHandle();
 
         armorStand = new EntityArmorStand(EntityTypes.d, world);
+        backpackId = armorStand.af();
         armorStand.b(player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), player.getLocation().getYaw(), 0);
         armorStand.j(true); //Invisible
         armorStand.m(true); //Invulnerable
         armorStand.u(true); //Marker
-
-        armorStand.k(entityPlayer);
-        net.minecraft.world.entity.Entity entity = entityPlayer;
-        List<net.minecraft.world.entity.Entity> orderedPassengers = new ArrayList<>();
-        orderedPassengers.add(armorStand);
-        orderedPassengers.addAll(entity.r.stream().filter((entity1) -> entity1 != armorStand).collect(ImmutableList.toImmutableList()));
-        entity.r = ImmutableList.copyOf(orderedPassengers);
     }
 
     @Override
@@ -69,6 +63,10 @@ public class PlayerBagHandler extends PlayerBag {
         if(hideViewers.contains(player.getUniqueId())) return;
         Player owner = getPlayer();
         if(owner == null) return;
+        if(player.getUniqueId().equals(owner.getUniqueId())) {
+            spawnSelf(owner);
+            return;
+        }
         Location location = owner.getLocation();
         armorStand.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
 
@@ -81,8 +79,6 @@ public class PlayerBagHandler extends PlayerBag {
         if(owner == null) return;
 
         Location location = owner.getLocation();
-        armorStand.j(true); //Invisible true
-        armorStand.u(true); //Marker
         armorStand.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
 
         sendPackets(player, getBackPackSpawn(backPackItemForMe == null ? backPackItem : backPackItemForMe));
@@ -121,12 +117,6 @@ public class PlayerBagHandler extends PlayerBag {
     public void remove() {
         for (Player player : getPlayersInRange()) {
             remove(player);
-        }
-        net.minecraft.world.entity.Entity entity = entityPlayer;
-        if (entity.r.size() == 1 && entity.r.get(0) == entity) {
-            entity.r = ImmutableList.of();
-        } else {
-            entity.r = entity.r.stream().filter((entity1) -> entity1 != armorStand).collect(ImmutableList.toImmutableList());
         }
     }
 

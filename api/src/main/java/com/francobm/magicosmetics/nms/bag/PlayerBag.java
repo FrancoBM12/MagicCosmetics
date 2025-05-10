@@ -19,6 +19,7 @@ public abstract class PlayerBag {
     protected float height;
     protected List<Integer> ids;
     protected List<UUID> hideViewers;
+    protected int backpackId;
 
     public abstract void spawn(Player player);
 
@@ -64,11 +65,16 @@ public abstract class PlayerBag {
 
     public void removeHideViewer(Player player) {
         hideViewers.remove(player.getUniqueId());
+        spawn(player);
     }
 
     protected Set<Player> getPlayersInRange() {
         Set<Player> set = rangeManager.getPlayerInRange();
         set.add(getPlayer());
         return set;
+    }
+
+    public int getBackpackId() {
+        return backpackId;
     }
 }

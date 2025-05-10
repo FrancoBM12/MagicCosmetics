@@ -27,6 +27,7 @@ show-backpack: '&aYou have successfully shown your backpack!'
 not-tint-item: '&cThis item is not a tintable item!'
 tint-item: '&aSuccessfully tinted the item with the color &e%color%color &a!'
 spray-cooldown: '&cYou must wait &e%time% &cbefore you can spray again!' #1.8.5
+world-blacklist: '&cYou cant use this command in this world!'
 bossbar:
   - '&6Punch to open Catalogue'
   - '&cSneak to leave the Wardrobe'

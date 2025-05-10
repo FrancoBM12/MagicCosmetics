@@ -2,7 +2,6 @@ package com.francobm.magicosmetics.nms.v1_17_R1.cache;
 
 import com.francobm.magicosmetics.nms.IRangeManager;
 import com.francobm.magicosmetics.nms.bag.PlayerBag;
-import com.google.common.collect.ImmutableList;
 import com.mojang.datafixers.util.Pair;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelPipeline;
@@ -16,7 +15,6 @@ import net.minecraft.world.entity.EntityAreaEffectCloud;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EnumItemSlot;
 import net.minecraft.world.entity.decoration.EntityArmorStand;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.v1_17_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_17_R1.entity.CraftPlayer;
@@ -47,17 +45,11 @@ public class PlayerBagHandler extends PlayerBag {
         WorldServer world = ((CraftWorld) player.getWorld()).getHandle();
 
         armorStand = new EntityArmorStand(EntityTypes.c, world);
+        backpackId = armorStand.getId();
         armorStand.setPositionRotation(player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), player.getLocation().getYaw(), 0);
         armorStand.setInvisible(true); //Invisible
         armorStand.setInvulnerable(true); //Invulnerable
         armorStand.setMarker(true); //Marker
-
-        armorStand.startRiding(entityPlayer);
-        net.minecraft.world.entity.Entity entity = entityPlayer;
-        List<net.minecraft.world.entity.Entity> orderedPassengers = new ArrayList<>();
-        orderedPassengers.add(armorStand);
-        orderedPassengers.addAll(entity.at.stream().filter((entity1) -> entity1 != armorStand).collect(ImmutableList.toImmutableList()));
-        entity.at = ImmutableList.copyOf(orderedPassengers);
     }
 
     @Override
@@ -65,6 +57,10 @@ public class PlayerBagHandler extends PlayerBag {
         if(hideViewers.contains(player.getUniqueId())) return;
         Player owner = getPlayer();
         if(owner == null) return;
+        if(player.getUniqueId().equals(owner.getUniqueId())) {
+            spawnSelf(owner);
+            return;
+        }
         Location location = owner.getLocation();
         armorStand.setPositionRotation(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
 
@@ -77,9 +73,6 @@ public class PlayerBagHandler extends PlayerBag {
         if(owner == null) return;
 
         Location location = owner.getLocation();
-        armorStand.setInvulnerable(true); //invulnerable true
-        armorStand.setInvisible(true); //Invisible true
-        armorStand.setMarker(true); //Marker
         armorStand.setPositionRotation(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
 
         sendPackets(player, getBackPackSpawn(backPackItemForMe == null ? backPackItem : backPackItemForMe));
@@ -118,12 +111,6 @@ public class PlayerBagHandler extends PlayerBag {
     public void remove() {
         for (Player player : getPlayersInRange()) {
             remove(player);
-        }
-        net.minecraft.world.entity.Entity entity = entityPlayer;
-        if (entity.at.size() == 1 && entity.at.get(0) == entity) {
-            entity.at = ImmutableList.of();
-        } else {
-            entity.at = entity.at.stream().filter((entity1) -> entity1 != armorStand).collect(ImmutableList.toImmutableList());
         }
     }
 
@@ -193,12 +180,10 @@ public class PlayerBagHandler extends PlayerBag {
     }
 
     private List<Packet<?>> getBackPackSpawn(ItemStack backpackItem) {
-        ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
-        list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(backpackItem)));
         PacketPlayOutSpawnEntity spawnEntity = new PacketPlayOutSpawnEntity(armorStand);
         PacketPlayOutEntityMetadata entityMetadata = new PacketPlayOutEntityMetadata(armorStand.getId(), armorStand.getDataWatcher(), true);
         PacketPlayOutMount mountEntity = new PacketPlayOutMount(entityPlayer);
-        PacketPlayOutEntityEquipment equip = new PacketPlayOutEntityEquipment(armorStand.getId(), list);
+        PacketPlayOutEntityEquipment equip = new PacketPlayOutEntityEquipment(armorStand.getId(), Collections.singletonList(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(backpackItem))));
         return Arrays.asList(spawnEntity, entityMetadata, equip, mountEntity);
     }
 

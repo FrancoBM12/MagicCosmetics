@@ -111,8 +111,8 @@ public class VersionHandler extends Version {
         return new NPCHandler();
     }
 
-    public PlayerBag createPlayerBag(Player player, double distance, float height, ItemStack backPackItem, ItemStack backPackItemForMe) {
-        return new PlayerBagHandler(player, createRangeManager(player), distance, height, backPackItem, backPackItemForMe);
+    public PlayerBag createPlayerBag(Player player, double distance, float height, ItemStack backPackItem, ItemStack backPackItemForMe, boolean isDisplay) {
+        return isDisplay ? new PlayerBagDisplayHandler(player, createRangeManager(player), distance, height, backPackItem, backPackItemForMe) : new PlayerBagHandler(player, createRangeManager(player), distance, height, backPackItem, backPackItemForMe);
     }
 
     @Override
@@ -285,12 +285,14 @@ public class VersionHandler extends Version {
         NBTTagCompound copyNBT = copyCustomData.c();
         NBTTagCompound cosmeticNBT = cosmeticCustomData.c();
         for(String key : copyNBT.e()){
+            Bukkit.getLogger().info("Key: " + key);
             if((key.equals("display") || key.equals("minecraft:custom_name")) || (key.equals("CustomModelData") || key.equals("minecraft:custom_model_data"))) continue;
             if(key.equals("PublicBukkitValues")) {
                 NBTTagCompound compound = copyNBT.p(key);
                 NBTTagCompound realCompound = cosmeticNBT.p(key);
                 Set<String> keys = compound.e();
                 for (String compoundKey : keys){
+                    Bukkit.getLogger().info("Key of key: " + compoundKey);
                     realCompound.a(compoundKey, compound.c(compoundKey));
                 }
                 cosmeticNBT.a(key, realCompound);

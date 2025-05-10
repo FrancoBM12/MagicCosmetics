@@ -20,6 +20,7 @@ import com.francobm.magicosmetics.nms.v1_17_R1.VersionHandler;
 import com.francobm.magicosmetics.provider.*;
 import com.francobm.magicosmetics.provider.citizens.Citizens;
 import com.francobm.magicosmetics.provider.husksync.HuskSync;
+import com.francobm.magicosmetics.provider.mpdb.MysqlPlayerDataBridge;
 import com.francobm.magicosmetics.provider.znpcplus.ZNPCsPlus;
 import com.francobm.magicosmetics.utils.MathUtils;
 import com.francobm.magicosmetics.utils.Utils;
@@ -63,8 +64,7 @@ public final class MagicCosmetics extends JavaPlugin {
     public boolean wkasdwk;
     private List<BossBar> bossBar;
     public ModelEngine modelEngine;
-    public ItemsAdder itemsAdder;
-    public Oraxen oraxen;
+    public ResourcePlugin resourcePlugin;
     private User user;
     public PlaceholderAPI placeholderAPI;
     public GameMode gameMode = null;
@@ -93,7 +93,9 @@ public final class MagicCosmetics extends JavaPlugin {
     private List<String> worldsBlacklist;
     private WorldGuard worldGuard;
     private HuskSync huskSync;
+    private MysqlPlayerDataBridge mpdb;
     private boolean proxy;
+    private boolean showAllCosmeticsInMenu;
 
     @Override
     public void onLoad() {
@@ -147,7 +149,18 @@ public final class MagicCosmetics extends JavaPlugin {
                 version = new com.francobm.magicosmetics.nms.v1_20_R4.VersionHandler();
                 break;
             case "1.21":
+            case "1.21.1":
                 version = new com.francobm.magicosmetics.nms.v1_21_R1.VersionHandler();
+                break;
+            case "1.21.2":
+            case "1.21.3":
+                version = new com.francobm.magicosmetics.nms.v1_21_R2.VersionHandler();
+                break;
+            case "1.21.4":
+                version = new com.francobm.magicosmetics.nms.v1_21_R3.VersionHandler();
+                break;
+            case "1.21.5":
+                version = new com.francobm.magicosmetics.nms.v1_21_R4.VersionHandler();
                 break;
         }
         //checkIfProxy();
@@ -174,17 +187,25 @@ public final class MagicCosmetics extends JavaPlugin {
             huskSync = new HuskSync();
         }
 
+        if(getServer().getPluginManager().getPlugin("MysqlPlayerDataBridge") != null){
+            mpdb = new MysqlPlayerDataBridge();
+        }
+
         if (getServer().getPluginManager().getPlugin("ItemsAdder") != null && Utils.existPluginClass("dev.lone.itemsadder.api.FontImages.FontImageWrapper")) {
-            itemsAdder = new ItemsAdder();
+            resourcePlugin = new ItemsAdder();
         }
 
         if (getServer().getPluginManager().getPlugin("Oraxen") != null) {
             if(Utils.existPluginClass("io.th0rgal.oraxen.api.OraxenItems")){
-                oraxen = new NewOraxen();
-                oraxen.register();
+                resourcePlugin = new NewOraxen();
+                ((NewOraxen)resourcePlugin).register();
             }else{
                 getLogger().warning("This version of Oraxen lacks classes needed to use the api.");
             }
+        }
+
+        if(getServer().getPluginManager().getPlugin("Nexo") != null) {
+            resourcePlugin = new Nexo();
         }
 
         if(getServer().getPluginManager().isPluginEnabled("ModelEngine")) {
@@ -222,14 +243,7 @@ public final class MagicCosmetics extends JavaPlugin {
             new SkinListener();
         }*/
 
-        if (!isItemsAdder()) {
-            for(String lines : messages.getStringList("bossbar")){
-                if(isOraxen())
-                    lines = getOraxen().replaceFontImages(lines);
-                BossBar boss = getServer().createBossBar(lines, bossBarColor, BarStyle.SOLID);
-                boss.setVisible(true);
-                bossBar.add(boss);
-            }
+        if (!isResourcePlugin() || !(resourcePlugin instanceof ItemsAdder)) {
             Cosmetic.loadCosmetics();
             Color.loadColors();
             Items.loadItems();
@@ -263,27 +277,22 @@ public final class MagicCosmetics extends JavaPlugin {
         bossBar.clear();
 
         for(String lines : messages.getStringList("bossbar")){
-            if(isItemsAdder())
-                lines = itemsAdder.replaceFontImages(lines);
-            if(isOraxen())
-                lines = oraxen.replaceFontImages(lines);
+            if(isResourcePlugin())
+                lines = resourcePlugin.replaceFontImages(lines);
             BossBar boss = getServer().createBossBar(lines, bossBarColor, BarStyle.SOLID);
             boss.setVisible(true);
             bossBar.add(boss);
         }
 
+        showAllCosmeticsInMenu = config.getBoolean("show-all-cosmetics-in-menu", true);
+
         ava = MagicCosmetics.getInstance().getMessages().getString("edge.available");
         unAva = MagicCosmetics.getInstance().getMessages().getString("edge.unavailable");
         equip = MagicCosmetics.getInstance().getMessages().getString("edge.equip");
-        if(isItemsAdder()){
-            ava = itemsAdder.replaceFontImages(ava);
-            unAva = itemsAdder.replaceFontImages(unAva);
-            equip = itemsAdder.replaceFontImages(equip);
-        }
-        if(isOraxen()){
-            ava = oraxen.replaceFontImages(ava);
-            unAva = oraxen.replaceFontImages(unAva);
-            equip = oraxen.replaceFontImages(equip);
+        if(isResourcePlugin()){
+            ava = resourcePlugin.replaceFontImages(ava);
+            unAva = resourcePlugin.replaceFontImages(unAva);
+            equip = resourcePlugin.replaceFontImages(equip);
         }
         this.prefix = messages.getString("prefix");
         if(config.contains("leave-wardrobe-gamemode")) {
@@ -364,7 +373,7 @@ public final class MagicCosmetics extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new EntityListener(), this);
         getServer().getPluginManager().registerEvents(new InventoryListener(), this);
         getServer().getPluginManager().registerEvents(new PlayerListener(), this);
-        if(isItemsAdder()) {
+        if(isResourcePlugin() && resourcePlugin instanceof ItemsAdder) {
             getServer().getPluginManager().registerEvents(new ItemsAdderListener(), this);
         }
         if(isCitizens()){
@@ -372,6 +381,9 @@ public final class MagicCosmetics extends JavaPlugin {
         }
         if(isHuskSync()){
             getServer().getPluginManager().registerEvents(huskSync, this);
+        }
+        if(isMpdb()){
+            getServer().getPluginManager().registerEvents(mpdb, this);
         }
         if(worldGuard != null){
             getServer().getPluginManager().registerEvents(worldGuard, this);
@@ -537,20 +549,12 @@ public final class MagicCosmetics extends JavaPlugin {
         return this.modelEngine != null;
     }
 
-    public ItemsAdder getItemsAdder() {
-        return this.itemsAdder;
+    public ResourcePlugin getResourcePlugin() {
+        return this.resourcePlugin;
     }
 
-    public boolean isItemsAdder() {
-        return this.itemsAdder != null;
-    }
-
-    public Oraxen getOraxen() {
-        return this.oraxen;
-    }
-
-    public boolean isOraxen(){
-        return this.oraxen != null;
+    public boolean isResourcePlugin(){
+        return this.resourcePlugin != null;
     }
 
     public PlaceholderAPI getPlaceholderAPI() {
@@ -564,6 +568,7 @@ public final class MagicCosmetics extends JavaPlugin {
     public User getUser() {
         return this.user;
     }
+
     public void setUser(User user) {
         this.user = user;
     }
@@ -700,5 +705,17 @@ public final class MagicCosmetics extends JavaPlugin {
 
     public boolean isHuskSync() {
         return huskSync != null;
+    }
+
+    public boolean isShowAllCosmeticsInMenu() {
+        return showAllCosmeticsInMenu;
+    }
+
+    public MysqlPlayerDataBridge getMpdb() {
+        return mpdb;
+    }
+
+    public boolean isMpdb() {
+        return mpdb != null;
     }
 }

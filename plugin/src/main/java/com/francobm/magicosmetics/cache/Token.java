@@ -6,6 +6,8 @@ import com.francobm.magicosmetics.files.FileCreator;
 import com.francobm.magicosmetics.utils.Utils;
 import com.francobm.magicosmetics.utils.XMaterial;
 import com.francobm.magicosmetics.MagicCosmetics;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
@@ -105,10 +107,8 @@ public class Token {
             boolean exchangeable = true;
             if(token.contains("tokens." + key + ".item.display")){
                 display = token.getString("tokens." + key + ".item.display");
-                if(plugin.isItemsAdder())
-                    display = plugin.getItemsAdder().replaceFontImages(display);
-                if(plugin.isOraxen())
-                    display = plugin.getOraxen().replaceFontImages(display);
+                if(plugin.isResourcePlugin())
+                    display = plugin.getResourcePlugin().replaceFontImages(display);
             }
             if(token.contains("tokens." + key + ".item.amount")){
                 amount = token.getInt("tokens." + key + ".item.amount");
@@ -123,18 +123,10 @@ public class Token {
             }
             if(token.contains("tokens." + key + ".item.lore")){
                 lore = token.getStringList("tokens." + key + ".item.lore");
-                if(plugin.isItemsAdder()){
+                if(plugin.isResourcePlugin()){
                     List<String> lore2 = new ArrayList<>();
                     for(String l : lore) {
-                        lore2.add(plugin.getItemsAdder().replaceFontImages(l));
-                    }
-                    lore.clear();
-                    lore.addAll(lore2);
-                }
-                if(plugin.isOraxen()){
-                    List<String> lore2 = new ArrayList<>();
-                    for(String l : lore) {
-                        lore2.add(plugin.getOraxen().replaceFontImages(l));
+                        lore2.add(plugin.getResourcePlugin().replaceFontImages(l));
                     }
                     lore.clear();
                     lore.addAll(lore2);
@@ -152,33 +144,21 @@ public class Token {
             if(token.contains("tokens." + key + ".item.modeldata")){
                 modelData = token.getInt("tokens." + key + ".item.modeldata");
             }
-            if(token.contains("tokens." + key + ".item.item-adder")){
-                if(!plugin.isItemsAdder()){
-                    plugin.getLogger().warning("Item Adder plugin Not Found skipping Token Item '" + key + "'");
+            if(plugin.isResourcePlugin()) {
+                String pathName = plugin.getResourcePlugin().getPathName();
+                if(token.contains("tokens." + key + ".item." + pathName)) {
+                    String id = token.getString("tokens." + key + ".item." + pathName);
+                    ItemStack resourceItem = plugin.getResourcePlugin().getItemStackById(id);
+                    if(resourceItem == null){
+                        plugin.getLogger().warning("Resource (" + plugin.getResourcePlugin().getProviderName() + ") Item: '" + id + "' Not Found skipping...");
+                        continue;
+                    }
+                    itemStack = resourceItem.clone();
+                    modelData = -1;
+                }else {
+                    plugin.getLogger().warning("Resource (" + plugin.getResourcePlugin().getProviderName() + ") plugin Not Found, skipping Token Item '" + key + "'");
                     continue;
                 }
-                String id = token.getString("tokens." + key + ".item.item-adder");
-                ItemStack ia = plugin.getItemsAdder().getCustomItemStack(id);
-                if(ia == null){
-                    plugin.getLogger().warning("Item Adder '" + id + "' Not Found skipping...");
-                    continue;
-                }
-                itemStack = ia.clone();
-                modelData = -1;
-            }
-            if(token.contains("tokens." + key + ".item.oraxen")){
-                if(!plugin.isOraxen()){
-                    plugin.getLogger().warning("Oraxen plugin Not Found skipping Token Item '" + key + "'");
-                    continue;
-                }
-                String id = token.getString("tokens." + key + ".item.oraxen");
-                ItemStack oraxen = plugin.getOraxen().getItemStackById(id);
-                if(oraxen == null){
-                    plugin.getLogger().warning("Oraxen '" + id + "' Not Found skipping...");
-                    continue;
-                }
-                itemStack = oraxen.clone();
-                modelData = -1;
             }
             if(token.contains("tokens." + key + ".cosmetic")){
                 cosmetic = token.getString("tokens." + key + ".cosmetic");
@@ -210,6 +190,9 @@ public class Token {
             itemMeta.setUnbreakable(unbreakable);
             if(modelData != -1) {
                 itemMeta.setCustomModelData(modelData);
+            }
+            if(Utils.isNewerThan1206()) {
+                itemMeta.addAttributeModifier(Attribute.GENERIC_ATTACK_DAMAGE, new AttributeModifier("foo",0,AttributeModifier.Operation.MULTIPLY_SCALAR_1)); // This is necessary as of 1.20.6
             }
             itemStack.setItemMeta(itemMeta);
             itemStack = plugin.getVersion().setNBTCosmetic(itemStack, "key:"+key);

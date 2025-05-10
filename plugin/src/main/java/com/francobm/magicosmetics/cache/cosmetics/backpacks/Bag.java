@@ -6,7 +6,6 @@ import com.francobm.magicosmetics.nms.bag.EntityBag;
 import com.francobm.magicosmetics.nms.bag.PlayerBag;
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.utils.XMaterial;
-import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.GameMode;
 import org.bukkit.NamespacedKey;
@@ -25,9 +24,11 @@ public class Bag extends Cosmetic {
     private boolean spectator = false;
     private double distance;
     private float height;
+    private boolean isDisplay;
 
-    public Bag(String id, String name, ItemStack itemStack, int modelData, ItemStack bagForMe, boolean colored, double space, CosmeticType cosmeticType, Color color, double distance, String permission, boolean texture, boolean hideMenu, float height, boolean useEmote, BackPackEngine backPackEngine, NamespacedKey namespacedKey) {
+    public Bag(String id, String name, ItemStack itemStack, int modelData, ItemStack bagForMe, boolean colored, double space, CosmeticType cosmeticType, Color color, double distance, String permission, boolean texture, boolean hideMenu, float height, boolean useEmote, BackPackEngine backPackEngine, NamespacedKey namespacedKey, boolean isDisplay) {
         super(id, name, itemStack, modelData, colored, cosmeticType, color, permission, texture, hideMenu, useEmote, namespacedKey);
+        this.isDisplay = isDisplay;
         this.bagForMe = bagForMe;
         this.space = space;
         this.distance = distance;
@@ -83,7 +84,7 @@ public class Bag extends Cosmetic {
         if(bag1 == null){
             if(lendEntity.isDead()) return;
             remove();
-            bag1 = MagicCosmetics.getInstance().getVersion().createPlayerBag(player, getDistance(), height, getItemColor(player), getBagForMe() != null ? getItemColorForMe(player) : null);
+            bag1 = MagicCosmetics.getInstance().getVersion().createPlayerBag(player, getDistance(), height, getItemColor(player), getBagForMe() != null ? getItemColorForMe(player) : null, isDisplay);
             bag1.setLendEntityId(lendEntity.getEntityId());
             if(hide){
                 hideSelf(false);
@@ -147,15 +148,18 @@ public class Bag extends Cosmetic {
             if(player.getGameMode() == GameMode.SPECTATOR) return;
 
             remove();
-            bag1 = MagicCosmetics.getInstance().getVersion().createPlayerBag(player, getDistance(), height, getItemColor(player), getBagForMe() != null ? getItemColorForMe(player) : null);
+            bag1 = MagicCosmetics.getInstance().getVersion().createPlayerBag(player, getDistance(), height, getItemColor(player), getBagForMe() != null ? getItemColorForMe(player) : null, isDisplay);
             if(hide){
                 hideSelf(false);
             }
             bag1.spawn(false);
-            //Bukkit.getLogger().info("Spawning bag");
-            /*if(hide) return;
-            bag1.spawnSelf(player);*/
-            //
+        }
+        if(player.getLocation().getPitch() >= space && space != 0) {
+            if(!bag1.getHideViewers().contains(player.getUniqueId()))
+                bag1.addHideViewer(player);
+        }else {
+            if(bag1.getHideViewers().contains(player.getUniqueId()))
+                bag1.removeHideViewer(player);
         }
         //bag1.addPassenger(true);
         //bag1.lookEntity(player.getLocation().getYaw(), player.getLocation().getPitch(), true);
@@ -315,5 +319,14 @@ public class Bag extends Cosmetic {
         if(bag2 != null) {
             bag2.remove(player);
         }
+    }
+
+    public int getBackpackId() {
+        if(bag1 == null) return -1;
+        return bag1.getBackpackId();
+    }
+
+    public boolean isDisplay() {
+        return isDisplay;
     }
 }

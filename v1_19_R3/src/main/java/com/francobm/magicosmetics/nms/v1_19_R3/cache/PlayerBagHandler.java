@@ -3,7 +3,6 @@ package com.francobm.magicosmetics.nms.v1_19_R3.cache;
 import com.francobm.magicosmetics.MagicCosmetics;
 import com.francobm.magicosmetics.nms.IRangeManager;
 import com.francobm.magicosmetics.nms.bag.PlayerBag;
-import com.google.common.collect.ImmutableList;
 import com.mojang.datafixers.util.Pair;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelPipeline;
@@ -52,17 +51,11 @@ public class PlayerBagHandler extends PlayerBag {
         WorldServer world = ((CraftWorld) player.getWorld()).getHandle();
 
         armorStand = new EntityArmorStand(EntityTypes.d, world);
+        backpackId = armorStand.af();
         armorStand.b(player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), player.getLocation().getYaw(), 0);
         armorStand.j(true); //Invisible
         armorStand.m(true); //Invulnerable
         armorStand.u(true); //Marker
-
-        armorStand.k(entityPlayer);
-        net.minecraft.world.entity.Entity entity = entityPlayer;
-        List<net.minecraft.world.entity.Entity> orderedPassengers = new ArrayList<>();
-        orderedPassengers.add(armorStand);
-        orderedPassengers.addAll(entity.r.stream().filter((entity1) -> entity1 != armorStand).collect(ImmutableList.toImmutableList()));
-        entity.r = ImmutableList.copyOf(orderedPassengers);
     }
 
     @Override
@@ -70,6 +63,10 @@ public class PlayerBagHandler extends PlayerBag {
         if(hideViewers.contains(player.getUniqueId())) return;
         Player owner = getPlayer();
         if(owner == null) return;
+        if(player.getUniqueId().equals(owner.getUniqueId())) {
+            spawnSelf(owner);
+            return;
+        }
         Location location = owner.getLocation();
         armorStand.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
 
@@ -82,8 +79,6 @@ public class PlayerBagHandler extends PlayerBag {
         if(owner == null) return;
 
         Location location = owner.getLocation();
-        armorStand.j(true); //Invisible true
-        armorStand.u(true); //Marker
         armorStand.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
 
         sendPackets(player, getBackPackSpawn(backPackItemForMe == null ? backPackItem : backPackItemForMe));
@@ -122,12 +117,6 @@ public class PlayerBagHandler extends PlayerBag {
     public void remove() {
         for (Player player : getPlayersInRange()) {
             remove(player);
-        }
-        net.minecraft.world.entity.Entity entity = entityPlayer;
-        if (entity.r.size() == 1 && entity.r.get(0) == entity) {
-            entity.r = ImmutableList.of();
-        } else {
-            entity.r = entity.r.stream().filter((entity1) -> entity1 != armorStand).collect(ImmutableList.toImmutableList());
         }
     }
 
@@ -201,12 +190,10 @@ public class PlayerBagHandler extends PlayerBag {
     }
 
     private List<Packet<?>> getBackPackSpawn(ItemStack backpackItem) {
-        ArrayList<Pair<EnumItemSlot, net.minecraft.world.item.ItemStack>> list = new ArrayList<>();
-        list.add(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(backpackItem)));
         PacketPlayOutSpawnEntity spawnEntity = new PacketPlayOutSpawnEntity(armorStand);
         PacketPlayOutEntityMetadata entityMetadata = new PacketPlayOutEntityMetadata(armorStand.af(), armorStand.aj().c());
         PacketPlayOutMount mountEntity = new PacketPlayOutMount(entityPlayer);
-        PacketPlayOutEntityEquipment equip = new PacketPlayOutEntityEquipment(armorStand.af(), list);
+        PacketPlayOutEntityEquipment equip = new PacketPlayOutEntityEquipment(armorStand.af(), Collections.singletonList(new Pair<>(EnumItemSlot.f, CraftItemStack.asNMSCopy(backpackItem))));
         return Arrays.asList(spawnEntity, entityMetadata, equip, mountEntity);
     }
 

@@ -119,6 +119,7 @@ public class WStickMenu extends PaginatedMenu {
                     if(cosmetic.hasPermission(playerData.getOfflinePlayer().getPlayer())){
                         title.append(playerData.getEquip(cosmetic.getId()) != null ? plugin.equip : plugin.ava);
                     }else{
+                        if(!showAllCosmeticsInMenu) continue;
                         title.append(plugin.unAva);
                     }
                 }else {
@@ -126,6 +127,7 @@ public class WStickMenu extends PaginatedMenu {
                     if (playerData.getCosmeticById(cosmetic.getId()) != null) {
                         title.append(playerData.getEquip(cosmetic.getId()) != null ? plugin.equip : plugin.ava);
                     } else {
+                        if(!showAllCosmeticsInMenu) continue;
                         title.append(plugin.unAva);
                     }
                 }

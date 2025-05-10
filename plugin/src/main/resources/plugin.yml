@@ -16,6 +16,8 @@ softdepend:
   - Denizen
   - My_Worlds
   - HuskSync
+  - MysqlPlayerDataBridge
+  - Nexo
 authors: [FrancoBM]
 description: magic cosmetics for this server.
 website: FrancoBM#2980

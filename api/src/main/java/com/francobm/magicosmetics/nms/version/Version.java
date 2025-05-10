@@ -48,7 +48,7 @@ public abstract class Version {
     public abstract void setCamera(Player player, Entity entity);
 
 
-    public abstract PlayerBag createPlayerBag(Player player, double distance, float height, ItemStack backPackItem, ItemStack backPackItemForMe);
+    public abstract PlayerBag createPlayerBag(Player player, double distance, float height, ItemStack backPackItem, ItemStack backPackItemForMe, boolean isDisplay);
 
     public abstract EntityBag createEntityBag(Entity entity, double distance);
 

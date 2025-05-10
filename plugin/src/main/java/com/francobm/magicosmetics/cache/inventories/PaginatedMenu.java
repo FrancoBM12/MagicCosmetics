@@ -25,6 +25,8 @@ public abstract class PaginatedMenu extends Menu {
     //slots no available
     protected int index = 0;
 
+    protected boolean showAllCosmeticsInMenu = true;
+
     public PaginatedMenu(String id, ContentMenu contentMenu) {
         super(id, contentMenu);
         this.startSlot = 0;
@@ -104,6 +106,10 @@ public abstract class PaginatedMenu extends Menu {
 
     public int getPagesSlot() {
         return pagesSlot;
+    }
+
+    public void setShowAllCosmeticsInMenu(boolean showAllCosmeticsInMenu) {
+        this.showAllCosmeticsInMenu = showAllCosmeticsInMenu;
     }
 
     @Override

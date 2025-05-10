@@ -12,6 +12,7 @@ spray-key: 'SHIFT_F'
 spray-stay-time: 60
 spray-cooldown: 5 #1.8.5 - in seconds
 order-cosmetics: 0 #0 - order as the file is, #1 - alphabetical by id, #2 - random
+show-all-cosmetics-in-menu: true #true - show all cosmetics in the menu, false - show only unlocked
 placeholder-api: false
 main-menu: 'hat'
 save-data-delay: 300

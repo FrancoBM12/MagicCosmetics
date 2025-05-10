@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 
 public class ItemsAdderListener implements Listener {
     private final MagicCosmetics plugin = MagicCosmetics.getInstance();
@@ -22,11 +23,12 @@ public class ItemsAdderListener implements Listener {
     public void onIALoadEvent(ItemsAdderLoadDataEvent event){
         if(event.getCause() != ItemsAdderLoadDataEvent.Cause.FIRST_LOAD) return;
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            plugin.ava = plugin.getItemsAdder().replaceFontImages(plugin.ava);
-            plugin.unAva = plugin.getItemsAdder().replaceFontImages(plugin.unAva);
-            plugin.equip = plugin.getItemsAdder().replaceFontImages(plugin.equip);
+            plugin.ava = plugin.getResourcePlugin().replaceFontImages(plugin.ava);
+            plugin.unAva = plugin.getResourcePlugin().replaceFontImages(plugin.unAva);
+            plugin.equip = plugin.getResourcePlugin().replaceFontImages(plugin.equip);
+            plugin.getBossBar().clear();
             for(String lines : plugin.getMessages().getStringList("bossbar")){
-                lines = plugin.getItemsAdder().replaceFontImages(lines);
+                lines = plugin.getResourcePlugin().replaceFontImages(lines);
                 BossBar boss = plugin.getServer().createBossBar(lines, plugin.bossBarColor, BarStyle.SOLID);
                 boss.setVisible(true);
                 plugin.getBossBar().add(boss);
@@ -51,7 +53,13 @@ public class ItemsAdderListener implements Listener {
     }
 
     @EventHandler
-    public void onPlaceBlocks(CustomBlockInteractEvent event) {
-
+    public void onInteractBlocks(CustomBlockInteractEvent event) {
+        if(event.getHand() != EquipmentSlot.OFF_HAND) return;
+        Player player = event.getPlayer();
+        ItemStack item = event.getItem();
+        PlayerData playerData = PlayerData.getPlayer(player);
+        if(playerData.getWStick() == null) return;
+        if(!playerData.getWStick().isCosmetic(item)) return;
+        event.setCancelled(true);
     }
 }

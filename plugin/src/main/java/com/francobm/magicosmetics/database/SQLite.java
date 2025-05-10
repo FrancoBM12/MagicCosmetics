@@ -147,9 +147,9 @@ public class SQLite extends SQL {
     }
 
     private CompletableFuture<Void> savePlayerInfoAsync(PlayerData player){
+        player.clearCosmeticsToSaveData();
+        player.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
         return checkInfoAsync(player.getUniqueId()).thenCompose(check -> CompletableFuture.runAsync(() -> {
-            player.clearCosmeticsToSaveData();
-            player.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
             Connection connection = null;
             PreparedStatement preparedStatement = null;
             try{
@@ -189,10 +189,10 @@ public class SQLite extends SQL {
 
     private void loadPlayerInfo(Player player){
         String queryBuilder = "SELECT * FROM player_cosmetics WHERE UUID = ?";
-        if(plugin.isCitizens()) {
-            EntityBag.updateEntityBag(player);
-            EntityBalloon.updateEntityBalloon(player);
-        }
+        CustomSpray.updateSpray(player);
+        PlayerBalloon.updatePlayerBalloon(player);
+        EntityBag.updateEntityBag(player);
+        EntityBalloon.updateEntityBalloon(player);
         Connection connection = null;
         PreparedStatement preparedStatement = null;
         ResultSet resultSet = null;
@@ -219,8 +219,6 @@ public class SQLite extends SQL {
                 playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
                 playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
                 playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
-                CustomSpray.updateSpray(player);
-                PlayerBalloon.updatePlayerBalloon(player);
                 plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
             }
         }catch (SQLException throwable){
@@ -255,7 +253,6 @@ public class SQLite extends SQL {
 
                     playerData.setOfflinePlayer(Bukkit.getOfflinePlayer(player.getUniqueId()));
                     playerData.loadCosmetics(cosmetics);
-                    playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
                     playerData.setCosmetic(CosmeticType.BALLOON, playerData.getCosmeticById(balloon));
                     playerData.setCosmetic(CosmeticType.SPRAY, playerData.getCosmeticById(spray));
                     EntityBag.updateEntityBag(player);
@@ -263,10 +260,12 @@ public class SQLite extends SQL {
                     CustomSpray.updateSpray(player);
                     PlayerBalloon.updatePlayerBalloon(player);
                     plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        playerData.setCosmetic(CosmeticType.BAG,playerData.getCosmeticById(bag));
                         playerData.setCosmetic(CosmeticType.HAT, playerData.getCosmeticById(hat));
                         playerData.setCosmetic(CosmeticType.WALKING_STICK,playerData.getCosmeticById(wStick));
+                        plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
                     });
-                    plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
+                    //async plugin.getServer().getPluginManager().callEvent(new PlayerDataLoadEvent(playerData, playerData.cosmeticsInUse()));
                     return playerData;
                 }
             }catch (SQLException throwable){

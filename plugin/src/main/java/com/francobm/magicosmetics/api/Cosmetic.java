@@ -11,6 +11,7 @@ import com.francobm.magicosmetics.cache.cosmetics.balloons.BalloonEngine;
 import com.francobm.magicosmetics.cache.cosmetics.balloons.BalloonIA;
 import com.francobm.magicosmetics.files.FileCosmetics;
 import com.francobm.magicosmetics.files.FileCreator;
+import com.francobm.magicosmetics.provider.ItemsAdder;
 import com.francobm.magicosmetics.utils.OffsetModel;
 import com.francobm.magicosmetics.utils.PositionModelType;
 import com.francobm.magicosmetics.utils.Utils;
@@ -19,6 +20,8 @@ import com.francobm.magicosmetics.MagicCosmetics;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
 import org.bukkit.NamespacedKey;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -163,7 +166,7 @@ public abstract class Cosmetic {
                 break;
             case BAG:
                 Bag bag = (Bag) cosmetic;
-                cosmec = new Bag(bag.getId(), bag.getName(), bag.getItemStack().clone(), bag.getModelData(), bag.getBagForMe(), bag.isColored(), bag.getSpace(), bag.getCosmeticType(), bag.getColor(), bag.getDistance(), bag.getPermission(), bag.isTexture(), bag.isHideMenu(), bag.getHeight(), bag.isUseEmote(), bag.getBackPackEngine() != null ? bag.getBackPackEngine().getClone() : null, bag.getNamespacedKey());
+                cosmec = new Bag(bag.getId(), bag.getName(), bag.getItemStack().clone(), bag.getModelData(), bag.getBagForMe(), bag.isColored(), bag.getSpace(), bag.getCosmeticType(), bag.getColor(), bag.getDistance(), bag.getPermission(), bag.isTexture(), bag.isHideMenu(), bag.getHeight(), bag.isUseEmote(), bag.getBackPackEngine() != null ? bag.getBackPackEngine().getClone() : null, bag.getNamespacedKey(), bag.isDisplay());
                 break;
             case WALKING_STICK:
                 WStick wStick = (WStick) cosmetic;
@@ -197,6 +200,7 @@ public abstract class Cosmetic {
                 Color color = null;
                 String type = "";
                 double space = 0;
+                boolean isDisplay = false;
                 boolean overlaps = false;
                 BalloonEngine balloonEngine = null;
                 BalloonIA balloonIA = null;
@@ -240,8 +244,8 @@ public abstract class Cosmetic {
                     }
                     if(cosmeticsConf.contains("cosmetics." + key + ".item.display")){
                         name = cosmeticsConf.getString("cosmetics." + key + ".item.display");
-                        if(plugin.isItemsAdder()){
-                            name = plugin.getItemsAdder().replaceFontImages(name);
+                        if(plugin.isResourcePlugin()){
+                            name = plugin.getResourcePlugin().replaceFontImages(name);
                         }
                     }
                     if(cosmeticsConf.contains("cosmetics." + key + ".item.material")){
@@ -254,10 +258,10 @@ public abstract class Cosmetic {
                     }
                     if(cosmeticsConf.contains("cosmetics." + key + ".item.lore")){
                         lore = cosmeticsConf.getStringList("cosmetics." + key + ".item.lore");
-                        if(plugin.isItemsAdder()){
+                        if(plugin.isResourcePlugin()){
                             List<String> lore2 = new ArrayList<>();
                             for(String l : lore) {
-                                lore2.add(plugin.getItemsAdder().replaceFontImages(l));
+                                lore2.add(plugin.getResourcePlugin().replaceFontImages(l));
                             }
                             lore.clear();
                             lore.addAll(lore2);
@@ -284,33 +288,21 @@ public abstract class Cosmetic {
                     if(cosmeticsConf.contains("cosmetics." + key + ".height")) {
                         height = (float) cosmeticsConf.getDouble("cosmetics." + key + ".height");
                     }
-                    if(cosmeticsConf.contains("cosmetics." + key + ".item.item-adder")){
-                        if(!plugin.isItemsAdder()){
-                            plugin.getLogger().warning("Item Adder plugin Not Found skipping cosmetic '" + key + "'");
+                    if(plugin.isResourcePlugin()) {
+                        String pathName = plugin.getResourcePlugin().getPathName();
+                        if(cosmeticsConf.contains("cosmetics." + key + ".item." + pathName)) {
+                            String id = cosmeticsConf.getString("cosmetics." + key + ".item." + pathName);
+                            ItemStack resourceItem = plugin.getResourcePlugin().getItemStackById(id);
+                            if(resourceItem == null){
+                                plugin.getLogger().warning("Resource (" + plugin.getResourcePlugin().getProviderName() + ") Item: '" + id + "' Not Found skipping...");
+                                continue;
+                            }
+                            itemStack = resourceItem.clone();
+                            modelData = -1;
+                        }else {
+                            plugin.getLogger().warning("Resource (" + plugin.getResourcePlugin().getProviderName() + ") plugin Not Found skipping cosmetic '" + key + "'");
                             continue;
                         }
-                        String id = cosmeticsConf.getString("cosmetics." + key + ".item.item-adder");
-                        ItemStack ia = plugin.getItemsAdder().getCustomItemStack(id);
-                        if(ia == null){
-                            plugin.getLogger().warning("IA Item: '" + id + "' Not Found skipping...");
-                            continue;
-                        }
-                        itemStack = ia.clone();
-                        modelData = -1;
-                    }
-                    if(cosmeticsConf.contains("cosmetics." + key + ".item.oraxen")){
-                        if(!plugin.isOraxen()){
-                            plugin.getLogger().warning("Oraxen plugin Not Found skipping cosmetic '" + key + "'");
-                            continue;
-                        }
-                        String id = cosmeticsConf.getString("cosmetics." + key + ".item.oraxen");
-                        ItemStack oraxen = plugin.getOraxen().getItemStackById(id);
-                        if(oraxen == null){
-                            plugin.getLogger().warning("Oraxen item:  '" + id + "' Not Found skipping...");
-                            continue;
-                        }
-                        itemStack = oraxen.clone();
-                        modelData = -1;
                     }
                     if(itemStack == null){
                         continue;
@@ -318,12 +310,16 @@ public abstract class Cosmetic {
                     ItemMeta itemMeta = itemStack.getItemMeta();
                     itemMeta.setDisplayName(name);
                     itemMeta.setLore(lore);
+                    if(Utils.isNewerThan1206()) {
+                        itemMeta.addAttributeModifier(Attribute.GENERIC_ATTACK_DAMAGE, new AttributeModifier("foo",0,AttributeModifier.Operation.MULTIPLY_SCALAR_1)); // This is necessary as of 1.20.6
+                    }
+
                     if(glow){
                         itemStack.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
                         itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
                     }
                     if(hide_attributes) {
-                        itemMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_DYE, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_POTION_EFFECTS, ItemFlag.HIDE_DESTROYS, ItemFlag.HIDE_PLACED_ON);
+                        itemMeta.addItemFlags(ItemFlag.values());
                     }
                     itemMeta.setUnbreakable(unbreakable);
                     if(modelData != -1) {
@@ -342,41 +338,26 @@ public abstract class Cosmetic {
                             bagForMe.setItemMeta(itemMeta1);
                         }else{
                             String id = cosmeticsConf.getString("cosmetics." + key + ".item.for-me");
-                            if(id.startsWith("item-adder")){
-                                if(!plugin.isItemsAdder()){
-                                    plugin.getLogger().warning("ItemsAdder plugin not found, skipping cosmetic");
+                            if(plugin.isResourcePlugin()) {
+                                String pathName = plugin.getResourcePlugin().getPathName();
+                                if(cosmeticsConf.contains("cosmetics." + key + ".item." + pathName)) {
+                                    String resourceId = id.split(";")[1];
+                                    ItemStack resourceItem = plugin.getResourcePlugin().getItemStackById(resourceId);
+                                    if(resourceItem == null){
+                                        plugin.getLogger().warning("Resource (" + plugin.getResourcePlugin().getProviderName() + ") Item: '" + resourceId + "' Not Found skipping...");
+                                        continue;
+                                    }
+                                    bagForMe = itemStack.clone();
+                                    bagForMe.setType(resourceItem.getType());
+                                    ItemMeta itemMeta1 = bagForMe.getItemMeta();
+                                    itemMeta1.setCustomModelData(resourceItem.getItemMeta().getCustomModelData());
+                                    bagForMe.setItemMeta(itemMeta1);
+                                }else {
+                                    plugin.getLogger().warning("Resource (" + plugin.getResourcePlugin().getProviderName() + ") plugin Not Found, skipping cosmetic '" + key + "'");
                                     continue;
                                 }
-                                String ia = id.split(";")[1];
-                                ItemStack item_ia = plugin.getItemsAdder().getCustomItemStack(ia);
-                                if(item_ia == null){
-                                    plugin.getLogger().warning("IA Item: '" + ia + "' Not Found skipping...");
-                                    continue;
-                                }
-                                bagForMe = itemStack.clone();
-                                bagForMe.setType(item_ia.getType());
-                                ItemMeta itemMeta1 = bagForMe.getItemMeta();
-                                itemMeta1.setCustomModelData(item_ia.getItemMeta().getCustomModelData());
-                                bagForMe.setItemMeta(itemMeta1);
-                            }else if(id.startsWith("oraxen")) {
-                                if(!plugin.isOraxen()){
-                                    plugin.getLogger().warning("Oraxen plugin not found, skipping cosmetic");
-                                    continue;
-                                }
-                                String oraxen = id.split(";")[1];
-                                ItemStack item_orax = plugin.getOraxen().getItemStackById(oraxen);
-                                if(item_orax == null){
-                                    plugin.getLogger().warning("Oraxen Item: '" + oraxen + "' Not Found skipping...");
-                                    continue;
-                                }
-                                bagForMe = itemStack.clone();
-                                bagForMe.setType(item_orax.getType());
-                                ItemMeta itemMeta1 = bagForMe.getItemMeta();
-                                itemMeta1.setCustomModelData(item_orax.getItemMeta().getCustomModelData());
-                                bagForMe.setItemMeta(itemMeta1);
                             }
                         }
-
                     }
                 }
                 if(cosmeticsConf.contains("cosmetics." + key + ".item-image")){
@@ -418,6 +399,9 @@ public abstract class Cosmetic {
                 if(cosmeticsConf.contains("cosmetics." + key + ".space")){
                     space = cosmeticsConf.getDouble("cosmetics." + key + ".space");
                 }
+                if(cosmeticsConf.contains("cosmetics." + key + ".display")){
+                    isDisplay = cosmeticsConf.getBoolean("cosmetics." + key + ".display");
+                }
                 if(cosmeticsConf.contains("cosmetics." + key + ".overlaps")){
                     overlaps = cosmeticsConf.getBoolean("cosmetics." + key + ".overlaps");
                 }
@@ -448,12 +432,13 @@ public abstract class Cosmetic {
                     }
                 }
                 if(cosmeticsConf.contains("cosmetics." + key + ".ia.model")){
-                    if(!plugin.isItemsAdder()){
+                    if(!plugin.isResourcePlugin() || !(plugin.getResourcePlugin() instanceof ItemsAdder)) {
                         plugin.getLogger().warning("ItemsAdder plugin Not Found skipping cosmetic '" + key + "'");
                         continue;
                     }
+                    ItemsAdder itemsAdder = (ItemsAdder) plugin.getResourcePlugin();
                     String modelId = cosmeticsConf.getString("cosmetics." + key + ".ia.model");
-                    if(!plugin.getItemsAdder().existModel(modelId)) {
+                    if(!itemsAdder.existModel(modelId)) {
                         plugin.getLogger().warning("ItemsAdder model Not Found skipping cosmetic '" + key + "'");
                         continue;
                     }
@@ -481,7 +466,7 @@ public abstract class Cosmetic {
                         cosmetics.put(key, hat);
                         break;
                     case BAG:
-                        Bag bag = new Bag(key, name, itemStack, modelData, bagForMe, colored, space, cosmeticType, color, distance, permission, isTexture, hideMenu, height, useEmote, backPackEngine, namespacedKey);
+                        Bag bag = new Bag(key, name, itemStack, modelData, bagForMe, colored, space, cosmeticType, color, distance, permission, isTexture, hideMenu, height, useEmote, backPackEngine, namespacedKey, isDisplay);
                         if(color != null) {
                             bag.setDefaultColor(true);
                         }

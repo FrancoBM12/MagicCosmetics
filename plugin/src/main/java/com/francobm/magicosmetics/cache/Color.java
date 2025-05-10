@@ -63,13 +63,9 @@ public class Color {
                 if(!plugin.getMenus().contains("colors.rows." + key)) continue;
                 String character = plugin.getMenus().getString("colors.rows." + key + ".character");
                 String selected = plugin.getMenus().getString("colors.rows." + key + ".selected");
-                if(plugin.isItemsAdder()){
-                    character = plugin.getItemsAdder().replaceFontImages(character);
-                    selected = plugin.getItemsAdder().replaceFontImages(selected);
-                }
-                if(plugin.isOraxen()){
-                    character = plugin.getOraxen().replaceFontImages(character);
-                    selected = plugin.getOraxen().replaceFontImages(selected);
+                if(plugin.isResourcePlugin()){
+                    character = plugin.getResourcePlugin().replaceFontImages(character);
+                    selected = plugin.getResourcePlugin().replaceFontImages(selected);
                 }
                 rows.put(key, new Row(key, character, selected));
             }
@@ -103,10 +99,8 @@ public class Color {
                 }
                 if(plugin.getMenus().contains("colors." + key + ".primary-item.display")){
                     displayName = plugin.getMenus().getString("colors." + key + ".primary-item.display");
-                    if(plugin.isItemsAdder())
-                        displayName = plugin.getItemsAdder().replaceFontImages(displayName);
-                    if(plugin.isOraxen())
-                        displayName = plugin.getOraxen().replaceFontImages(displayName);
+                    if(plugin.isResourcePlugin())
+                        displayName = plugin.getResourcePlugin().replaceFontImages(displayName);
                 }
                 if(plugin.getMenus().contains("colors." + key + ".primary-item.material")){
                     String item = plugin.getMenus().getString("colors." + key + ".primary-item.material");
@@ -118,18 +112,10 @@ public class Color {
                 }
                 if(plugin.getMenus().contains("colors." + key + ".primary-item.lore")){
                     lore = plugin.getMenus().getStringList("colors." + key + ".primary-item.lore");
-                    if(plugin.isItemsAdder()){
+                    if(plugin.isResourcePlugin()){
                         List<String> lore2 = new ArrayList<>();
                         for(String l : lore) {
-                            lore2.add(plugin.getItemsAdder().replaceFontImages(l));
-                        }
-                        lore.clear();
-                        lore.addAll(lore2);
-                    }
-                    if(plugin.isOraxen()){
-                        List<String> lore2 = new ArrayList<>();
-                        for(String l : lore) {
-                            lore2.add(plugin.getOraxen().replaceFontImages(l));
+                            lore2.add(plugin.getResourcePlugin().replaceFontImages(l));
                         }
                         lore.clear();
                         lore.addAll(lore2);
@@ -147,33 +133,21 @@ public class Color {
                 if(plugin.getMenus().contains("colors." + key + ".primary-item.modeldata")){
                     modelData = plugin.getMenus().getInt("colors." + key + ".primary-item.modeldata");
                 }
-                if(plugin.getMenus().contains("colors." + key + ".primary-item.item-adder")){
-                    if(!plugin.isItemsAdder()){
-                        plugin.getLogger().warning("Item Adder plugin Not Found skipping color '" + key + "'");
+                if(plugin.isResourcePlugin()) {
+                    String pathName = plugin.getResourcePlugin().getPathName();
+                    if(plugin.getMenus().contains("colors." + key + ".primary-item." + pathName)) {
+                        String id = plugin.getMenus().getString("colors." + key + ".primary-item." + pathName);
+                        ItemStack resourceItem = plugin.getResourcePlugin().getItemStackById(id);
+                        if(resourceItem == null){
+                            plugin.getLogger().warning("Resource (" + plugin.getResourcePlugin().getProviderName() + ") Item: '" + id + "' Not Found skipping...");
+                            continue;
+                        }
+                        primaryItem = resourceItem.clone();
+                        modelData = -1;
+                    }else {
+                        plugin.getLogger().warning("Resource (" + plugin.getResourcePlugin().getProviderName() + ") plugin Not Found, skipping color '" + key + "'");
                         continue;
                     }
-                    String id = plugin.getMenus().getString("colors." + key + ".primary-item.item-adder");
-                    ItemStack ia = plugin.getItemsAdder().getCustomItemStack(id);
-                    if(ia == null){
-                        plugin.getLogger().warning("IA Item: '" + id + "' Not Found skipping...");
-                        continue;
-                    }
-                    primaryItem = ia.clone();
-                    modelData = -1;
-                }
-                if(plugin.getMenus().contains("colors." + key + ".primary-item.oraxen")){
-                    if(!plugin.isOraxen()){
-                        plugin.getLogger().warning("Oraxen plugin Not Found skipping color '" + key + "'");
-                        continue;
-                    }
-                    String id = plugin.getMenus().getString("colors." + key + ".primary-item.oraxen");
-                    ItemStack oraxen = plugin.getOraxen().getItemStackById(id);
-                    if(oraxen == null){
-                        plugin.getLogger().warning("Oraxen item:  '" + id + "' Not Found skipping...");
-                        continue;
-                    }
-                    primaryItem = oraxen.clone();
-                    modelData = -1;
                 }
                 ItemMeta itemMeta = primaryItem.getItemMeta();
                 itemMeta.setDisplayName(displayName);
@@ -210,11 +184,8 @@ public class Color {
             }
             if(plugin.getMenus().contains("colors." + key + ".select")){
                 select = plugin.getMenus().getString("colors." + key + ".select");
-                if(plugin.isItemsAdder()){
-                    select = plugin.getItemsAdder().replaceFontImages(select);
-                }
-                if(plugin.isOraxen()){
-                    select = plugin.getOraxen().replaceFontImages(select);
+                if(plugin.isResourcePlugin()){
+                    select = plugin.getResourcePlugin().replaceFontImages(select);
                 }
             }
             if(plugin.getMenus().contains("colors." + key + ".with-row")){

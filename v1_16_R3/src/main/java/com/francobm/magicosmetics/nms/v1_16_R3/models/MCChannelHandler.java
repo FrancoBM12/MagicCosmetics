@@ -5,12 +5,14 @@ import com.francobm.magicosmetics.api.CosmeticType;
 import com.francobm.magicosmetics.cache.PlayerData;
 import com.francobm.magicosmetics.cache.cosmetics.Hat;
 import com.francobm.magicosmetics.cache.cosmetics.WStick;
+import com.francobm.magicosmetics.cache.cosmetics.backpacks.Bag;
 import com.francobm.magicosmetics.events.CosmeticInventoryUpdateEvent;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import net.minecraft.server.v1_16_R3.*;
+import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.v1_16_R3.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 
@@ -29,14 +31,17 @@ public class MCChannelHandler extends ChannelDuplexHandler {
         if(msg instanceof PacketPlayOutSetSlot) {
             PacketPlayOutSetSlot packetPlayOutSetSlot = (PacketPlayOutSetSlot) msg;
             CallUpdateInvEvent(packetPlayOutSetSlot);
-        }else if(msg instanceof PacketPlayOutSpawnEntity) {
-            PacketPlayOutSpawnEntity otherPacket = (PacketPlayOutSpawnEntity) msg;
+        }else if(msg instanceof PacketPlayOutNamedEntitySpawn) {
+            PacketPlayOutNamedEntitySpawn otherPacket = (PacketPlayOutNamedEntitySpawn) msg;
             handleEntitySpawn(getIntPacket(otherPacket, "a"));
         }else if(msg instanceof PacketPlayOutEntityDestroy) {
             PacketPlayOutEntityDestroy otherPacket = (PacketPlayOutEntityDestroy) msg;
             for(int id : getArrayIntsPacket(otherPacket, "a")){
                 handleEntityDespawn(id);
             }
+        }else if(msg instanceof PacketPlayOutMount) {
+            PacketPlayOutMount otherPacket = (PacketPlayOutMount) msg;
+            msg = handleEntityMount(otherPacket);
         }
         super.write(ctx, msg, promise);
     }
@@ -91,6 +96,32 @@ public class MCChannelHandler extends ChannelDuplexHandler {
         plugin.getServer().getScheduler().runTask(plugin, () -> plugin.getServer().getPluginManager().callEvent(event));
     }
 
+    private PacketPlayOutMount handleEntityMount(PacketPlayOutMount packetPlayOutMount) {
+        int id = getIntPacket(packetPlayOutMount, "a");
+        int[] ids = getArrayIntsPacket(packetPlayOutMount, "b");
+        org.bukkit.entity.Entity entity = this.getEntityAsync(this.player.getWorldServer(), id);
+        if(!(entity instanceof Player)) return packetPlayOutMount;
+        Player otherPlayer = (Player) entity;
+        PlayerData playerData = PlayerData.getPlayer(otherPlayer);
+        if(playerData.getBag() == null) return packetPlayOutMount;
+
+        Bag bag = (Bag) playerData.getBag();
+        if(bag.getBackpackId() == -1) return packetPlayOutMount;
+        int[] newIds = new int[ids.length + 1];
+        newIds[0] = bag.getBackpackId();
+        for(int i = 0; i < ids.length; i++){
+            if(ids[i] == bag.getBackpackId()) continue;
+            newIds[i + 1] = ids[i];
+        }
+        PacketDataSerializer data = new PacketDataSerializer(Unpooled.buffer());
+        data.d(id);
+        data.a(newIds);
+        try {
+            packetPlayOutMount.a(data);
+        } catch (IOException ignored) {}
+        return packetPlayOutMount;
+    }
+
     private void handleEntitySpawn(int id) {
         org.bukkit.entity.Entity entity = this.getEntityAsync(this.player.getWorldServer(), id);
         if(!(entity instanceof Player)) return;
@@ -98,7 +129,7 @@ public class MCChannelHandler extends ChannelDuplexHandler {
         PlayerData playerData = PlayerData.getPlayer(otherPlayer);
         if(playerData == null) return;
         if(playerData.getBag() == null) return;
-        playerData.getBag().spawn(this.player.getBukkitEntity());
+        Bukkit.getServer().getScheduler().runTask(MagicCosmetics.getInstance(), () -> playerData.getBag().spawn(this.player.getBukkitEntity()));
     }
 
     private void handleEntityDespawn(int id) {

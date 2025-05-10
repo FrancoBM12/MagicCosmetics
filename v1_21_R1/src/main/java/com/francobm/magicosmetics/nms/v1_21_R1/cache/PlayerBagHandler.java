@@ -72,6 +72,10 @@ public class PlayerBagHandler extends PlayerBag {
         if(hideViewers.contains(player.getUniqueId())) return;
         Player owner = getPlayer();
         if(owner == null) return;
+        if(player.getUniqueId().equals(owner.getUniqueId())) {
+            spawnSelf(owner);
+            return;
+        }
         Location location = owner.getLocation();
         armorStand.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
 
@@ -83,8 +87,6 @@ public class PlayerBagHandler extends PlayerBag {
         Player owner = getPlayer();
         if(owner == null) return;
 
-        armorStand.k(true); //Invisible true
-        armorStand.v(true); //Marker
         Location location = owner.getLocation();
         armorStand.b(location.getX(), location.getY(), location.getZ(), location.getYaw(), 0);
 
@@ -122,15 +124,6 @@ public class PlayerBagHandler extends PlayerBag {
 
     @Override
     public void remove() {
-        net.minecraft.world.entity.Entity entity = entityPlayer;
-        if (entity.p.size() == 1 && entity.p.get(0) == armorStand) {
-            entity.p = ImmutableList.of();
-        } else {
-            entity.p = entity.p.stream().filter((entity1) -> entity1 != armorStand).collect(ImmutableList.toImmutableList());
-        }
-        for (net.minecraft.world.entity.Entity entity1 : entity.p) {
-            Bukkit.getLogger().info("Entity: " + entity1.getBukkitEntity().getType().getName() + " Removed");
-        }
         for (Player player : getPlayersInRange()) {
             remove(player);
         }

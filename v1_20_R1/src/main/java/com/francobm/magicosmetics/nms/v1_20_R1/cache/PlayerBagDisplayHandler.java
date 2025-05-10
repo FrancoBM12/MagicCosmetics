@@ -45,7 +45,7 @@ public class PlayerBagDisplayHandler extends PlayerBag {
         hideViewers = new CopyOnWriteArrayList<>(new ArrayList<>());
         this.uuid = p.getUniqueId();
         this.distance = distance;
-        Bukkit.getLogger().info("Height: " + height);
+        //Bukkit.getLogger().info("Height: " + height);
         this.height = height;
         this.ids = new ArrayList<>();
         this.backPackItem = backPackItem;
